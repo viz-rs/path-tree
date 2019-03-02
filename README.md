@@ -5,7 +5,7 @@ A compressing dynamic trie ([radix tree]) structure is used for efficient matchi
 
 ## Usage
 
-```rs
+```rust
 use path_tree::PathTree;
 
 let mut tree = PathTree::<usize>::new(
