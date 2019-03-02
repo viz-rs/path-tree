@@ -97,6 +97,16 @@ assert_eq!(
         ("any", "noder/issues"),
     ]
 ); // Params
+
+
+// Matched "/users/repos/*any"
+let node = tree.find("/users/repos/");
+let res = node.unwrap();
+assert_eq!(res.0.path, "*".chars().collect::<Vec<char>>());
+if let Some(meta) = &res.0.data {
+  assert_eq!(meta.data.unwrap(), 12); // Data
+}
+assert_eq!(res.1.is_none(), true);
 ```
 
 ## Acknowledgements
