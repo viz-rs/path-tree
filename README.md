@@ -29,3 +29,7 @@ This project is licensed under either of
 
 
 [radix tree]: https://github.com/trek-rs/radix-tree
+[rax]: https://github.com/antirez/rax
+[httprouter]: https://github.com/julienschmidt/httprouter
+[echo]: https://github.com/labstack/echo
+[trekjs]: https://github.com/trekjs/router
