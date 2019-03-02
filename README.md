@@ -3,6 +3,13 @@ Path-based routing tree.
 
 A compressing dynamic trie ([radix tree]) structure is used for efficient matching.
 
+[![Build Status](https://travis-ci.org/trek-rs/path-tree.svg?branch=master)](https://travis-ci.org/trek-rs/path-tree)
+[![Latest version](https://img.shields.io/crates/v/path-tree.svg)](https://crates.io/crates/path-tree)
+[![Documentation](https://docs.rs/path-tree/badge.svg)](https://docs.rs/path-tree)
+![License](https://img.shields.io/crates/l/path-tree.svg)
+
+## Features
+
 ## Usage
 
 ```rust

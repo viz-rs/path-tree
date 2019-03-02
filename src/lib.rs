@@ -1,6 +1,5 @@
-use std::iter::FromIterator;
-
 use radix_tree::Node;
+use std::iter::FromIterator;
 
 #[derive(Clone, Debug)]
 pub enum NodeKind {
@@ -24,7 +23,7 @@ impl<R> NodeMetadata<R> {
             key: false,
             data: None,
             params: None,
-            kind: NodeKind::Static,
+            kind: NodeKind::Root,
         }
     }
 }
@@ -51,14 +50,9 @@ where
 
         // Root "/"
         if 0 == buf.len() {
-            match node.data.as_mut() {
-                Some(d) => {
-                    d.key = true;
-                    d.data = Some(data);
-                }
-                None => {
-                    node.data = Some(NodeMetadata::new());
-                }
+            if let Some(d) = node.data.as_mut() {
+                d.key = true;
+                d.data = Some(data);
             }
             return self;
         }
@@ -426,13 +420,7 @@ mod tests {
 
     #[test]
     fn new_tree() {
-        let mut tree = PathTree::<usize>::new(
-            "/",
-            NodeMetadata {
-                kind: NodeKind::Root,
-                ..NodeMetadata::new()
-            },
-        );
+        let mut tree = PathTree::<usize>::new("/", NodeMetadata::new());
         assert_eq!(tree.tree.path.len(), 1);
 
         tree.insert("/", 0);
@@ -581,13 +569,7 @@ mod tests {
 
     #[test]
     fn statics() {
-        let mut tree = PathTree::new(
-            "/",
-            NodeMetadata {
-                kind: NodeKind::Root,
-                ..NodeMetadata::new()
-            },
-        );
+        let mut tree = PathTree::new("/", NodeMetadata::new());
         let nodes = [
             "/hi",
             "/contact",
@@ -677,13 +659,7 @@ mod tests {
 
     #[test]
     fn wildcards() {
-        let mut tree = PathTree::new(
-            "/",
-            NodeMetadata {
-                kind: NodeKind::Root,
-                ..NodeMetadata::new()
-            },
-        );
+        let mut tree = PathTree::new("/", NodeMetadata::new());
         let nodes = [
             "/",
             "/cmd/:tool/:sub",
@@ -822,13 +798,7 @@ mod tests {
         //      /users/you                 match
         //      /users/gordon/profile      no match
         //      /users/                    no match
-        let mut tree = PathTree::new(
-            "/",
-            NodeMetadata {
-                kind: NodeKind::Root,
-                ..NodeMetadata::new()
-            },
-        );
+        let mut tree = PathTree::new("/", NodeMetadata::new());
 
         tree.insert("/users/:id", 0);
 
@@ -876,13 +846,7 @@ mod tests {
         //      /a/c/d                  match
         //      /a/c/a                  match
         //      /a/c/e                  match
-        let mut tree = PathTree::new(
-            "/",
-            NodeMetadata {
-                kind: NodeKind::Root,
-                ..NodeMetadata::new()
-            },
-        );
+        let mut tree = PathTree::new("/", NodeMetadata::new());
 
         tree.insert("/a/b/c", "/a/b/c");
         tree.insert("/a/c/d", "/a/c/d");
@@ -935,13 +899,7 @@ mod tests {
         //      /rust/let/                no match
         //      /rust/                    no match
         //      /                         no match
-        let mut tree = PathTree::new(
-            "/",
-            NodeMetadata {
-                kind: NodeKind::Root,
-                ..NodeMetadata::new()
-            },
-        );
+        let mut tree = PathTree::new("/", NodeMetadata::new());
 
         tree.insert("/:lang/:keyword", true);
         tree.insert("/:id", true);
@@ -988,13 +946,7 @@ mod tests {
         //      /src/                     match
         //      /src/somefile.go          match
         //      /src/subdir/somefile.go   match
-        let mut tree = PathTree::new(
-            "/",
-            NodeMetadata {
-                kind: NodeKind::Root,
-                ..NodeMetadata::new()
-            },
-        );
+        let mut tree = PathTree::new("/", NodeMetadata::new());
 
         tree.insert("/src/*filepath", "* files");
 
@@ -1053,13 +1005,7 @@ mod tests {
         //      /a/c/d                  match
         //      /a/c/a                  match
         //      /a/c/e                  match
-        let mut tree = PathTree::new(
-            "/",
-            NodeMetadata {
-                kind: NodeKind::Root,
-                ..NodeMetadata::new()
-            },
-        );
+        let mut tree = PathTree::new("/", NodeMetadata::new());
 
         tree.insert("/a/b/c", "/a/b/c");
         tree.insert("/a/c/d", "/a/c/d");
@@ -1110,13 +1056,7 @@ mod tests {
         //      /                  match *
         //      /download          match *
         //      /users/fundon      match users *
-        let mut tree = PathTree::<fn() -> usize>::new(
-            "/",
-            NodeMetadata {
-                kind: NodeKind::Root,
-                ..NodeMetadata::new()
-            },
-        );
+        let mut tree = PathTree::<fn() -> usize>::new("/", NodeMetadata::new());
 
         tree.insert("/", || 1);
         tree.insert("/*", || 2);
