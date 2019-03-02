@@ -18,7 +18,6 @@ let mut tree = PathTree::<usize>::new(
     },
 );
 
-
 tree.insert("/", 0);
 tree.insert("/users", 1);
 tree.insert("/users/:id", 2);
