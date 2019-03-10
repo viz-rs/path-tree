@@ -1,6 +1,6 @@
 [package]
 name = "path-tree"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Fangdun Cai <cfddream@gmail.com>"]
 edition = "2018"
 description = "Path-based routing tree"
@@ -12,9 +12,6 @@ license = "MIT/Apache-2.0"
 
 [lib]
 bench = false
-
-[dependencies]
-radix-tree = "^0.0"
 
 [dev-dependencies]
 actix-router = { git="https://github.com/actix/actix-net", path="router" }

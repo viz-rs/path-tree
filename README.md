@@ -1,4 +1,5 @@
 # path-tree
+
 Path-based routing tree.
 
 A compressing dynamic trie ([radix tree]) structure is used for efficient matching.
@@ -10,20 +11,22 @@ A compressing dynamic trie ([radix tree]) structure is used for efficient matchi
 
 ## Features
 
+- Fast!
+
+- Named parameters. e.g. `:name`.
+
+- Catch-All parameters. e.g. `*any`.
+
+- Supports multiple naming for the same path segment. e.g. `/users/:id` and `/users/:user_id/repos`.
+
+- Don't care about routes orders, we will automatically need to find them.
+
 ## Usage
 
 ```rust
 use path_tree::PathTree;
 
-let mut tree = PathTree::<usize>::new(
-    "/",
-    NodeMetadata {
-        kind: NodeKind::Root,
-        key: false,
-        data: None,
-        params: None,
-    },
-);
+let mut tree = PathTree::<usize>::new();
 
 tree.insert("/", 0);
 tree.insert("/users", 1);
@@ -43,61 +46,41 @@ tree.insert("/users/repos/*any", 12);
 let node = tree.find("/");
 assert_eq!(node.is_some(), true);
 let res = node.unwrap();
-assert_eq!(res.0.path, ['/']);
-assert_eq!(res.0.data.is_some(), true);
-if let Some(meta) = &res.0.data {
-  assert_eq!(meta.data.unwrap(), 0);
-}
-assert_eq!(res.1, None); // Params
+assert_eq!(*res.0, 0);
+assert_eq!(res.1, []); // Params
 
 // Matched "/:username"
 let node = tree.find("/username");
 assert_eq!(node.is_some(), true);
 let res = node.unwrap();
-assert_eq!(res.0.path, [':']);
-if let Some(meta) = &res.0.data {
-  assert_eq!(meta.data.unwrap(), 7); // Data
-}
-assert_eq!(res.1.unwrap(), [("username", "username")]); // Params
+assert_eq!(*res.0, 1);
+assert_eq!(res.1, [("username", "username")]); // Params
 
 
 // Matched "/*any"
 let node = tree.find("/user/s");
 let res = node.unwrap();
-assert_eq!(res.0.path, ['*']);
-if let Some(meta) = &res.0.data {
-  assert_eq!(meta.data.unwrap(), 8); // Data
-}
-assert_eq!(res.1.unwrap(), [("any", "user/s")]);
+assert_eq!(*res.0, 8);
+assert_eq!(res.1, [("any", "user/s")]);
 
 // Matched "/users/:id"
 let node = tree.find("/users/fundon");
 let res = node.unwrap();
-assert_eq!(res.0.path, [':']);
-if let Some(meta) = &res.0.data {
-  assert_eq!(meta.data.unwrap(), 2); // Data
-}
-assert_eq!(res.1.unwrap(), [("id", "fundon")]); // Params
+assert_eq!(*res.0, 2);
+assert_eq!(res.1, [("id", "fundon")]); // Params
 
 // Matched "/users/:user_id/repos/:id"
 let node = tree.find("/users/fundon/repos/trek-rs");
 let res = node.unwrap();
-assert_eq!(res.0.path, [':']);
-if let Some(meta) = &res.0.data {
-  assert_eq!(meta.data.unwrap(), 5); // Data
-}
-assert_eq!(res.1.unwrap(), [("user_id", "fundon"), ("id", "trek-rs")]); //
-Params
+assert_eq!(*res.0, 5);
+assert_eq!(res.1, [("user_id", "fundon"), ("id", "trek-rs")]); // Params
 
 // Matched "/users/:user_id/repos/:id/*any"
 let node = tree.find("/users/fundon/repos/trek-rs/noder/issues");
 let res = node.unwrap();
-assert_eq!(res.0.path, ['*']);
-if let Some(meta) = &res.0.data {
-  assert_eq!(meta.data.unwrap(), 6); // Data
-}
+assert_eq!(*res.0, 6);
 assert_eq!(
-    res.1.unwrap(),
+    res.1,
     [
         ("user_id", "fundon"),
         ("id", "trek-rs"),
@@ -109,11 +92,8 @@ assert_eq!(
 // Matched "/users/repos/*any"
 let node = tree.find("/users/repos/");
 let res = node.unwrap();
-assert_eq!(res.0.path, "*".chars().collect::<Vec<char>>());
-if let Some(meta) = &res.0.data {
-  assert_eq!(meta.data.unwrap(), 12); // Data
-}
-assert_eq!(res.1.is_none(), true);
+assert_eq!(*res.0, 12);
+assert_eq!(res.1, []);
 ```
 
 ## Acknowledgements
@@ -133,7 +113,6 @@ This project is licensed under either of
   http://www.apache.org/licenses/LICENSE-2.0)
 - MIT license ([LICENSE-MIT](LICENSE-MIT) or
   http://opensource.org/licenses/MIT)
-
 
 [radix tree]: https://github.com/trek-rs/radix-tree
 [rax]: https://github.com/antirez/rax
