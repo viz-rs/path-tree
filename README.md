@@ -19,7 +19,7 @@ A compressing dynamic trie ([radix tree]) structure is used for efficient matchi
 
 - Supports multiple naming for the same path segment. e.g. `/users/:id` and `/users/:user_id/repos`.
 
-- Don't care about routes orders, we will automatically need to find them.
+- Don't care about routes orders, we will automatically find them.
 
 ## Usage
 
