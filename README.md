@@ -13,6 +13,8 @@ A compressing dynamic trie ([radix tree]) structure is used for efficient matchi
 
 - Fast!
 
+- Flexible!
+
 - Named parameters. e.g. `:name`.
 
 - Catch-All parameters. e.g. `*any`.
