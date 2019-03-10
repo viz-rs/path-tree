@@ -10,5 +10,18 @@ readme = "README.md"
 keywords = ["radix", "tree", "path", "router"]
 license = "MIT/Apache-2.0"
 
+[lib]
+bench = false
+
 [dependencies]
 radix-tree = "^0.0"
+
+[dev-dependencies]
+actix-router = { git="https://github.com/actix/actix-net", path="router" }
+path-table = "^1.0"
+route-recognizer = "^0.1"
+criterion = "^0.2"
+
+[[bench]]
+name = "routers"
+harness = false
