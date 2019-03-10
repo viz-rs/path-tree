@@ -8,7 +8,7 @@ extern crate route_recognizer;
 use actix_router::{Path as ActixPath, Router as ActixRouter};
 use criterion::*;
 use path_table::PathTable;
-use path_tree::{NodeMetadata, PathTree};
+use path_tree::PathTree;
 use route_recognizer::Router as RRRouter;
 
 const ROUTES_0: [&'static str; 315] = [
@@ -984,7 +984,7 @@ fn bench_path_insert(c: &mut Criterion) {
     c.bench(
         "path_insert",
         Benchmark::new("path_tree_insert", |b| {
-            let mut tree: PathTree<usize> = PathTree::new("/", NodeMetadata::new());
+            let mut tree: PathTree<usize> = PathTree::new();
             b.iter(|| {
                 for (i, r) in ROUTES_0.iter().enumerate() {
                     tree.insert(r, i);
@@ -1023,16 +1023,14 @@ fn bench_path_find(c: &mut Criterion) {
     c.bench(
         "path_find",
         Benchmark::new("path_tree_find", |b| {
-            let mut tree: PathTree<usize> = PathTree::new("/", NodeMetadata::new());
+            let mut tree: PathTree<usize> = PathTree::new();
             for (i, r) in ROUTES_0.iter().enumerate() {
                 tree.insert(r, i);
             }
             b.iter(|| {
                 for (i, r) in ROUTES_2.iter().enumerate() {
                     let n = tree.find(r).unwrap();
-                    if let Some(meta) = &n.0.data {
-                        assert_eq!(meta.data.unwrap(), i);
-                    }
+                    assert_eq!(*n.0, i);
                 }
             })
         })

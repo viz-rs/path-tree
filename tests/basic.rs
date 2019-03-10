@@ -1,160 +1,76 @@
 extern crate path_tree;
 
-use path_tree::{NodeMetadata, PathTree};
+use path_tree::PathTree;
 
 #[test]
 fn new_tree() {
-    let mut tree = PathTree::<usize>::new("/", NodeMetadata::new());
-    assert_eq!(tree.tree.path.len(), 1);
+    let mut tree: PathTree<usize> = PathTree::default();
 
-    tree.insert("/", 0);
-    tree.insert("/users", 1);
-    tree.insert("/users/:id", 2);
-    tree.insert("/users/:id/:org", 3);
-    tree.insert("/users/:user_id/repos", 4);
-    tree.insert("/users/:user_id/repos/:id", 5);
-    tree.insert("/users/:user_id/repos/:id/*any", 6);
-    tree.insert("/:username", 7);
-    tree.insert("/*any", 8);
-    tree.insert("/about", 9);
-    tree.insert("/about/", 10);
-    tree.insert("/about/us", 11);
-    tree.insert("/users/repos/*any", 12);
+    const ROUTES: [&'static str; 13] = [
+        "/",
+        "/users",
+        "/users/:id",
+        "/users/:id/:org",
+        "/users/:user_id/repos",
+        "/users/:user_id/repos/:id",
+        "/users/:user_id/repos/:id/*any",
+        "/:username",
+        "/*any",
+        "/about",
+        "/about/",
+        "/about/us",
+        "/users/repos/*any",
+    ];
 
-    // println!("{:#?}", tree);
-
-    let node = tree.find("/");
-    // println!("/ {:#?}", node);
-    assert_eq!(node.is_some(), true);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['/']);
-    if let Some(meta) = &res.0.data {
-        assert_eq!(meta.data.unwrap(), 0);
+    for (i, u) in ROUTES.iter().enumerate() {
+        tree.insert(u, i);
     }
-    assert_eq!(res.1, None);
 
-    let node = tree.find("/users");
-    // println!("/users: {:#?}", node);
-    assert_eq!(node.is_some(), true);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['u', 's', 'e', 'r', 's']);
-    assert_eq!(res.1, None);
+    const VALID_URLS: [&'static str; 13] = [
+        "/",
+        "/users",
+        "/users/fundon",
+        "/users/fundon/trek-rs",
+        "/users/fundon/repos",
+        "/users/fundon/repos/path-tree",
+        "/users/fundon/repos/trek-rs/trek",
+        "/fundon",
+        "/fundon/trek-rs/trek",
+        "/about",
+        "/about/",
+        "/about/us",
+        "/users/repos/trek-rs/trek",
+    ];
 
-    let node = tree.find("/about");
-    // println!("/about {:#?}", node);
-    assert_eq!(node.is_some(), true);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['a', 'b', 'o', 'u', 't']);
-    assert_eq!(res.1, None);
+    let valid_res = vec![
+        vec![],
+        vec![],
+        vec![("id", "fundon")],
+        vec![("id", "fundon"), ("org", "trek-rs")],
+        vec![("user_id", "fundon")],
+        vec![("user_id", "fundon"), ("id", "path-tree")],
+        vec![("user_id", "fundon"), ("id", "trek-rs"), ("any", "trek")],
+        vec![("username", "fundon")],
+        vec![("any", "fundon/trek-rs/trek")],
+        vec![],
+        vec![],
+        vec![],
+        vec![("any", "trek-rs/trek")],
+    ];
 
-    let node = tree.find("/about/");
-    // println!("/about/ {:#?}", node);
-    assert_eq!(node.is_some(), true);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['/']);
-    assert_eq!(res.1, None);
-
-    let node = tree.find("/about/us");
-    // println!("/about/us {:#?}", node);
-    assert_eq!(node.is_some(), true);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['u', 's']);
-    assert_eq!(res.1, None);
-
-    let node = tree.find("/username");
-    // println!("/username {:#?}", node);
-    assert_eq!(node.is_some(), true);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, [':']);
-    if let Some(meta) = &res.0.data {
-        assert_eq!(meta.data.unwrap(), 7);
+    for (i, u) in VALID_URLS.iter().enumerate() {
+        let res = tree.find(u).unwrap();
+        // println!("{}, {}, {:#?}", i, r, res);
+        assert_eq!(*res.0, i);
+        assert_eq!(res.1, valid_res[i]);
     }
-    assert_eq!(res.1.unwrap(), [("username", "username")]);
-
-    let node = tree.find("/user/s");
-    // println!("/user/s {:#?}", node);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    if let Some(meta) = &res.0.data {
-        assert_eq!(meta.data.unwrap(), 8); // Data
-    }
-    assert_eq!(res.1.unwrap(), [("any", "user/s")]);
-
-    let node = tree.find("/users/fundon/repo");
-    // println!("/users/fundon/repo {:#?}", node);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, [':']);
-    if let Some(meta) = &res.0.data {
-        assert_eq!(meta.data.unwrap(), 3);
-    }
-    assert_eq!(res.1.unwrap(), [("id", "fundon"), ("org", "repo")]);
-
-    let node = tree.find("/users/fundon/repos");
-    // println!("/users/fundon/repos {:#?}", node);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, "repos".chars().collect::<Vec<char>>());
-    assert_eq!(res.1.unwrap(), [("user_id", "fundon")]);
-
-    let node = tree.find("/users/fundon/repos/trek-rs");
-    // println!("/users/fundon/repos/233 {:#?}", node);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, [':']);
-    if let Some(meta) = &res.0.data {
-        assert_eq!(meta.data.unwrap(), 5); // Data
-    }
-    assert_eq!(res.1.unwrap(), [("user_id", "fundon"), ("id", "trek-rs"),]);
-
-    let node = tree.find("/users/fundon/repos/trek-rs/");
-    // println!("/users/fundon/repos/233/ {:#?}", node);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    assert_eq!(res.1.unwrap(), [("user_id", "fundon"), ("id", "trek-rs"),]);
-
-    let node = tree.find("/users/fundon/repos/trek-rs/noder");
-    // println!("/users/fundon/repos/trek-rs/noder {:#?}", node);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    assert_eq!(
-        res.1.unwrap(),
-        [("user_id", "fundon"), ("id", "trek-rs"), ("any", "noder"),]
-    );
-
-    let node = tree.find("/users/fundon/repos/trek-rs/noder/issues");
-    // println!("/users/fundon/repos/trek-rs/noder/issues {:#?}", node);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    if let Some(meta) = &res.0.data {
-        assert_eq!(meta.data.unwrap(), 6); // Data
-    }
-    assert_eq!(
-        res.1.unwrap(),
-        [
-            ("user_id", "fundon"),
-            ("id", "trek-rs"),
-            ("any", "noder/issues"),
-        ]
-    );
-
-    let node = tree.find("/users/repos/");
-    // println!("/users/repos/ {:#?}", node);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, "*".chars().collect::<Vec<char>>());
-    if let Some(meta) = &res.0.data {
-        assert_eq!(meta.data.unwrap(), 12); // Data
-    }
-    assert_eq!(res.1.is_none(), true);
-
-    let node = tree.find("/about/as");
-    // println!("/about/as {:#?}", node);
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    assert_eq!(res.1.unwrap(), [("any", "about/as")]);
 }
 
 #[test]
 fn statics() {
-    let mut tree = PathTree::new("/", NodeMetadata::new());
-    let nodes = [
+    let mut tree = PathTree::<usize>::new();
+
+    const ROUTES: [&'static str; 11] = [
         "/hi",
         "/contact",
         "/co",
@@ -167,84 +83,23 @@ fn statics() {
         "/α",
         "/β",
     ];
-    let mut i = 0;
-    for node in &nodes {
-        tree.insert(node, i);
-        i += 1;
+
+    for (i, u) in ROUTES.iter().enumerate() {
+        tree.insert(u, i);
     }
 
-    // println!("tree {:#?}", tree);
-
-    let node = tree.find("/a");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, ['a']);
-
-    let node = tree.find("/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/hi");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, ['h', 'i']);
-
-    let node = tree.find("/contact");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, "ntact".chars().collect::<Vec<char>>());
-
-    let node = tree.find("/co");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, "o".chars().collect::<Vec<char>>());
-
-    let node = tree.find("/con");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/cona");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/no");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/ab");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, ['b']);
-
-    let node = tree.find("/α");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, ['α']);
-
-    let node = tree.find("/β");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, ['β']);
+    for (i, u) in ROUTES.iter().enumerate() {
+        let res = tree.find(u).unwrap();
+        // println!("{}, {}, {:#?}", i, r, res);
+        assert_eq!(*res.0, i);
+    }
 }
 
 #[test]
 fn wildcards() {
-    let mut tree = PathTree::new("/", NodeMetadata::new());
-    let nodes = [
+    let mut tree = PathTree::<usize>::new();
+
+    const ROUTES: [&'static str; 20] = [
         "/",
         "/cmd/:tool/:sub",
         "/cmd/:tool/",
@@ -266,112 +121,45 @@ fn wildcards() {
         "/info/:user/public",
         "/info/:user/project/:project",
     ];
-    let mut i = 0;
-    for node in &nodes {
-        tree.insert(node, i);
-        i += 1;
+
+    for (i, u) in ROUTES.iter().enumerate() {
+        tree.insert(u, i);
     }
 
-    // println!("tree {:#?}", tree);
+    // println!("tree: {:#?}", tree);
 
-    let node = tree.find("/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
+    let valid_res = vec![
+        ("/", 0, vec![]),
+        ("/cmd/test/", 2, vec![("tool", "test")]),
+        ("/cmd/test/3", 1, vec![("tool", "test"), ("sub", "3")]),
+        ("/src/", 4, vec![]),
+        ("/src/some/file.png", 4, vec![("filepath", "some/file.png")]),
+        (
+            "/search/someth!ng+in+ünìcodé",
+            9,
+            vec![("query", "someth!ng+in+ünìcodé")],
+        ),
+        ("/user_rust", 11, vec![("name", "rust")]),
+        ("/user_rust/about", 12, vec![("name", "rust")]),
+        (
+            "/files/js/inc/framework.js",
+            14,
+            vec![("dir", "js"), ("filepath", "inc/framework.js")],
+        ),
+        ("/info/gordon/public", 18, vec![("user", "gordon")]),
+        (
+            "/info/gordon/project/rust",
+            19,
+            vec![("user", "gordon"), ("project", "rust")],
+        ),
+    ];
 
-    let node = tree.find("/cmd/test/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, ['/']);
-    assert_eq!(res.1.unwrap(), [("tool", "test")]);
-
-    let node = tree.find("/cmd/test");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/cmd/test/3");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, [':']);
-    assert_eq!(res.1.unwrap(), [("tool", "test"), ("sub", "3")]);
-
-    let node = tree.find("/src/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, ['*']);
-    assert_eq!(res.1, None);
-
-    let node = tree.find("/src/some/file.png");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, ['*']);
-    assert_eq!(res.1.unwrap(), [("filepath", "some/file.png")]);
-
-    let node = tree.find("/search/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-
-    let node = tree.find("/search/someth!ng+in+ünìcodé");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, [':']);
-    assert_eq!(res.1.unwrap(), [("query", "someth!ng+in+ünìcodé")]);
-
-    let node = tree.find("/search/someth!ng+in+ünìcodé/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/user_rust");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, [':']);
-    assert_eq!(res.1.unwrap(), [("name", "rust")]);
-
-    let node = tree.find("/user_rust/about");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, "/about".chars().collect::<Vec<char>>());
-    assert_eq!(res.1.unwrap(), [("name", "rust")]);
-
-    let node = tree.find("/files/js/inc/framework.js");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, ['*']);
-    assert_eq!(
-        res.1.unwrap(),
-        [("dir", "js"), ("filepath", "inc/framework.js")]
-    );
-
-    let node = tree.find("/info/gordon/public");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, "ublic".chars().collect::<Vec<char>>());
-    assert_eq!(res.1.unwrap(), [("user", "gordon")]);
-
-    let node = tree.find("/info/gordon/project/rust");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, [':']);
-    assert_eq!(res.1.unwrap(), [("user", "gordon"), ("project", "rust")]);
+    for (u, h, p) in valid_res {
+        let res = tree.find(u).unwrap();
+        // println!("{}, {:#?}", r, res);
+        assert_eq!(*res.0, h);
+        assert_eq!(res.1, p);
+    }
 }
 
 #[test]
@@ -382,41 +170,23 @@ fn single_named_parameter() {
     //      /users/you                 match
     //      /users/gordon/profile      no match
     //      /users/                    no match
-    let mut tree = PathTree::new("/", NodeMetadata::new());
+    let mut tree = PathTree::new();
 
     tree.insert("/users/:id", 0);
 
-    // println!("tree {:#?}", tree);
+    let res = vec![
+        ("/", false),
+        ("/users/gordon", true),
+        ("/users/you", true),
+        ("/users/gordon/profile", false),
+        ("/users/", false),
+        ("/users", false),
+    ];
 
-    let node = tree.find("/users/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/users/gordon/profile");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/users/gordon");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, [':']);
-    if let Some(data) = &node.data {
-        assert_eq!(data.key, true);
+    for (u, b) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
     }
-    assert_eq!(res.1.unwrap(), [("id", "gordon")]);
-
-    let node = tree.find("/users/you");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    let node = &res.0;
-    assert_eq!(node.path, [':']);
-    if let Some(data) = &node.data {
-        assert_eq!(data.key, true);
-    }
-    assert_eq!(res.1.unwrap(), [("id", "you")]);
 }
 
 #[test]
@@ -430,46 +200,30 @@ fn static_and_named_parameter() {
     //      /a/c/d                  match
     //      /a/c/a                  match
     //      /a/c/e                  match
-    let mut tree = PathTree::new("/", NodeMetadata::new());
+    let mut tree = PathTree::new();
 
     tree.insert("/a/b/c", "/a/b/c");
     tree.insert("/a/c/d", "/a/c/d");
     tree.insert("/a/c/a", "/a/c/a");
     tree.insert("/:id/c/e", "/:id/c/e");
 
-    // println!("tree {:#?}", tree);
+    let res = vec![
+        ("/", false, "", vec![]),
+        ("/a/b/c", true, "/a/b/c", vec![]),
+        ("/a/c/d", true, "/a/c/d", vec![]),
+        ("/a/c/a", true, "/a/c/a", vec![]),
+        ("/a/c/e", true, "/:id/c/e", vec![("id", "a")]),
+    ];
 
-    let node = tree.find("/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/a/b/c");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['b', '/', 'c']);
-    assert_eq!(res.1, None);
-
-    let node = tree.find("/a/c/d");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['d']);
-    assert_eq!(res.1, None);
-
-    let node = tree.find("/a/c/a");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['a']);
-    assert_eq!(res.1, None);
-
-    let node = tree.find("/a/c/e");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['/', 'c', '/', 'e']);
-    assert_eq!(res.1.unwrap(), [("id", "a")]);
+    for (u, b, a, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if r.is_some() {
+            let res = r.unwrap();
+            assert_eq!(*res.0, a);
+            assert_eq!(res.1, p);
+        }
+    }
 }
 
 #[test]
@@ -483,43 +237,34 @@ fn multi_named_parameters() {
     //      /rust/let/                no match
     //      /rust/                    no match
     //      /                         no match
-    let mut tree = PathTree::new("/", NodeMetadata::new());
+    let mut tree = PathTree::new();
 
     tree.insert("/:lang/:keyword", true);
     tree.insert("/:id", true);
-    // tree.insert("/:id/:post_id", NodeMetadata::new());
 
-    // println!("tree {:#?}", tree);
+    let res = vec![
+        ("/", false, false, vec![]),
+        ("/rust/", false, false, vec![]),
+        ("/rust/let/", false, false, vec![]),
+        ("/rust/let/const", false, false, vec![]),
+        (
+            "/rust/let",
+            true,
+            true,
+            vec![("lang", "rust"), ("keyword", "let")],
+        ),
+        ("/rust", true, true, vec![("id", "rust")]),
+    ];
 
-    let node = tree.find("/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/rust/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/rust/let/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/rust/let/const");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/rust/let");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, [':']);
-    assert_eq!(res.1.unwrap(), [("lang", "rust"), ("keyword", "let")]);
-
-    let node = tree.find("/rust");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, [':']);
-    assert_eq!(res.1.unwrap(), [("id", "rust")]);
+    for (u, b, a, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if r.is_some() {
+            let res = r.unwrap();
+            assert_eq!(*res.0, a);
+            assert_eq!(res.1, p);
+        }
+    }
 }
 
 #[test]
@@ -530,52 +275,42 @@ fn catch_all_parameter() {
     //      /src/                     match
     //      /src/somefile.go          match
     //      /src/subdir/somefile.go   match
-    let mut tree = PathTree::new("/", NodeMetadata::new());
+    let mut tree = PathTree::new();
 
     tree.insert("/src/*filepath", "* files");
 
-    let node = tree.find("/src");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
+    let res = vec![
+        ("/src", false, vec![]),
+        ("/src/", true, vec![]),
+        ("/src/somefile.rs", true, vec![("filepath", "somefile.rs")]),
+        (
+            "/src/subdir/somefile.rs",
+            true,
+            vec![("filepath", "subdir/somefile.rs")],
+        ),
+        ("/src.rs", false, vec![]),
+        ("/rust", false, vec![]),
+    ];
 
-    let node = tree.find("/src/");
-    // println!("/src/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    assert!(res.1.is_none());
+    for (u, b, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if r.is_some() {
+            let res = r.unwrap();
+            assert_eq!(*res.0, "* files");
+            assert_eq!(res.1, p);
+        }
+    }
 
-    let node = tree.find("/src/somefile.rs");
-    // println!("/src/somefile.rs {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    assert_eq!(res.1.unwrap(), [("filepath", "somefile.rs")]);
-
-    let node = tree.find("/src/subdir/somefile.rs");
-    // println!("/src/subdir/somefile.rs {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    assert_eq!(res.1.unwrap(), [("filepath", "subdir/somefile.rs")]);
-
-    let node = tree.find("/src.rs");
-    // println!("/src.rs {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/rust");
-    // println!("/rust {:#?}", node);
-    assert!(node.is_none());
-
-    // split node, 'src/' is key node
     tree.insert("/src/", "dir");
 
-    let node = tree.find("/src/");
-    // println!("/src/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, "src/".chars().collect::<Vec<char>>());
-    assert!(res.1.is_none());
+    let r = tree.find("/src/");
+    assert_eq!(r.is_some(), true);
+    if r.is_some() {
+        let res = r.unwrap();
+        assert_eq!(*res.0, "dir");
+        assert_eq!(res.1, vec![]);
+    }
 }
 
 #[test]
@@ -589,46 +324,30 @@ fn static_and_catch_all_parameter() {
     //      /a/c/d                  match
     //      /a/c/a                  match
     //      /a/c/e                  match
-    let mut tree = PathTree::new("/", NodeMetadata::new());
+    let mut tree = PathTree::new();
 
     tree.insert("/a/b/c", "/a/b/c");
     tree.insert("/a/c/d", "/a/c/d");
     tree.insert("/a/c/a", "/a/c/a");
     tree.insert("/a/*c", "/a/*c");
 
-    // println!("tree {:#?}", tree);
+    let res = vec![
+        ("/", false, "", vec![]),
+        ("/a/b/c", true, "/a/b/c", vec![]),
+        ("/a/c/d", true, "/a/c/d", vec![]),
+        ("/a/c/a", true, "/a/c/a", vec![]),
+        ("/a/c/e", true, "/a/*c", vec![("c", "c/e")]),
+    ];
 
-    let node = tree.find("/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_none());
-
-    let node = tree.find("/a/b/c");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['b', '/', 'c']);
-    assert_eq!(res.1, None);
-
-    let node = tree.find("/a/c/d");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['d']);
-    assert_eq!(res.1, None);
-
-    let node = tree.find("/a/c/a");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['a']);
-    assert_eq!(res.1, None);
-
-    let node = tree.find("/a/c/e");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    assert_eq!(res.1.unwrap(), [("c", "c/e")]);
+    for (u, b, a, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if r.is_some() {
+            let res = r.unwrap();
+            assert_eq!(*res.0, a);
+            assert_eq!(res.1, p);
+        }
+    }
 }
 
 #[test]
@@ -640,43 +359,25 @@ fn root_catch_all_parameter() {
     //      /                  match *
     //      /download          match *
     //      /users/fundon      match users *
-    let mut tree = PathTree::<fn() -> usize>::new("/", NodeMetadata::new());
+    let mut tree = PathTree::<fn() -> usize>::new();
 
     tree.insert("/", || 1);
     tree.insert("/*", || 2);
     tree.insert("/users/*", || 3);
 
-    // println!("tree {:#?}", tree);
+    let res = vec![
+        ("/", true, 1, vec![]),
+        ("/download", true, 2, vec![("", "download")]),
+        ("/users/fundon", true, 3, vec![("", "fundon")]),
+    ];
 
-    let node = tree.find("/");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['/']);
-    assert_eq!(res.0.data.is_some(), true);
-    if let Some(meta) = &res.0.data {
-        assert_eq!(meta.data.unwrap()(), 1);
+    for (u, b, a, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if r.is_some() {
+            let res = r.unwrap();
+            assert_eq!(res.0(), a);
+            assert_eq!(res.1, p);
+        }
     }
-
-    let node = tree.find("/download");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    assert_eq!(res.0.data.is_some(), true);
-    if let Some(meta) = &res.0.data {
-        assert_eq!(meta.data.unwrap()(), 2);
-    }
-    assert_eq!(res.1.unwrap(), [("", "download")]);
-
-    let node = tree.find("/users/fundon");
-    // println!("/ {:#?}", node);
-    assert!(node.is_some());
-    let res = node.unwrap();
-    assert_eq!(res.0.path, ['*']);
-    assert_eq!(res.0.data.is_some(), true);
-    if let Some(meta) = &res.0.data {
-        assert_eq!(meta.data.unwrap()(), 3);
-    }
-    assert_eq!(res.1.unwrap(), [("", "fundon")]);
 }

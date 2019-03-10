@@ -1,6 +1,6 @@
 extern crate path_tree;
 
-use path_tree::{NodeMetadata, PathTree};
+use path_tree::PathTree;
 
 const ROUTES_0: [&'static str; 315] = [
     "/app",
@@ -650,17 +650,16 @@ const ROUTES_2: [&'static str; 315] = [
 
 #[test]
 fn github() {
-    let mut tree: PathTree<usize> = PathTree::new("/", NodeMetadata::new());
+    let mut tree: PathTree<usize> = PathTree::new();
     for (i, r) in ROUTES_0.iter().enumerate() {
         tree.insert(r, i);
     }
-    // println!("{:#?}", tree);
+
+    // println!("tree: {:#?}", tree);
+
     for (i, r) in ROUTES_2.iter().enumerate() {
         let n = tree.find(r).unwrap();
-        // assert_eq!(n.is_some(), true);
-        if let Some(meta) = &n.0.data {
-            assert_eq!(meta.data.unwrap(), i);
-            // println!("{} = {}", meta.data.unwrap(), i);
-        }
+        assert_eq!(*n.0, i);
+        // println!("route params: {:#?}", n.1);
     }
 }

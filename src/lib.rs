@@ -1,400 +1,316 @@
-use radix_tree::Node;
-use std::iter::FromIterator;
+use std::mem;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum NodeKind {
-    Root = 0,
-    Static,
+    Static(String),
     Parameter,
     CatchAll,
 }
 
-#[derive(Clone, Debug)]
-pub struct NodeMetadata<R> {
-    pub key: bool,
-    pub kind: NodeKind,
-    pub data: Option<R>,
-    pub params: Option<Vec<&'static str>>,
+#[inline]
+fn position(p: &str, c: char) -> Option<usize> {
+    p.chars().position(|x| x == c)
 }
 
-impl<R> NodeMetadata<R> {
-    pub fn new() -> Self {
-        NodeMetadata {
-            key: false,
+#[derive(Debug)]
+pub struct Node<'a, T> {
+    kind: NodeKind,
+    params: Option<Vec<&'a str>>,
+    data: Option<T>,
+    indices: Option<String>,
+    nodes: Option<Vec<Self>>,
+}
+
+impl<'a, T> Default for Node<'a, T> {
+    fn default() -> Self {
+        Node::new(NodeKind::Static(String::new()))
+    }
+}
+
+impl<'a, T> Node<'a, T> {
+    pub fn new(kind: NodeKind) -> Self {
+        Node {
+            kind,
             data: None,
             params: None,
-            kind: NodeKind::Root,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct PathTree<R> {
-    pub tree: Node<char, NodeMetadata<R>>,
-}
-
-impl<R> PathTree<R>
-where
-    R: Clone + Copy,
-{
-    pub fn new(path: &'static str, data: NodeMetadata<R>) -> Self {
-        PathTree {
-            tree: Node::new(path, data),
+            indices: None,
+            nodes: None,
         }
     }
 
-    pub fn insert(&mut self, path: &'static str, data: R) -> &mut Self {
-        let mut node = &mut self.tree;
-        let mut params: Option<Vec<Vec<char>>> = None;
-        let mut buf: Vec<char> = path.trim_start_matches('/').chars().collect();
+    #[inline]
+    fn add_node(&mut self, c: char, kind: NodeKind) -> &mut Self {
+        let indices: &mut String = self.indices.get_or_insert_with(|| String::new());
+        let nodes: &mut Vec<Node<T>> = self.nodes.get_or_insert_with(|| Vec::new());
 
-        // Root "/"
-        if 0 == buf.len() {
-            if let Some(d) = node.data.as_mut() {
-                d.key = true;
-                d.data = Some(data);
+        match indices.len() == 0 {
+            true => {
+                indices.push(c);
+                nodes.push(Node::new(kind));
+                nodes.last_mut().unwrap()
             }
+            false => match position(indices, c) {
+                Some(i) => match kind {
+                    NodeKind::Static(s) => nodes[i].insert(&s),
+                    _ => &mut nodes[i],
+                },
+                None => {
+                    indices.push(c);
+                    nodes.push(Node::new(kind));
+                    nodes.last_mut().unwrap()
+                }
+            },
+        }
+    }
+
+    #[inline]
+    pub fn add_node_static(&mut self, p: &str) -> &mut Self {
+        self.add_node(p.chars().next().unwrap(), NodeKind::Static(p.to_owned()))
+    }
+
+    #[inline]
+    pub fn add_node_dynamic(&mut self, c: char, kind: NodeKind) -> &mut Self {
+        self.add_node(c, kind)
+    }
+
+    #[inline]
+    pub fn insert(&mut self, p: &str) -> &mut Self {
+        match self.kind {
+            NodeKind::Static(ref mut s) => {
+                if s.len() == 0 {
+                    *s = p.to_owned();
+                    return self;
+                }
+
+                let np = s
+                    .chars()
+                    .zip(p.chars())
+                    .take_while(|(a, b)| a == b)
+                    .map(|v| v.0)
+                    .collect::<String>();
+
+                if s.len() > np.len() {
+                    let new_path = &s[np.len()..];
+                    let c = new_path.chars().next().unwrap();
+                    let new_node = Node {
+                        data: mem::replace(&mut self.data, None),
+                        nodes: mem::replace(&mut self.nodes, None),
+                        params: mem::replace(&mut self.params, None),
+                        indices: mem::replace(&mut self.indices, None),
+                        kind: NodeKind::Static(new_path.to_owned()),
+                    };
+                    self.indices.get_or_insert_with(|| String::new()).push(c);
+                    self.nodes.get_or_insert_with(|| Vec::new()).push(new_node);
+                    *s = np.to_owned();
+                }
+
+                if p.len() == np.len() {
+                    self
+                } else {
+                    self.add_node_static(&p[np.len()..])
+                }
+            }
+            NodeKind::Parameter => self.add_node_static(p),
+            NodeKind::CatchAll => self,
+        }
+    }
+
+    #[inline]
+    pub fn find(&self, p: &'a str) -> Option<(&Self, Vec<&'a str>)> {
+        let mut params = Vec::new();
+
+        match self.kind {
+            NodeKind::Static(ref s) => {
+                let np = s
+                    .chars()
+                    .zip(p.chars())
+                    .take_while(|(a, b)| a == b)
+                    .map(|v| v.0)
+                    .collect::<String>();
+
+                if np.len() == 0 {
+                    None
+                } else if np.len() < s.len() {
+                    None
+                } else if np.len() == s.len() && np.len() == p.len() {
+                    Some((self, params))
+                } else {
+                    if self.indices.is_none() {
+                        return None;
+                    }
+
+                    let indices = self.indices.as_ref().unwrap();
+                    let nodes = self.nodes.as_ref().unwrap();
+                    let new_path = &p[np.len()..];
+
+                    if let Some(i) = position(indices, new_path.chars().next().unwrap()) {
+                        if let Some((n, ps)) = nodes[i].find(new_path).as_mut() {
+                            params.append(ps);
+
+                            // end `/` `/*any`
+                            if let NodeKind::Static(s) = &n.kind {
+                                if '/' == s.chars().last().unwrap() {
+                                    if n.data.is_some() {
+                                        return Some((n, params));
+                                    } else if n.indices.is_some() {
+                                        let indices = n.indices.as_ref().unwrap();
+                                        let nodes = n.nodes.as_ref().unwrap();
+                                        return match position(indices, '*') {
+                                            Some(i) => Some((&nodes[i], params)),
+                                            None => None,
+                                        };
+                                    }
+                                }
+                            }
+
+                            return Some((n, params));
+                        }
+                    }
+
+                    if let Some(i) = position(indices, ':') {
+                        if let Some((n, ps)) = nodes[i].find(new_path).as_mut() {
+                            params.append(ps);
+                            return Some((n, params));
+                        }
+                    }
+
+                    if let Some(i) = position(indices, '*') {
+                        if let Some((n, ps)) = nodes[i].find(new_path).as_mut() {
+                            params.append(ps);
+                            return Some((n, params));
+                        }
+                    }
+
+                    None
+                }
+            }
+            NodeKind::Parameter => match position(p, '/') {
+                Some(i) => {
+                    if self.indices.is_none() {
+                        return None;
+                    }
+
+                    let indices = self.indices.as_ref().unwrap();
+                    let nodes = self.nodes.as_ref().unwrap();
+
+                    let (param, path) = p.split_at(i);
+
+                    params.push(param);
+
+                    if let Some(i) = position(indices, path.chars().next().unwrap()) {
+                        if let Some((n, ps)) = nodes[i].find(path).as_mut() {
+                            params.append(ps);
+                            return Some((n, params));
+                        }
+                    }
+                    None
+                }
+                None => {
+                    params.push(p);
+                    Some((self, params))
+                }
+            },
+            NodeKind::CatchAll => {
+                params.push(p);
+                Some((self, params))
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct PathTree<'a, T> {
+    tree: Node<'a, T>,
+}
+
+impl<'a, T> Default for PathTree<'a, T> {
+    fn default() -> Self {
+        PathTree::new()
+    }
+}
+
+impl<'a, T> PathTree<'a, T> {
+    pub fn new() -> Self {
+        PathTree {
+            tree: Node::new(NodeKind::Static("/".to_owned())),
+        }
+    }
+    pub fn insert(&mut self, mut path: &'a str, data: T) -> &mut Self {
+        let mut next = true;
+        let mut node = &mut self.tree;
+        let mut params = Vec::new();
+
+        path = path.trim_start_matches('/');
+
+        if path.len() == 0 {
+            node.data = Some(data);
             return self;
         }
 
-        while 0 < buf.len() {
-            let mut i: usize = 0;
-            let mut next: Vec<char>;
-            let mut meta = NodeMetadata::new();
+        while next {
+            match path.chars().position(|c| c == ':' || c == '*') {
+                Some(i) => {
+                    let mut prefix = &path[..i];
+                    let mut suffix = &path[i..];
 
-            match buf[i] {
-                '*' => {
-                    next = buf.split_off(buf.len());
-                    match params.as_mut() {
-                        Some(p) => {
-                            p.push(buf.split_off(1));
-                        }
-                        None => {
-                            params.replace(vec![buf.split_off(1)]);
-                        }
+                    if prefix.len() > 0 {
+                        node = node.add_node_static(prefix);
                     }
-                    meta.kind = NodeKind::CatchAll;
-                }
-                ':' => {
-                    next = buf.split_off(loop {
-                        if i == buf.len() {
-                            break i;
+
+                    prefix = &suffix[..1];
+                    suffix = &suffix[1..];
+
+                    let mut kind: NodeKind;
+
+                    let c = prefix.chars().next().unwrap();
+                    if c == ':' {
+                        match suffix.chars().position(|c| c == '*' || c == '/') {
+                            Some(i) => {
+                                path = &suffix[i..];
+                                suffix = &suffix[..i];
+                            }
+                            None => {
+                                next = false;
+                            }
                         }
-                        if '*' == buf[i] || '/' == buf[i] {
-                            break i;
-                        }
-                        i += 1;
-                    });
-                    match params.as_mut() {
-                        Some(p) => {
-                            p.push(buf.split_off(1));
-                        }
-                        None => {
-                            params.replace(vec![buf.split_off(1)]);
-                        }
+                        kind = NodeKind::Parameter;
+                    } else {
+                        next = false;
+                        kind = NodeKind::CatchAll;
                     }
-                    meta.kind = NodeKind::Parameter;
+                    params.push(suffix);
+                    node = node.add_node_dynamic(c, kind);
                 }
-                _ => {
-                    next = buf.split_off(loop {
-                        if i == buf.len() {
-                            break i;
-                        }
-                        if ':' == buf[i] || '*' == buf[i] {
-                            break i;
-                        }
-                        i += 1;
-                    });
-                    meta.kind = NodeKind::Static;
+                None => {
+                    next = false;
+                    node = node.add_node_static(path);
                 }
             }
-
-            let ended = 0 == next.len();
-
-            // end
-            if ended {
-                if let Some(ref p) = params {
-                    meta.params = Some(
-                        p.iter()
-                            .map(|x| {
-                                &*(Box::leak(String::from_iter(x.into_iter()).into_boxed_str()))
-                            })
-                            .collect(),
-                    );
-                }
-                meta.key = true;
-                meta.data = Some(data);
-            }
-
-            // Add '/' ':' '*' to last
-            node = node.add_node_with(&mut buf, Some(meta), 0, ended, |&l, &c, indices| {
-                let mut j = l;
-                if 0 == j {
-                    return j;
-                }
-
-                if '*' == c {
-                    return j;
-                }
-                if '*' == indices[j - 1] {
-                    j -= 1;
-                }
-
-                if ':' == c {
-                    return j;
-                }
-                if 0 < j && ':' == indices[j - 1] {
-                    j -= 1;
-                }
-
-                if '/' == c {
-                    return j;
-                }
-                if 0 < j && '/' == indices[j - 1] {
-                    j -= 1;
-                }
-
-                j
-            });
-
-            buf = next;
         }
+
+        if params.len() > 0 {
+            node.params = Some(params);
+        }
+        node.data = Some(data);
 
         self
     }
 
-    pub fn find_with(
-        &mut self,
-        path: &'static str,
-    ) -> Option<(&Node<char, NodeMetadata<R>>, Option<Vec<Vec<char>>>)> {
-        recognize(&path.chars().collect(), &self.tree)
-    }
-
-    pub fn find(
-        &mut self,
-        path: &'static str,
-    ) -> Option<(
-        &Node<char, NodeMetadata<R>>,
-        Option<Vec<(&'static str, &'static str)>>,
-    )> {
-        let mut params: Option<Vec<(&'static str, &'static str)>> = None;
-        // Too many if and deep
-        if let Some((node, values)) = &self.find_with(path) {
-            if let Some(data) = &node.data {
-                if !data.key {
-                    return None;
-                }
-
-                if let Some(ps) = &data.params {
-                    if let Some(vs) = &values {
-                        params = Some(
-                            vs.iter()
-                                .enumerate()
-                                .map(|(i, v)| {
-                                    (
-                                        &*ps[i],
-                                        &*(Box::leak(
-                                            String::from_iter(v.into_iter()).into_boxed_str(),
-                                        )),
-                                    )
-                                })
-                                .collect(),
-                        );
-                    }
-                }
-            }
-            return Some((node, params));
-        }
-
-        None
-    }
-}
-
-pub fn recognize<'a, R>(
-    path: &Vec<char>,
-    node: &'a Node<char, NodeMetadata<R>>,
-) -> Option<(&'a Node<char, NodeMetadata<R>>, Option<Vec<Vec<char>>>)> {
-    if 0 == path.len() {
-        return None;
-    }
-
-    let mut buf: Vec<char> = path.clone();
-    let mut values: Option<Vec<Vec<char>>> = None;
-
-    match node.path[0] {
-        '*' => {
-            match values.as_mut() {
-                Some(v) => {
-                    v.push(buf);
-                }
-                None => {
-                    values.replace(vec![buf]);
-                }
-            }
-            return Some((&node, values));
-        }
-        ':' => {
-            let mut i = 0;
-            let next = buf.split_off(loop {
-                if i == buf.len() {
-                    break i;
-                }
-                if '/' == buf[i] {
-                    break i;
-                }
-                i += 1;
-            });
-
-            match values.as_mut() {
-                Some(v) => {
-                    v.push(buf);
-                }
-                None => {
-                    values.replace(vec![buf]);
-                }
-            }
-
-            if 0 == next.len() {
-                return Some((&node, values));
-            }
-
-            if 0 == node.indices.len() {
-                return None;
-            }
-
-            if let Some((n, v)) = recognize(&next, &node.nodes[0]).as_mut() {
-                if let Some(d) = v.as_mut() {
-                    values.as_mut().unwrap().append(d);
-                }
-                return Some((&n, values));
-            }
-
-            return None;
-        }
-        _ => {
-            let mut m = buf.len();
-            let mut n = m;
-            let mut o = node.path.len();
-
-            if m >= o {
-                m = 0;
-                while m < o && buf[m] == node.path[m] {
-                    m += 1;
-                }
-            }
-
-            if m < o {
-                return None;
-            }
-
-            if m == o && m == n {
-                return Some((&node, values));
-            }
-
-            let mut l = node.indices.len();
-            if 0 == l {
-                return None;
-            }
-
-            buf = buf.split_off(m);
-
-            o = 0;
-            let mut has_star = false;
-            if '*' == node.indices[l - 1] {
-                l -= 1;
-                o = l;
-                has_star = true;
-            }
-
-            n = 0;
-            let mut has_colon = false;
-            if l > 0 && ':' == node.indices[l - 1] {
-                l -= 1;
-                n = l;
-                has_colon = true;
-            }
-
-            m = 0;
-            let c = buf[m];
-            let mut has_node = false;
-            while m < l {
-                if c == node.indices[m] {
-                    has_node = true;
-                    break;
-                }
-                m += 1;
-            }
-
-            // Static Node
-            if has_node {
-                if let Some((n, v)) = recognize(&buf, &node.nodes[m]) {
-                    if let Some(mut d) = v {
-                        match values.as_mut() {
-                            Some(v) => {
-                                v.append(&mut d);
-                            }
-                            None => {
-                                values.replace(d);
-                            }
-                        }
-                    }
-
-                    // '/'
-                    if '/' == n.path[n.path.len() - 1] {
-                        if let Some(data) = &n.data {
-                            if data.key {
-                                // '/' is key node, ended
-                                return Some((&n, values));
-                            } else if 0 < n.indices.len() && '*' == n.indices[n.indices.len() - 1] {
-                                // CatchAll '*'
-                                return Some((&n.nodes[n.indices.len() - 1], values));
-                            } else {
-                                return None;
-                            }
-                        }
-                    }
-
-                    return Some((&n, values));
-                }
-            }
-
-            // Parameter ':'
-            if has_colon {
-                if let Some((n, v)) = recognize(&buf, &node.nodes[n]) {
-                    if let Some(mut d) = v {
-                        match values.as_mut() {
-                            Some(v) => {
-                                v.append(&mut d);
-                            }
-                            None => {
-                                values.replace(d);
-                            }
-                        }
-                    }
-                    return Some((&n, values));
-                }
-            }
-
-            // CatchAll '*'
-            if has_star {
-                if let Some((n, v)) = recognize(&buf, &node.nodes[o]) {
-                    if let Some(mut d) = v {
-                        match values.as_mut() {
-                            Some(v) => {
-                                v.append(&mut d);
-                            }
-                            None => {
-                                values.replace(d);
-                            }
-                        }
-                    }
-                    return Some((&n, values));
-                }
-            }
-
-            // dbg!(buf);
+    pub fn find(&self, path: &'a str) -> Option<(&T, Vec<(&'a str, &'a str)>)> {
+        match self.tree.find(path) {
+            Some((node, values)) => match (node.data.as_ref(), node.params.as_ref()) {
+                (Some(data), Some(params)) => Some((
+                    data,
+                    params
+                        .iter()
+                        .zip(values.iter())
+                        .map(|(a, b)| (*a, *b))
+                        .collect(),
+                )),
+                (Some(data), None) => Some((data, Vec::new())),
+                _ => None,
+            },
+            None => None,
         }
     }
-
-    None
 }
