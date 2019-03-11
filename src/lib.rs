@@ -43,23 +43,16 @@ impl<'a, T> Node<'a, T> {
         let indices: &mut String = self.indices.get_or_insert_with(|| String::new());
         let nodes: &mut Vec<Node<T>> = self.nodes.get_or_insert_with(|| Vec::new());
 
-        match indices.len() == 0 {
-            true => {
+        match position(indices, c) {
+            Some(i) => match kind {
+                NodeKind::Static(s) => nodes[i].insert(&s),
+                _ => &mut nodes[i],
+            },
+            None => {
                 indices.push(c);
                 nodes.push(Node::new(kind));
                 nodes.last_mut().unwrap()
             }
-            false => match position(indices, c) {
-                Some(i) => match kind {
-                    NodeKind::Static(s) => nodes[i].insert(&s),
-                    _ => &mut nodes[i],
-                },
-                None => {
-                    indices.push(c);
-                    nodes.push(Node::new(kind));
-                    nodes.last_mut().unwrap()
-                }
-            },
         }
     }
 
