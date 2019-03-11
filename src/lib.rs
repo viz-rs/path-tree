@@ -84,7 +84,6 @@ impl<'a, T> Node<'a, T> {
 
                 if s.len() > np.len() {
                     let new_path = &s[np.len()..];
-                    let c = new_path.chars().next().unwrap();
                     let new_node = Node {
                         data: mem::replace(&mut self.data, None),
                         nodes: mem::replace(&mut self.nodes, None),
@@ -92,7 +91,9 @@ impl<'a, T> Node<'a, T> {
                         indices: mem::replace(&mut self.indices, None),
                         kind: NodeKind::Static(new_path.to_owned()),
                     };
-                    self.indices.get_or_insert_with(|| String::new()).push(c);
+                    self.indices
+                        .get_or_insert_with(|| String::new())
+                        .push(new_path.chars().next().unwrap());
                     self.nodes.get_or_insert_with(|| Vec::new()).push(new_node);
                     *s = np.to_owned();
                 }
