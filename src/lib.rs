@@ -247,7 +247,7 @@ impl<'a, T> PathTree<'a, T> {
     pub fn insert(&mut self, mut path: &'a str, data: T) -> &mut Self {
         let mut next = true;
         let mut node = &mut self.tree;
-        let mut params = Vec::new();
+        let mut params: Option<Vec<&'a str>> = None;
 
         path = path.trim_start_matches('/');
 
@@ -287,7 +287,7 @@ impl<'a, T> PathTree<'a, T> {
                         next = false;
                         kind = NodeKind::CatchAll;
                     }
-                    params.push(suffix);
+                    params.get_or_insert_with(|| Vec::new()).push(suffix);
                     node = node.add_node_dynamic(c, kind);
                 }
                 None => {
@@ -297,10 +297,8 @@ impl<'a, T> PathTree<'a, T> {
             }
         }
 
-        if params.len() > 0 {
-            node.params = Some(params);
-        }
         node.data = Some(data);
+        node.params = params;
 
         self
     }
