@@ -229,6 +229,7 @@ impl<'a, T> PathTree<'a, T> {
             tree: Node::new(NodeKind::Static("/".to_owned())),
         }
     }
+
     pub fn insert(&mut self, mut path: &'a str, data: T) -> &mut Self {
         let mut next = true;
         let mut node = &mut self.tree;
