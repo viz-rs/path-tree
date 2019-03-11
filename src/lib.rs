@@ -1,6 +1,6 @@
 use std::mem;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum NodeKind {
     Static(String),
     Parameter,
@@ -12,7 +12,7 @@ fn position(p: &str, c: char) -> Option<usize> {
     p.chars().position(|x| x == c)
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Node<'a, T> {
     kind: NodeKind,
     params: Option<Vec<&'a str>>,
@@ -127,6 +127,20 @@ impl<'a, T> Node<'a, T> {
                 } else if np.len() < s.len() {
                     None
                 } else if np.len() == s.len() && np.len() == p.len() {
+                    // Fixed: Only has `/*`
+                    // end `/` `/*any`
+                    if '/' == s.chars().last().unwrap() {
+                        if self.data.is_some() {
+                            return Some((self, params));
+                        } else if self.indices.is_some() {
+                            let indices = self.indices.as_ref().unwrap();
+                            let nodes = self.nodes.as_ref().unwrap();
+                            return match position(indices, '*') {
+                                Some(i) => Some((&nodes[i], params)),
+                                None => None,
+                            };
+                        }
+                    }
                     Some((self, params))
                 } else {
                     if self.indices.is_none() {
@@ -212,7 +226,7 @@ impl<'a, T> Node<'a, T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PathTree<'a, T> {
     tree: Node<'a, T>,
 }

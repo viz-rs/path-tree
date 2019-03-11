@@ -1,6 +1,6 @@
 [package]
 name = "path-tree"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["Fangdun Cai <cfddream@gmail.com>"]
 edition = "2018"
 description = "Path-based routing tree"
@@ -14,12 +14,25 @@ license = "MIT/Apache-2.0"
 bench = false
 
 [dev-dependencies]
-actix-router = { git="https://github.com/actix/actix-net", path="router" }
+#actix-router = { git="https://github.com/actix/actix-net", path="router" }
 path-table = "^1.0"
 route-recognizer = "^0.1"
 criterion = "^0.2"
 hyper = "^0.12"
+futures = "^0.1"
 
 [[bench]]
 name = "routers"
 harness = false
+
+[[example]]
+name = "hello"
+path = "examples/hello.rs"
+
+[[test]]
+name = "basic"
+path = "tests/basic.rs"
+
+[[test]]
+name = "github"
+path = "tests/github.rs"

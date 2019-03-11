@@ -1,4 +1,4 @@
-extern crate actix_router;
+// extern crate actix_router;
 extern crate criterion;
 extern crate path_table;
 extern crate path_tree;
@@ -7,7 +7,7 @@ extern crate route_recognizer;
 #[path = "../tests/fixtures/github.rs"]
 mod github;
 
-use actix_router::{Path as ActixPath, Router as ActixRouter};
+// use actix_router::{Path as ActixPath, Router as ActixRouter};
 use criterion::*;
 use path_table::PathTable;
 use path_tree::PathTree;
@@ -42,14 +42,14 @@ fn bench_path_insert(c: &mut Criterion) {
                 }
             })
         })
-        .with_function("actix_router_path", |b| {
-            let mut router = ActixRouter::<usize>::build();
-            b.iter(|| {
-                for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
-                    router.path(r, i);
-                }
-            })
-        })
+        //.with_function("actix_router_path", |b| {
+        //    let mut router = ActixRouter::<usize>::build();
+        //    b.iter(|| {
+        //        for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
+        //            router.path(r, i);
+        //        }
+        //    })
+        //})
         .sample_size(50),
     );
 }
@@ -93,20 +93,20 @@ fn bench_path_find(c: &mut Criterion) {
                 }
             })
         })
-        .with_function("actix_router_recognize", |b| {
-            let mut router = ActixRouter::<usize>::build();
-            for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
-                router.path(r, i);
-            }
-            let router = router.finish();
-            b.iter(|| {
-                for (i, r) in ROUTES_URLS.iter().enumerate() {
-                    let mut path = ActixPath::new(*r);
-                    let n = router.recognize(&mut path).unwrap();
-                    assert_eq!(*n.0, i);
-                }
-            })
-        })
+        //.with_function("actix_router_recognize", |b| {
+        //    let mut router = ActixRouter::<usize>::build();
+        //    for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
+        //        router.path(r, i);
+        //    }
+        //    let router = router.finish();
+        //    b.iter(|| {
+        //        for (i, r) in ROUTES_URLS.iter().enumerate() {
+        //            let mut path = ActixPath::new(*r);
+        //            let n = router.recognize(&mut path).unwrap();
+        //            assert_eq!(*n.0, i);
+        //        }
+        //    })
+        //})
         .sample_size(50),
     );
 }
