@@ -116,7 +116,7 @@ impl<'a, T> Node<'a, T> {
     }
 
     #[inline]
-    pub fn find(&self, p: &'a str) -> Option<(&Self, Vec<&'a str>)> {
+    pub fn find(&self, mut p: &'a str) -> Option<(&Self, Vec<&'a str>)> {
         let mut params = Vec::new();
 
         match self.kind {
@@ -141,10 +141,10 @@ impl<'a, T> Node<'a, T> {
 
                     let indices = self.indices.as_ref().unwrap();
                     let nodes = self.nodes.as_ref().unwrap();
-                    let new_path = &p[np.len()..];
+                    p = &p[np.len()..];
 
-                    if let Some(i) = position(indices, new_path.chars().next().unwrap()) {
-                        if let Some((n, ps)) = nodes[i].find(new_path).as_mut() {
+                    if let Some(i) = position(indices, p.chars().next().unwrap()) {
+                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
                             params.append(ps);
 
                             // end `/` `/*any`
@@ -168,14 +168,14 @@ impl<'a, T> Node<'a, T> {
                     }
 
                     if let Some(i) = position(indices, ':') {
-                        if let Some((n, ps)) = nodes[i].find(new_path).as_mut() {
+                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
                             params.append(ps);
                             return Some((n, params));
                         }
                     }
 
                     if let Some(i) = position(indices, '*') {
-                        if let Some((n, ps)) = nodes[i].find(new_path).as_mut() {
+                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
                             params.append(ps);
                             return Some((n, params));
                         }
@@ -193,12 +193,12 @@ impl<'a, T> Node<'a, T> {
                     let indices = self.indices.as_ref().unwrap();
                     let nodes = self.nodes.as_ref().unwrap();
 
-                    let (param, path) = p.split_at(i);
+                    params.push(&p[..i]);
 
-                    params.push(param);
+                    p = &p[i..];
 
-                    if let Some(i) = position(indices, path.chars().next().unwrap()) {
-                        if let Some((n, ps)) = nodes[i].find(path).as_mut() {
+                    if let Some(i) = position(indices, p.chars().next().unwrap()) {
+                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
                             params.append(ps);
                             return Some((n, params));
                         }

@@ -18,6 +18,7 @@ actix-router = { git="https://github.com/actix/actix-net", path="router" }
 path-table = "^1.0"
 route-recognizer = "^0.1"
 criterion = "^0.2"
+hyper = "^0.12"
 
 [[bench]]
 name = "routers"
