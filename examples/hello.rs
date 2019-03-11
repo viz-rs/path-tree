@@ -8,13 +8,15 @@ use hyper::service::service_fn_ok;
 use hyper::{Body, Request, Response, StatusCode};
 use path_tree::PathTree;
 
-pub type Handler = fn(Request<Body>, Vec<(&str, &str)>) -> Response<Body>;
+type Params<'a> = Vec<(&'a str, &'a str)>;
 
-fn index(_: Request<Body>, _: Vec<(&str, &str)>) -> Response<Body> {
+type Handler = fn(Request<Body>, Params) -> Response<Body>;
+
+fn index(_: Request<Body>, _: Params) -> Response<Body> {
     Response::new(Body::from("Hello, Web!"))
 }
 
-fn hello_world(_: Request<Body>, params: Vec<(&str, &str)>) -> Response<Body> {
+fn hello_world(_: Request<Body>, params: Params) -> Response<Body> {
     let mut s = String::new();
     s.push_str("Hello, World!\n");
     for (_, v) in params {
@@ -23,11 +25,21 @@ fn hello_world(_: Request<Body>, params: Vec<(&str, &str)>) -> Response<Body> {
     Response::new(Body::from(s))
 }
 
-fn hello_rust(_: Request<Body>, _: Vec<(&str, &str)>) -> Response<Body> {
+fn hello_user(_: Request<Body>, params: Params) -> Response<Body> {
+    let mut s = String::new();
+    s.push_str("Hello, ");
+    for (k, v) in params {
+        s.push_str(&format!("{} = {}", k, v));
+    }
+    s.push_str("!");
+    Response::new(Body::from(s))
+}
+
+fn hello_rust(_: Request<Body>, _: Params) -> Response<Body> {
     Response::new(Body::from("Hello, Rust!"))
 }
 
-fn login(_req: Request<Body>, _: Vec<(&str, &str)>) -> Response<Body> {
+fn login(_req: Request<Body>, _: Params) -> Response<Body> {
     Response::new(Body::from("I'm logined!"))
 }
 
@@ -37,6 +49,7 @@ fn main() {
     let mut tree: PathTree<Handler> = PathTree::new();
     tree.insert("/GET/", index);
     tree.insert("/GET/*", hello_world);
+    tree.insert("/GET/hello/:name", hello_user);
     tree.insert("/GET/rust", hello_rust);
     tree.insert("/POST/login", login);
 
