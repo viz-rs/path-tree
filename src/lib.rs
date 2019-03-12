@@ -133,12 +133,11 @@ impl<'a, T> Node<'a, T> {
                         if self.data.is_some() {
                             return Some((self, params));
                         } else if self.indices.is_some() {
-                            let indices = self.indices.as_ref().unwrap();
-                            let nodes = self.nodes.as_ref().unwrap();
-                            return match position(indices, '*') {
-                                Some(i) => Some((&nodes[i], params)),
-                                None => None,
-                            };
+                            return Some((
+                                &self.nodes.as_ref().unwrap()
+                                    [position(self.indices.as_ref().unwrap(), '*')?],
+                                params,
+                            ));
                         }
                     }
                     Some((self, params))
@@ -147,12 +146,12 @@ impl<'a, T> Node<'a, T> {
                         return None;
                     }
 
-                    let indices = self.indices.as_ref().unwrap();
-                    let nodes = self.nodes.as_ref().unwrap();
                     p = &p[np.len()..];
 
-                    if let Some(i) = position(indices, p.chars().next().unwrap()) {
-                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
+                    if let Some(i) =
+                        position(self.indices.as_ref().unwrap(), p.chars().next().unwrap())
+                    {
+                        if let Some((n, ps)) = self.nodes.as_ref().unwrap()[i].find(p).as_mut() {
                             params.append(ps);
 
                             // end `/` `/*any`
@@ -161,12 +160,11 @@ impl<'a, T> Node<'a, T> {
                                     if n.data.is_some() {
                                         return Some((n, params));
                                     } else if n.indices.is_some() {
-                                        let indices = n.indices.as_ref().unwrap();
-                                        let nodes = n.nodes.as_ref().unwrap();
-                                        return match position(indices, '*') {
-                                            Some(i) => Some((&nodes[i], params)),
-                                            None => None,
-                                        };
+                                        return Some((
+                                            &n.nodes.as_ref().unwrap()
+                                                [position(n.indices.as_ref().unwrap(), '*')?],
+                                            params,
+                                        ));
                                     }
                                 }
                             }
@@ -175,15 +173,15 @@ impl<'a, T> Node<'a, T> {
                         }
                     }
 
-                    if let Some(i) = position(indices, ':') {
-                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
+                    if let Some(i) = position(self.indices.as_ref().unwrap(), ':') {
+                        if let Some((n, ps)) = self.nodes.as_ref().unwrap()[i].find(p).as_mut() {
                             params.append(ps);
                             return Some((n, params));
                         }
                     }
 
-                    if let Some(i) = position(indices, '*') {
-                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
+                    if let Some(i) = position(self.indices.as_ref().unwrap(), '*') {
+                        if let Some((n, ps)) = self.nodes.as_ref().unwrap()[i].find(p).as_mut() {
                             params.append(ps);
                             return Some((n, params));
                         }
@@ -198,20 +196,15 @@ impl<'a, T> Node<'a, T> {
                         return None;
                     }
 
-                    let indices = self.indices.as_ref().unwrap();
-                    let nodes = self.nodes.as_ref().unwrap();
-
                     params.push(&p[..i]);
-
                     p = &p[i..];
 
-                    if let Some(i) = position(indices, p.chars().next().unwrap()) {
-                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
-                            params.append(ps);
-                            return Some((n, params));
-                        }
-                    }
-                    None
+                    let (n, ref mut ps) = self.nodes.as_ref().unwrap()
+                        [position(self.indices.as_ref().unwrap(), p.chars().next().unwrap())?]
+                    .find(p)?;
+
+                    params.append(ps);
+                    Some((n, params))
                 }
                 None => {
                     params.push(p);
