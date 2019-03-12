@@ -142,17 +142,14 @@ impl<'a, T> Node<'a, T> {
                         params,
                     ))
                 } else {
-                    if self.indices.is_none() {
-                        return None;
-                    }
+                    let indices = self.indices.as_ref()?;
+                    let nodes = self.nodes.as_ref().unwrap();
 
                     p = &p[np.len()..];
 
                     // Static
-                    if let Some(i) =
-                        position(self.indices.as_ref().unwrap(), p.chars().next().unwrap())
-                    {
-                        if let Some((n, ps)) = self.nodes.as_ref().unwrap()[i].find(p).as_mut() {
+                    if let Some(i) = position(indices, p.chars().next().unwrap()) {
+                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
                             params.append(ps);
 
                             return Some((
@@ -174,16 +171,16 @@ impl<'a, T> Node<'a, T> {
                     }
 
                     // Named Parameter
-                    if let Some(i) = position(self.indices.as_ref().unwrap(), ':') {
-                        if let Some((n, ps)) = self.nodes.as_ref().unwrap()[i].find(p).as_mut() {
+                    if let Some(i) = position(indices, ':') {
+                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
                             params.append(ps);
                             return Some((n, params));
                         }
                     }
 
                     // Catch-All Parameter
-                    if let Some(i) = position(self.indices.as_ref().unwrap(), '*') {
-                        if let Some((n, ps)) = self.nodes.as_ref().unwrap()[i].find(p).as_mut() {
+                    if let Some(i) = position(indices, '*') {
+                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
                             params.append(ps);
                             return Some((n, params));
                         }
@@ -194,15 +191,13 @@ impl<'a, T> Node<'a, T> {
             }
             NodeKind::Parameter => match position(p, '/') {
                 Some(i) => {
-                    if self.indices.is_none() {
-                        return None;
-                    }
+                    let indices = self.indices.as_ref()?;
 
                     params.push(&p[..i]);
                     p = &p[i..];
 
                     let (n, ref mut ps) = self.nodes.as_ref().unwrap()
-                        [position(self.indices.as_ref().unwrap(), p.chars().next().unwrap())?]
+                        [position(indices, p.chars().next().unwrap())?]
                     .find(p)?;
 
                     params.append(ps);
