@@ -127,20 +127,20 @@ impl<'a, T> Node<'a, T> {
                 } else if np.len() < s.len() {
                     None
                 } else if np.len() == s.len() && np.len() == p.len() {
-                    // Fixed: Only has `/*`
-                    // end `/` `/*any`
-                    if '/' == s.chars().last().unwrap() {
-                        if self.data.is_some() {
-                            return Some((self, params));
-                        } else if self.indices.is_some() {
-                            return Some((
-                                &self.nodes.as_ref().unwrap()
-                                    [position(self.indices.as_ref().unwrap(), '*')?],
-                                params,
-                            ));
-                        }
-                    }
-                    Some((self, params))
+                    Some((
+                        // Fixed: has only route `/*`
+                        // Ended `/` `/*any`
+                        if self.data.is_none()
+                            && self.indices.is_some()
+                            && '/' == s.chars().last().unwrap()
+                        {
+                            &self.nodes.as_ref().unwrap()
+                                [position(self.indices.as_ref().unwrap(), '*')?]
+                        } else {
+                            self
+                        },
+                        params,
+                    ))
                 } else {
                     if self.indices.is_none() {
                         return None;
@@ -148,31 +148,32 @@ impl<'a, T> Node<'a, T> {
 
                     p = &p[np.len()..];
 
+                    // Static
                     if let Some(i) =
                         position(self.indices.as_ref().unwrap(), p.chars().next().unwrap())
                     {
                         if let Some((n, ps)) = self.nodes.as_ref().unwrap()[i].find(p).as_mut() {
                             params.append(ps);
 
-                            // end `/` `/*any`
-                            if let NodeKind::Static(s) = &n.kind {
-                                if '/' == s.chars().last().unwrap() {
-                                    if n.data.is_some() {
-                                        return Some((n, params));
-                                    } else if n.indices.is_some() {
-                                        return Some((
-                                            &n.nodes.as_ref().unwrap()
-                                                [position(n.indices.as_ref().unwrap(), '*')?],
-                                            params,
-                                        ));
+                            return Some((
+                                // Ended `/` `/*any`
+                                match &n.kind {
+                                    NodeKind::Static(s)
+                                        if n.data.is_none()
+                                            && n.indices.is_some()
+                                            && '/' == s.chars().last().unwrap() =>
+                                    {
+                                        &n.nodes.as_ref().unwrap()
+                                            [position(n.indices.as_ref().unwrap(), '*')?]
                                     }
-                                }
-                            }
-
-                            return Some((n, params));
+                                    _ => n,
+                                },
+                                params,
+                            ));
                         }
                     }
 
+                    // Named Parameter
                     if let Some(i) = position(self.indices.as_ref().unwrap(), ':') {
                         if let Some((n, ps)) = self.nodes.as_ref().unwrap()[i].find(p).as_mut() {
                             params.append(ps);
@@ -180,6 +181,7 @@ impl<'a, T> Node<'a, T> {
                         }
                     }
 
+                    // Catch-All Parameter
                     if let Some(i) = position(self.indices.as_ref().unwrap(), '*') {
                         if let Some((n, ps)) = self.nodes.as_ref().unwrap()[i].find(p).as_mut() {
                             params.append(ps);
