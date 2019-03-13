@@ -47,7 +47,7 @@ fn login(_req: Request<Body>, _: Params) -> Response<Body> {
 fn main() {
     let addr = ([127, 0, 0, 1], 3000).into();
 
-    let mut tree: PathTree<Handler> = PathTree::new();
+    let mut tree = PathTree::<Handler>::new();
     tree.insert("/GET/", index);
     tree.insert("/GET/*", hello_world);
     tree.insert("/GET/hello/:name", hello_user);
