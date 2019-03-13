@@ -64,28 +64,28 @@ impl<'a, T> Node<'a, T> {
     #[inline]
     pub fn insert(&mut self, p: &str) -> &mut Self {
         match self.kind {
+            NodeKind::Static(ref mut s) if s.len() == 0 => {
+                *s = p.to_owned();
+                self
+            }
             NodeKind::Static(ref mut s) => {
-                if s.len() == 0 {
-                    *s = p.to_owned();
-                    return self;
-                }
-
                 let np = loc(s, p);
 
+                // Split node
                 if s.len() > np.len() {
-                    let new_path = &s[np.len()..];
-                    let new_node = Node {
-                        data: mem::replace(&mut self.data, None),
-                        nodes: mem::replace(&mut self.nodes, None),
-                        params: mem::replace(&mut self.params, None),
-                        indices: mem::replace(&mut self.indices, None),
-                        kind: NodeKind::Static(new_path.to_owned()),
+                    let path = &s[np.len()..];
+                    let mut ns = String::new();
+                    ns.push(path.chars().next().unwrap());
+                    *s = path.to_owned();
+                    let mut node = Node {
+                        data: None,
+                        params: None,
+                        indices: Some(ns),
+                        nodes: Some(Vec::new()),
+                        kind: NodeKind::Static(np.to_owned()),
                     };
-                    self.indices
-                        .get_or_insert_with(|| String::new())
-                        .push(new_path.chars().next().unwrap());
-                    self.nodes.get_or_insert_with(|| Vec::new()).push(new_node);
-                    *s = np.to_owned();
+                    mem::swap(self, &mut node);
+                    self.nodes.as_mut().unwrap().push(node);
                 }
 
                 if p.len() == np.len() {
