@@ -7,11 +7,6 @@ pub enum NodeKind {
     CatchAll,
 }
 
-#[inline]
-fn position(p: &str, c: char) -> Option<usize> {
-    p.chars().position(|x| x == c)
-}
-
 #[derive(Clone, Debug)]
 pub struct Node<'a, T> {
     kind: NodeKind,
@@ -75,12 +70,7 @@ impl<'a, T> Node<'a, T> {
                     return self;
                 }
 
-                let np = s
-                    .chars()
-                    .zip(p.chars())
-                    .take_while(|(a, b)| a == b)
-                    .map(|v| v.0)
-                    .collect::<String>();
+                let np = loc(s, p);
 
                 if s.len() > np.len() {
                     let new_path = &s[np.len()..];
@@ -115,12 +105,7 @@ impl<'a, T> Node<'a, T> {
 
         match self.kind {
             NodeKind::Static(ref s) => {
-                let np = s
-                    .chars()
-                    .zip(p.chars())
-                    .take_while(|(a, b)| a == b)
-                    .map(|v| v.0)
-                    .collect::<String>();
+                let np = loc(s, p);
 
                 if np.len() == 0 {
                     None
@@ -295,19 +280,32 @@ impl<'a, T> PathTree<'a, T> {
 
     pub fn find(&self, path: &'a str) -> Option<(&T, Vec<(&'a str, &'a str)>)> {
         match self.tree.find(path) {
-            Some((node, values)) => match (node.data.as_ref(), node.params.as_ref()) {
-                (Some(data), Some(params)) => Some((
-                    data,
-                    params
-                        .iter()
-                        .zip(values.iter())
-                        .map(|(a, b)| (*a, *b))
-                        .collect(),
-                )),
+            Some((node, ref values)) => match (node.data.as_ref(), node.params.as_ref()) {
+                (Some(data), Some(params)) => Some((data, make_params(values, params))),
                 (Some(data), None) => Some((data, Vec::new())),
                 _ => None,
             },
             None => None,
         }
     }
+}
+
+fn position(p: &str, c: char) -> Option<usize> {
+    p.chars().position(|x| x == c)
+}
+
+fn loc(s: &str, p: &str) -> String {
+    s.chars()
+        .zip(p.chars())
+        .take_while(|(a, b)| a == b)
+        .map(|v| v.0)
+        .collect()
+}
+
+fn make_params<'a>(values: &Vec<&'a str>, params: &Vec<&'a str>) -> Vec<(&'a str, &'a str)> {
+    params
+        .iter()
+        .zip(values.iter())
+        .map(|(a, b)| (*a, *b))
+        .collect()
 }
