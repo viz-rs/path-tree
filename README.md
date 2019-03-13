@@ -110,6 +110,7 @@ use hyper::server::Server;
 use hyper::service::service_fn_ok;
 use hyper::{Body, Request, Response, StatusCode};
 use path_tree::PathTree;
+use std::sync::Arc;
 
 type Params<'a> = Vec<(&'a str, &'a str)>;
 
@@ -156,8 +157,10 @@ fn main() {
     tree.insert("/GET/rust", hello_rust);
     tree.insert("/POST/login", login);
 
+    let tree = Arc::new(tree);
+
     let routing = move || {
-        let router = tree.clone();
+        let router = Arc::clone(&tree);
 
         service_fn_ok(move |req| {
             let path = "/".to_owned() + req.method().as_str() + req.uri().path();
