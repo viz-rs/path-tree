@@ -40,7 +40,7 @@ impl<'a, T> Node<'a, T> {
 
         match position(indices, c) {
             Some(i) => match kind {
-                NodeKind::Static(s) => nodes[i].insert(&s),
+                NodeKind::Static(ref s) => nodes[i].insert(s),
                 _ => &mut nodes[i],
             },
             None => {
