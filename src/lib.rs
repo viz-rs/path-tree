@@ -65,7 +65,7 @@ impl<'a, T> Node<'a, T> {
     pub fn insert(&mut self, p: &str) -> &mut Self {
         match self.kind {
             NodeKind::Static(ref mut s) if s.len() == 0 => {
-                *s = p.to_owned();
+                *s += p;
                 self
             }
             NodeKind::Static(ref mut s) => {
