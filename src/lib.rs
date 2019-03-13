@@ -70,17 +70,15 @@ impl<'a, T> Node<'a, T> {
             }
             NodeKind::Static(ref mut s) => {
                 let np = loc(s, p);
+                let l = np.len();
 
                 // Split node
-                if s.len() > np.len() {
-                    let path = &s[np.len()..];
-                    let mut ns = String::new();
-                    ns.push(path.chars().next().unwrap());
-                    *s = path.to_owned();
+                if l < s.len() {
+                    *s = s[l..].to_owned();
                     let mut node = Node {
                         data: None,
                         params: None,
-                        indices: Some(ns),
+                        indices: Some(s[..1].to_owned()),
                         nodes: Some(Vec::new()),
                         kind: NodeKind::Static(np.to_owned()),
                     };
@@ -88,10 +86,10 @@ impl<'a, T> Node<'a, T> {
                     self.nodes.as_mut().unwrap().push(node);
                 }
 
-                if p.len() == np.len() {
+                if l == p.len() {
                     self
                 } else {
-                    self.add_node_static(&p[np.len()..])
+                    self.add_node_static(&p[l..])
                 }
             }
             NodeKind::Parameter => self.add_node_static(p),
@@ -106,12 +104,13 @@ impl<'a, T> Node<'a, T> {
         match self.kind {
             NodeKind::Static(ref s) => {
                 let np = loc(s, p);
+                let l = np.len();
 
-                if np.len() == 0 {
+                if l == 0 {
                     None
-                } else if np.len() < s.len() {
+                } else if l < s.len() {
                     None
-                } else if np.len() == s.len() && np.len() == p.len() {
+                } else if l == s.len() && l == p.len() {
                     Some((
                         // Fixed: has only route `/*`
                         // Ended `/` `/*any`
@@ -130,7 +129,7 @@ impl<'a, T> Node<'a, T> {
                     let indices = self.indices.as_ref()?;
                     let nodes = self.nodes.as_ref().unwrap();
 
-                    p = &p[np.len()..];
+                    p = &p[l..];
 
                     // Static
                     if let Some(i) = position(indices, p.chars().next().unwrap()) {
