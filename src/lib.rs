@@ -78,8 +78,8 @@ impl<'a, T> Node<'a, T> {
                     let mut node = Node {
                         data: None,
                         params: None,
-                        indices: Some(s[..1].to_owned()),
                         nodes: Some(Vec::new()),
+                        indices: Some(s.chars().next().unwrap().to_string()),
                         kind: NodeKind::Static(np.to_owned()),
                     };
                     mem::swap(self, &mut node);
