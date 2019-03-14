@@ -1,6 +1,6 @@
 [package]
 name = "path-tree"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Fangdun Cai <cfddream@gmail.com>"]
 edition = "2018"
 description = "Path-based routing tree"

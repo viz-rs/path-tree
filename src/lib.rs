@@ -8,21 +8,23 @@ pub enum NodeKind {
 }
 
 #[derive(Clone, Debug)]
-pub struct Node<'a, T> {
+pub struct Node<T> {
     kind: NodeKind,
-    params: Option<Vec<&'a str>>,
+    params: Option<Vec<&'static str>>,
     data: Option<T>,
     indices: Option<String>,
     nodes: Option<Vec<Self>>,
 }
 
-impl<'a, T> Default for Node<'a, T> {
+impl<T> Default for Node<T> {
+    #[inline]
     fn default() -> Self {
         Node::new(NodeKind::Static(String::new()))
     }
 }
 
-impl<'a, T> Node<'a, T> {
+impl<T> Node<T> {
+    #[inline]
     pub fn new(kind: NodeKind) -> Self {
         Node {
             kind,
@@ -98,7 +100,7 @@ impl<'a, T> Node<'a, T> {
     }
 
     #[inline]
-    pub fn find(&self, mut p: &'a str) -> Option<(&Self, Vec<&'a str>)> {
+    pub fn find<'a>(&self, mut p: &'a str) -> Option<(&Self, Vec<&'a str>)> {
         let mut params = Vec::new();
 
         match self.kind {
@@ -201,27 +203,29 @@ impl<'a, T> Node<'a, T> {
 }
 
 #[derive(Clone, Debug)]
-pub struct PathTree<'a, T> {
-    tree: Node<'a, T>,
+pub struct PathTree<T> {
+    tree: Node<T>,
 }
 
-impl<'a, T> Default for PathTree<'a, T> {
+impl<T> Default for PathTree<T> {
+    #[inline]
     fn default() -> Self {
         PathTree::new()
     }
 }
 
-impl<'a, T> PathTree<'a, T> {
+impl<T> PathTree<T> {
+    #[inline]
     pub fn new() -> Self {
         PathTree {
             tree: Node::new(NodeKind::Static("/".to_owned())),
         }
     }
 
-    pub fn insert(&mut self, mut path: &'a str, data: T) -> &mut Self {
+    pub fn insert(&mut self, mut path: &'static str, data: T) -> &mut Self {
         let mut next = true;
         let mut node = &mut self.tree;
-        let mut params: Option<Vec<&'a str>> = None;
+        let mut params: Option<Vec<&'static str>> = None;
 
         path = path.trim_start_matches('/');
 
@@ -277,7 +281,7 @@ impl<'a, T> PathTree<'a, T> {
         self
     }
 
-    pub fn find(&self, path: &'a str) -> Option<(&T, Vec<(&'a str, &'a str)>)> {
+    pub fn find<'a>(&self, path: &'a str) -> Option<(&T, Vec<(&'a str, &'a str)>)> {
         match self.tree.find(path) {
             Some((node, ref values)) => match (node.data.as_ref(), node.params.as_ref()) {
                 (Some(data), Some(params)) => Some((data, make_params(values, params))),
