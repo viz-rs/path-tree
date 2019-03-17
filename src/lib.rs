@@ -10,10 +10,10 @@ pub enum NodeKind {
 #[derive(Clone, Debug)]
 pub struct Node<T> {
     kind: NodeKind,
-    params: Option<Vec<String>>,
     data: Option<T>,
     indices: Option<String>,
     nodes: Option<Vec<Self>>,
+    params: Option<Vec<String>>,
 }
 
 impl<T> Default for Node<T> {
@@ -203,9 +203,7 @@ impl<T> Node<T> {
 }
 
 #[derive(Clone, Debug)]
-pub struct PathTree<T> {
-    tree: Node<T>,
-}
+pub struct PathTree<T>(Node<T>);
 
 impl<T> Default for PathTree<T> {
     #[inline]
@@ -217,14 +215,12 @@ impl<T> Default for PathTree<T> {
 impl<T> PathTree<T> {
     #[inline]
     pub fn new() -> Self {
-        PathTree {
-            tree: Node::new(NodeKind::Static("/".to_owned())),
-        }
+        PathTree(Node::new(NodeKind::Static("/".to_owned())))
     }
 
     pub fn insert(&mut self, mut path: &str, data: T) -> &mut Self {
         let mut next = true;
-        let mut node = &mut self.tree;
+        let mut node = &mut self.0;
         let mut params: Option<Vec<String>> = None;
 
         path = path.trim_start_matches('/');
@@ -284,7 +280,7 @@ impl<T> PathTree<T> {
     }
 
     pub fn find<'a>(&'a self, path: &'a str) -> Option<(&'a T, Vec<(&'a str, &'a str)>)> {
-        match self.tree.find(path) {
+        match self.0.find(path) {
             Some((node, ref values)) => match (node.data.as_ref(), node.params.as_ref()) {
                 (Some(data), Some(params)) => Some((data, make_params(values, params))),
                 (Some(data), None) => Some((data, Vec::new())),
