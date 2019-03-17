@@ -10,7 +10,7 @@ pub enum NodeKind {
 #[derive(Clone, Debug)]
 pub struct Node<T> {
     kind: NodeKind,
-    params: Option<Vec<&'static str>>,
+    params: Option<Vec<String>>,
     data: Option<T>,
     indices: Option<String>,
     nodes: Option<Vec<Self>>,
@@ -222,10 +222,10 @@ impl<T> PathTree<T> {
         }
     }
 
-    pub fn insert(&mut self, mut path: &'static str, data: T) -> &mut Self {
+    pub fn insert(&mut self, mut path: &str, data: T) -> &mut Self {
         let mut next = true;
         let mut node = &mut self.tree;
-        let mut params: Option<Vec<&'static str>> = None;
+        let mut params: Option<Vec<String>> = None;
 
         path = path.trim_start_matches('/');
 
@@ -265,7 +265,9 @@ impl<T> PathTree<T> {
                         next = false;
                         kind = NodeKind::CatchAll;
                     }
-                    params.get_or_insert_with(|| Vec::new()).push(suffix);
+                    params
+                        .get_or_insert_with(|| Vec::new())
+                        .push(suffix.to_owned());
                     node = node.add_node_dynamic(c, kind);
                 }
                 None => {
@@ -281,7 +283,7 @@ impl<T> PathTree<T> {
         self
     }
 
-    pub fn find<'a>(&self, path: &'a str) -> Option<(&T, Vec<(&'a str, &'a str)>)> {
+    pub fn find<'a>(&'a self, path: &'a str) -> Option<(&'a T, Vec<(&'a str, &'a str)>)> {
         match self.tree.find(path) {
             Some((node, ref values)) => match (node.data.as_ref(), node.params.as_ref()) {
                 (Some(data), Some(params)) => Some((data, make_params(values, params))),
@@ -305,10 +307,10 @@ fn loc(s: &str, p: &str) -> String {
         .collect()
 }
 
-fn make_params<'a>(values: &Vec<&'a str>, params: &Vec<&'a str>) -> Vec<(&'a str, &'a str)> {
+fn make_params<'a>(values: &Vec<&'a str>, params: &'a Vec<String>) -> Vec<(&'a str, &'a str)> {
     params
         .iter()
         .zip(values.iter())
-        .map(|(a, b)| (*a, *b))
+        .map(|(a, b)| (a.as_ref(), *b))
         .collect()
 }
