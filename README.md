@@ -114,37 +114,37 @@ use std::sync::Arc;
 
 type Params<'a> = Vec<(&'a str, &'a str)>;
 
-type Handler = fn(Request<Body>, Params) -> Response<Body>;
+type Handler = fn(Request<Body>, Params) -> Body;
 
-fn index(_: Request<Body>, _: Params) -> Response<Body> {
-    Response::new(Body::from("Hello, Web!"))
+fn index(_: Request<Body>, _: Params) -> Body {
+    Body::from("Hello, Web!")
 }
 
-fn hello_world(_: Request<Body>, params: Params) -> Response<Body> {
+fn hello_world(_: Request<Body>, params: Params) -> Body {
     let mut s = String::new();
     s.push_str("Hello, World!\n");
     for (_, v) in params {
         s.push_str(&format!("param = {}", v));
     }
-    Response::new(Body::from(s))
+    Body::from(s)
 }
 
-fn hello_user(_: Request<Body>, params: Params) -> Response<Body> {
+fn hello_user(_: Request<Body>, params: Params) -> Body {
     let mut s = String::new();
     s.push_str("Hello, ");
     for (k, v) in params {
         s.push_str(&format!("{} = {}", k, v));
     }
     s.push_str("!");
-    Response::new(Body::from(s))
+    Body::from(s)
 }
 
-fn hello_rust(_: Request<Body>, _: Params) -> Response<Body> {
-    Response::new(Body::from("Hello, Rust!"))
+fn hello_rust(_: Request<Body>, _: Params) -> Body {
+    Body::from("Hello, Rust!")
 }
 
-fn login(_req: Request<Body>, _: Params) -> Response<Body> {
-    Response::new(Body::from("I'm logined!"))
+fn login(_req: Request<Body>, _: Params) -> Body {
+    Body::from("I'm logined!")
 }
 
 fn main() {
@@ -168,7 +168,7 @@ fn main() {
             dbg!(&path);
 
             match router.find(&path) {
-                Some((handler, params)) => handler(req, params),
+                Some((handler, params)) => Response::new(handler(req, params)),
                 None => Response::builder()
                     .status(StatusCode::NOT_FOUND)
                     .body(Body::from("Not Found"))
