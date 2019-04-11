@@ -37,8 +37,8 @@ impl<T> Node<T> {
 
     #[inline]
     fn add_node(&mut self, c: char, kind: NodeKind) -> &mut Self {
-        let indices: &mut String = self.indices.get_or_insert_with(|| String::new());
-        let nodes: &mut Vec<Node<T>> = self.nodes.get_or_insert_with(|| Vec::new());
+        let indices: &mut String = self.indices.get_or_insert_with(String::new);
+        let nodes: &mut Vec<Node<T>> = self.nodes.get_or_insert_with(Vec::new);
 
         match position(indices, c) {
             Some(i) => match kind {
@@ -231,7 +231,7 @@ impl<T> PathTree<T> {
         }
 
         while next {
-            match path.chars().position(|c| c == ':' || c == '*') {
+            match path.chars().position(has_colon_or_star) {
                 Some(i) => {
                     let mut prefix = &path[..i];
                     let mut suffix = &path[i..];
@@ -247,7 +247,7 @@ impl<T> PathTree<T> {
 
                     let c = prefix.chars().next().unwrap();
                     if c == ':' {
-                        match suffix.chars().position(|c| c == '*' || c == '/') {
+                        match suffix.chars().position(has_star_or_slash) {
                             Some(i) => {
                                 path = &suffix[i..];
                                 suffix = &suffix[..i];
@@ -261,9 +261,7 @@ impl<T> PathTree<T> {
                         next = false;
                         kind = NodeKind::CatchAll;
                     }
-                    params
-                        .get_or_insert_with(|| Vec::new())
-                        .push(suffix.to_owned());
+                    params.get_or_insert_with(Vec::new).push(suffix.to_owned());
                     node = node.add_node_dynamic(c, kind);
                 }
                 None => {
@@ -289,6 +287,14 @@ impl<T> PathTree<T> {
             None => None,
         }
     }
+}
+
+const fn has_colon_or_star(c: char) -> bool {
+    (c == ':') | (c == '*')
+}
+
+const fn has_star_or_slash(c: char) -> bool {
+    (c == '*') | (c == '/')
 }
 
 fn position(p: &str, c: char) -> Option<usize> {
