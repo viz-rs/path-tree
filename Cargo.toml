@@ -14,7 +14,7 @@ license = "MIT/Apache-2.0"
 bench = false
 
 [dev-dependencies]
-#actix-router = { git="https://github.com/actix/actix-net", path="router" }
+actix-router = "^0.1"
 path-table = "^1.0"
 route-recognizer = "^0.1"
 criterion = "^0.2"
