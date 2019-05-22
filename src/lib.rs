@@ -19,14 +19,14 @@ pub struct Node<T> {
 impl<T> Default for Node<T> {
     #[inline]
     fn default() -> Self {
-        Node::new(NodeKind::Static(String::new()))
+        Self::new(NodeKind::Static(String::new()))
     }
 }
 
 impl<T> Node<T> {
     #[inline]
     pub fn new(kind: NodeKind) -> Self {
-        Node {
+        Self {
             kind,
             data: None,
             params: None,
@@ -208,14 +208,14 @@ pub struct PathTree<T>(Node<T>);
 impl<T> Default for PathTree<T> {
     #[inline]
     fn default() -> Self {
-        PathTree::new()
+        Self::new()
     }
 }
 
 impl<T> PathTree<T> {
     #[inline]
     pub fn new() -> Self {
-        PathTree(Node::new(NodeKind::Static("/".to_owned())))
+        Self(Node::new(NodeKind::Static("/".to_owned())))
     }
 
     pub fn insert(&mut self, mut path: &str, data: T) -> &mut Self {
