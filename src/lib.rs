@@ -100,7 +100,7 @@ impl<T> Node<T> {
     }
 
     #[inline]
-    pub fn find<'a>(&self, mut p: &'a str) -> Option<(&Self, Vec<&'a str>)> {
+    pub fn find<'a>(&'a self, mut p: &'a str) -> Option<(&Self, Vec<&str>)> {
         let mut params = Vec::new();
 
         match self.kind {
@@ -277,10 +277,17 @@ impl<T> PathTree<T> {
         self
     }
 
-    pub fn find<'a>(&'a self, path: &'a str) -> Option<(&'a T, Vec<(&'a str, &'a str)>)> {
+    pub fn find<'a>(&'a self, path: &'a str) -> Option<(&T, Vec<(&str, &str)>)> {
         match self.0.find(path) {
-            Some((node, ref values)) => match (node.data.as_ref(), node.params.as_ref()) {
-                (Some(data), Some(params)) => Some((data, make_params(values, params))),
+            Some((node, values)) => match (node.data.as_ref(), node.params.as_ref()) {
+                (Some(data), Some(params)) => Some((
+                    data,
+                    params
+                        .iter()
+                        .zip(values.iter())
+                        .map(|(a, b)| (a.as_str(), *b))
+                        .collect(),
+                )),
                 (Some(data), None) => Some((data, Vec::new())),
                 _ => None,
             },
@@ -306,13 +313,5 @@ fn loc(s: &str, p: &str) -> String {
         .zip(p.chars())
         .take_while(|(a, b)| a == b)
         .map(|v| v.0)
-        .collect()
-}
-
-fn make_params<'a>(values: &Vec<&'a str>, params: &'a Vec<String>) -> Vec<(&'a str, &'a str)> {
-    params
-        .iter()
-        .zip(values.iter())
-        .map(|(a, b)| (a.as_ref(), *b))
         .collect()
 }
