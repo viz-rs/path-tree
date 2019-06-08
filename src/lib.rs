@@ -233,6 +233,7 @@ impl<T> PathTree<T> {
         while next {
             match path.chars().position(has_colon_or_star) {
                 Some(i) => {
+                    let kind: NodeKind;
                     let mut prefix = &path[..i];
                     let mut suffix = &path[i..];
 
@@ -242,8 +243,6 @@ impl<T> PathTree<T> {
 
                     prefix = &suffix[..1];
                     suffix = &suffix[1..];
-
-                    let mut kind: NodeKind;
 
                     let c = prefix.chars().next().unwrap();
                     if c == ':' {
