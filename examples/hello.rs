@@ -1,13 +1,9 @@
-extern crate futures;
-extern crate hyper;
-extern crate path_tree;
-
-use futures::Future;
-use hyper::server::Server;
-use hyper::service::service_fn_ok;
-use hyper::{Body, Request, Response, StatusCode};
+use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Error, Request, Response, Server, StatusCode};
 use path_tree::PathTree;
 use std::sync::Arc;
+
+static NOTFOUND: &[u8] = b"Not Found";
 
 type Params<'a> = Vec<(&'a str, &'a str)>;
 
@@ -44,7 +40,8 @@ fn login(_req: Request<Body>, _: Params) -> Body {
     Body::from("I'm logined!")
 }
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let addr = ([127, 0, 0, 1], 3000).into();
 
     let mut tree = PathTree::<Handler>::new();
@@ -56,27 +53,33 @@ fn main() {
 
     let tree = Arc::new(tree);
 
-    let routing = move || {
+    let make_service = make_service_fn(move |_| {
         let router = Arc::clone(&tree);
 
-        service_fn_ok(move |req| {
-            let path = "/".to_owned() + req.method().as_str() + req.uri().path();
+        async move {
+            Ok::<_, Error>(service_fn(move |req| {
+                let path = "/".to_owned() + req.method().as_str() + req.uri().path();
 
-            dbg!(&path);
+                dbg!(&path);
 
-            match router.find(&path) {
-                Some((handler, params)) => Response::new(handler(req, params)),
-                None => Response::builder()
-                    .status(StatusCode::NOT_FOUND)
-                    .body(Body::from("Not Found"))
-                    .unwrap(),
-            }
-        })
-    };
+                let body = match router.find(&path) {
+                    Some((handler, params)) => Response::new(handler(req, params)),
+                    None => Response::builder()
+                        .status(StatusCode::NOT_FOUND)
+                        .body(NOTFOUND.into())
+                        .unwrap(),
+                };
 
-    let server = Server::bind(&addr)
-        .serve(routing)
-        .map_err(|e| eprintln!("server error: {}", e));
+                async move { Ok::<_, Error>(body) }
+            }))
+        }
+    });
 
-    hyper::rt::run(server);
+    let server = Server::bind(&addr).serve(make_service);
+
+    println!("Listening on http://{}", addr);
+
+    server.await?;
+
+    Ok(())
 }
