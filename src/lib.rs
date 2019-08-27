@@ -6,6 +6,8 @@
     missing_debug_implementations
 )]
 
+//! path-tree is a lightweight high performance HTTP request router for Rust.
+
 use std::mem;
 
 #[derive(Clone, Debug)]
@@ -25,14 +27,12 @@ pub struct Node<T> {
 }
 
 impl<T> Default for Node<T> {
-    #[inline]
     fn default() -> Self {
         Self::new(NodeKind::Static(String::new()))
     }
 }
 
 impl<T> Node<T> {
-    #[inline]
     pub fn new(kind: NodeKind) -> Self {
         Self {
             kind,
@@ -43,7 +43,6 @@ impl<T> Node<T> {
         }
     }
 
-    #[inline]
     fn add_node(&mut self, c: char, kind: NodeKind) -> &mut Self {
         let indices: &mut String = self.indices.get_or_insert_with(String::new);
         let nodes: &mut Vec<Node<T>> = self.nodes.get_or_insert_with(Vec::new);
@@ -61,17 +60,14 @@ impl<T> Node<T> {
         }
     }
 
-    #[inline]
     pub fn add_node_static(&mut self, p: &str) -> &mut Self {
         self.add_node(p.chars().next().unwrap(), NodeKind::Static(p.to_owned()))
     }
 
-    #[inline]
     pub fn add_node_dynamic(&mut self, c: char, kind: NodeKind) -> &mut Self {
         self.add_node(c, kind)
     }
 
-    #[inline]
     pub fn insert(&mut self, p: &str) -> &mut Self {
         match self.kind {
             NodeKind::Static(ref mut s) if s.len() == 0 => {
@@ -107,7 +103,6 @@ impl<T> Node<T> {
         }
     }
 
-    #[inline]
     pub fn find<'a>(&'a self, mut p: &'a str) -> Option<(&Self, Vec<&str>)> {
         let mut params = Vec::new();
 
@@ -214,14 +209,12 @@ impl<T> Node<T> {
 pub struct PathTree<T>(Node<T>);
 
 impl<T> Default for PathTree<T> {
-    #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
 impl<T> PathTree<T> {
-    #[inline]
     pub fn new() -> Self {
         Self(Node::new(NodeKind::Static("/".to_owned())))
     }
