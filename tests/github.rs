@@ -1,5 +1,3 @@
-extern crate path_tree;
-
 use path_tree::PathTree;
 
 #[allow(dead_code)]

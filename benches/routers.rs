@@ -1,9 +1,3 @@
-extern crate actix_router;
-extern crate criterion;
-extern crate path_table;
-extern crate path_tree;
-extern crate route_recognizer;
-
 #[path = "../tests/fixtures/github.rs"]
 mod github;
 
