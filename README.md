@@ -11,17 +11,33 @@ A compressing dynamic trie ([radix tree]) structure is used for efficient matchi
 
 ## Features
 
-- Fast!
+- **Fast**:
 
-- Flexible!
+- **Flexible**:
 
-- Named parameters. e.g. `:name`.
+  - Named parameters. e.g. `:name`.
 
-- Catch-All parameters. e.g. `*any`.
+  - Catch-All parameters. e.g. `*any`.
 
-- Supports multiple naming for the same path segment. e.g. `/users/:id` and `/users/:user_id/repos`.
+  - Supports multiple naming for the same path segment. e.g. `/users/:id` and `/users/:user_id/repos`.
 
-- Don't care about routes orders, recursive lookup, `Static` -> `Named` -> `Catch-All`.
+  - Don't care about routes orders, recursive lookup, `Static` -> `Named` -> `Catch-All`.
+
+- **Micro**:
+
+## Benchmark
+
+```shell
+$ cargo bench
+```
+
+### Path Find
+
+![Path Find](resources/bench-find.svg)
+
+### Path Insert
+
+![Path Insert](resources/bench-insert.svg)
 
 ## Usage
 
@@ -189,7 +205,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Ok(())
 }
 ```
-
 
 ### `normal`
 

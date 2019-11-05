@@ -18,9 +18,9 @@ actix-router = "^0.1"
 path-table = "^1.0"
 route-recognizer = "^0.1"
 criterion = "^0.2"
-hyper = { git = "https://github.com/hyperium/hyper", branch = "master" }
-futures-preview = { version = "=0.3.0-alpha.18", default-features = false, features = ["std", "nightly", "async-await"] }
-tokio = { version = "0.2.0-alpha.2", default-features = false, features = ["rt-full"] }
+hyper = { version = "0.13.0-alpha.4", features = ["unstable-stream"] }
+futures-preview = "=0.3.0-alpha.19"
+tokio = { version = "0.2.0-alpha.6", default-features = false, features = ["rt-full"] }
 
 [[bench]]
 name = "routers"
@@ -37,3 +37,8 @@ path = "tests/basic.rs"
 [[test]]
 name = "github"
 path = "tests/github.rs"
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
