@@ -10,6 +10,15 @@ readme = "README.md"
 keywords = ["radix", "tree", "path", "router"]
 license = "MIT/Apache-2.0"
 
+include = [
+    "src",
+    "Cargo.toml",
+    "CHANGES.md",
+    "README.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
+]
+
 [lib]
 bench = false
 

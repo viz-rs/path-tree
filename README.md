@@ -31,6 +31,90 @@ A compressing dynamic trie ([radix tree]) structure is used for efficient matchi
 $ cargo bench
 ```
 
+From [Travis](https://travis-ci.org/trek-rs/path-tree/builds/607606611):
+
+```
+path_insert/path_tree_insert
+
+                        time:   [350.45 us 350.98 us 351.56 us]
+
+Found 5 outliers among 50 measurements (10.00%)
+
+  3 (6.00%) high mild
+
+  2 (4.00%) high severe
+
+path_insert/route_recognizer_add
+
+                        time:   [240.21 us 240.51 us 240.88 us]
+
+Found 5 outliers among 50 measurements (10.00%)
+
+  3 (6.00%) high mild
+
+  2 (4.00%) high severe
+
+path_insert/path_table_setup
+
+                        time:   [116.40 us 116.62 us 116.86 us]
+
+Found 5 outliers among 50 measurements (10.00%)
+
+  1 (2.00%) high mild
+
+  4 (8.00%) high severe
+
+path_insert/actix_router_path
+
+                        time:   [18.504 ms 18.525 ms 18.550 ms]
+
+Found 4 outliers among 50 measurements (8.00%)
+
+  3 (6.00%) high mild
+
+  1 (2.00%) high severe
+
+path_find/path_tree_find
+
+                        time:   [483.84 us 484.52 us 485.20 us]
+
+Found 3 outliers among 50 measurements (6.00%)
+
+  1 (2.00%) high mild
+
+  2 (4.00%) high severe
+
+path_find/route_recognizer_recognize
+
+                        time:   [1.4246 ms 1.4259 ms 1.4273 ms]
+
+Found 4 outliers among 50 measurements (8.00%)
+
+  3 (6.00%) high mild
+
+  1 (2.00%) high severe
+
+path_find/path_table_route
+
+                        time:   [198.14 us 198.61 us 199.17 us]
+
+Found 2 outliers among 50 measurements (4.00%)
+
+  1 (2.00%) high mild
+
+  1 (2.00%) high severe
+
+path_find/actix_router_recognize
+
+                        time:   [11.376 ms 11.393 ms 11.415 ms]
+
+Found 6 outliers among 50 measurements (12.00%)
+
+  2 (4.00%) high mild
+
+  4 (8.00%) high severe
+```
+
 ### Path Find
 
 ![Path Find](resources/bench-find.svg)
