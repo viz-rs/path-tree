@@ -103,7 +103,7 @@ impl<T> Node<T> {
         }
     }
 
-    pub fn find<'a>(&'a self, mut p: &'a str) -> Option<(&Self, Vec<&str>)> {
+    pub fn find<'a>(&'a self, mut p: &'a str) -> Option<(&'a Self, Vec<&'a str>)> {
         let mut params = Vec::new();
 
         match self.kind {
@@ -277,7 +277,7 @@ impl<T> PathTree<T> {
         self
     }
 
-    pub fn find<'a>(&'a self, path: &'a str) -> Option<(&T, Vec<(&str, &str)>)> {
+    pub fn find<'a>(&'a self, path: &'a str) -> Option<(&'a T, Vec<(&'a str, &'a str)>)> {
         match self.0.find(path) {
             Some((node, values)) => match (node.data.as_ref(), node.params.as_ref()) {
                 (Some(data), Some(params)) => Some((
