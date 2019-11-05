@@ -11,7 +11,9 @@ A compressing dynamic trie ([radix tree]) structure is used for efficient matchi
 
 ## Features
 
-- **Fast**:
+- **Fast**: See benchmark
+
+- **Micro**: The whole project is ~318 lines of code (Includes comments)
 
 - **Flexible**:
 
@@ -22,8 +24,6 @@ A compressing dynamic trie ([radix tree]) structure is used for efficient matchi
   - Supports multiple naming for the same path segment. e.g. `/users/:id` and `/users/:user_id/repos`.
 
   - Don't care about routes orders, recursive lookup, `Static` -> `Named` -> `Catch-All`.
-
-- **Micro**:
 
 ## Benchmark
 
