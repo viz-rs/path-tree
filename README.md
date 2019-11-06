@@ -19,7 +19,7 @@ A compressing dynamic trie ([radix tree]) structure is used for efficient matchi
 
   - Named parameters. e.g. `:name`.
 
-  - Catch-All parameters. e.g. `*any`.
+  - Catch-All parameters. e.g. `*any`, it must always be at the end of the pattern.
 
   - Supports multiple naming for the same path segment. e.g. `/users/:id` and `/users/:user_id/repos`.
 
