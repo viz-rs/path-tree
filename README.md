@@ -13,7 +13,7 @@ A compressing dynamic trie ([radix tree]) structure is used for efficient matchi
 
 - **Fast**: See benchmark
 
-- **Micro**: The whole project is ~318 lines of code (Includes comments)
+- **Micro**: The [src/lib.rs](src/lib.rs) file is ~318 lines of code (Includes comments)
 
 - **Flexible**:
 
