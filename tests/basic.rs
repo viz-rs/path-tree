@@ -420,3 +420,73 @@ fn root_catch_all_parameter_1() {
         assert_eq!(res.1, []);
     }
 }
+
+#[test]
+fn test_readme_example() {
+    let mut tree = PathTree::<usize>::new();
+
+    tree.insert("/", 0);
+    tree.insert("/users", 1);
+    tree.insert("/users/:id", 2);
+    tree.insert("/users/:id/:org", 3);
+    tree.insert("/users/:user_id/repos", 4);
+    tree.insert("/users/:user_id/repos/:id", 5);
+    tree.insert("/users/:user_id/repos/:id/*any", 6);
+    tree.insert("/:username", 7);
+    tree.insert("/*any", 8);
+    tree.insert("/about", 9);
+    tree.insert("/about/", 10);
+    tree.insert("/about/us", 11);
+    tree.insert("/users/repos/*any", 12);
+
+    // Matched "/"
+    let node = tree.find("/");
+    assert_eq!(node.is_some(), true);
+    let res = node.unwrap();
+    assert_eq!(*res.0, 0);
+    assert_eq!(res.1, []); // Params
+
+    // Matched "/:username"
+    let node = tree.find("/username");
+    assert_eq!(node.is_some(), true);
+    let res = node.unwrap();
+    assert_eq!(*res.0, 7);
+    assert_eq!(res.1, [("username", "username")]); // Params
+
+    // Matched "/*any"
+    let node = tree.find("/user/s");
+    let res = node.unwrap();
+    assert_eq!(*res.0, 8);
+    assert_eq!(res.1, [("any", "user/s")]);
+
+    // Matched "/users/:id"
+    let node = tree.find("/users/fundon");
+    let res = node.unwrap();
+    assert_eq!(*res.0, 2);
+    assert_eq!(res.1, [("id", "fundon")]); // Params
+
+    // Matched "/users/:user_id/repos/:id"
+    let node = tree.find("/users/fundon/repos/trek-rs");
+    let res = node.unwrap();
+    assert_eq!(*res.0, 5);
+    assert_eq!(res.1, [("user_id", "fundon"), ("id", "trek-rs")]); // Params
+
+    // Matched "/users/:user_id/repos/:id/*any"
+    let node = tree.find("/users/fundon/repos/trek-rs/noder/issues");
+    let res = node.unwrap();
+    assert_eq!(*res.0, 6);
+    assert_eq!(
+        res.1,
+        [
+            ("user_id", "fundon"),
+            ("id", "trek-rs"),
+            ("any", "noder/issues"),
+        ]
+    ); // Params
+
+    // Matched "/users/repos/*any"
+    let node = tree.find("/users/repos/");
+    let res = node.unwrap();
+    assert_eq!(*res.0, 12);
+    assert_eq!(res.1, []);
+}
