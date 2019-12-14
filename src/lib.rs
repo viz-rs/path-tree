@@ -1,3 +1,5 @@
+//! path-tree is a lightweight high performance HTTP request router for Rust.
+
 #![deny(unsafe_code)]
 #![warn(
     nonstandard_style,
@@ -5,8 +7,6 @@
     future_incompatible,
     missing_debug_implementations
 )]
-
-//! path-tree is a lightweight high performance HTTP request router for Rust.
 
 use std::mem;
 
@@ -296,18 +296,22 @@ impl<T> PathTree<T> {
     }
 }
 
-const fn has_colon_or_star(c: char) -> bool {
+#[inline]
+fn has_colon_or_star(c: char) -> bool {
     (c == ':') | (c == '*')
 }
 
-const fn has_star_or_slash(c: char) -> bool {
+#[inline]
+fn has_star_or_slash(c: char) -> bool {
     (c == '*') | (c == '/')
 }
 
+#[inline]
 fn position(p: &str, c: char) -> Option<usize> {
     p.chars().position(|x| x == c)
 }
 
+#[inline]
 fn loc(s: &str, p: &str) -> String {
     s.chars()
         .zip(p.chars())

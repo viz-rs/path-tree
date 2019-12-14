@@ -23,13 +23,13 @@ include = [
 bench = false
 
 [dev-dependencies]
-actix-router = "^0.1"
-path-table = "^1.0"
-route-recognizer = "^0.1"
-criterion = "^0.2"
-hyper = { version = "0.13.0-alpha.4", features = ["unstable-stream"] }
-futures-preview = "=0.3.0-alpha.19"
-tokio = { version = "0.2.0-alpha.6", default-features = false, features = ["rt-full"] }
+actix-router = "0.2"
+path-table = "1.0"
+route-recognizer = "0.1"
+criterion = "0.2"
+hyper = "0.13"
+futures = "0.3"
+tokio = { version = "0.2", default-features = false, features = ["rt-util"] }
 
 [[bench]]
 name = "routers"
