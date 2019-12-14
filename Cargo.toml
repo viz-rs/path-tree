@@ -29,7 +29,7 @@ route-recognizer = "0.1"
 criterion = "0.2"
 hyper = "0.13"
 futures = "0.3"
-tokio = { version = "0.2", default-features = false, features = ["rt-util"] }
+tokio = { version = "0.2", default-features = false, features = ["macros", "rt-util"] }
 
 [[bench]]
 name = "routers"
