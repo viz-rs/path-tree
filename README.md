@@ -39,79 +39,83 @@ $ cargo bench
 ```
 path_insert/path_tree_insert
 
-                        time:   [346.45 us 346.83 us 347.24 us]
+                        time:   [285.97 us 286.32 us 286.73 us]
 
-Found 3 outliers among 50 measurements (6.00%)
+Found 6 outliers among 50 measurements (12.00%)
 
-2 (4.00%) high mild
+  4 (8.00%) high mild
 
-1 (2.00%) high severe
+  2 (4.00%) high severe
 
 path_insert/route_recognizer_add
 
-                        time:   [243.56 us 244.29 us 245.21 us]
+                        time:   [194.49 us 194.95 us 195.49 us]
 
-Found 3 outliers among 50 measurements (6.00%)
+Found 4 outliers among 50 measurements (8.00%)
 
-2 (4.00%) high mild
+  1 (2.00%) high mild
 
-1 (2.00%) high severe
+  3 (6.00%) high severe
 
 path_insert/path_table_setup
 
-                        time:   [117.84 us 118.16 us 118.62 us]
+                        time:   [94.507 us 94.655 us 94.847 us]
 
-Found 8 outliers among 50 measurements (16.00%)
+Found 9 outliers among 50 measurements (18.00%)
 
-1 (2.00%) high mild
+  3 (6.00%) high mild
 
-7 (14.00%) high severe
+  6 (12.00%) high severe
 
 path_insert/actix_router_path
 
-                        time:   [18.780 ms 18.812 ms 18.865 ms]
+                        time:   [14.998 ms 15.013 ms 15.029 ms]
 
-Found 5 outliers among 50 measurements (10.00%)
+Found 8 outliers among 50 measurements (16.00%)
 
-3 (6.00%) high mild
+  2 (4.00%) low mild
 
-2 (4.00%) high severe
+  3 (6.00%) high mild
+
+  3 (6.00%) high severe
 
 path_find/path_tree_find
 
-                        time:   [482.84 us 483.27 us 483.74 us]
+                        time:   [375.39 us 375.73 us 376.04 us]
 
-Found 3 outliers among 50 measurements (6.00%)
+Found 2 outliers among 50 measurements (4.00%)
 
-2 (4.00%) high mild
+  1 (2.00%) high mild
 
-1 (2.00%) high severe
+  1 (2.00%) high severe
 
 path_find/route_recognizer_recognize
 
-                        time:   [1.4375 ms 1.4434 ms 1.4510 ms]
+                        time:   [1.1090 ms 1.1110 ms 1.1138 ms]
 
 Found 4 outliers among 50 measurements (8.00%)
 
-4 (8.00%) high severe
+  2 (4.00%) high mild
+
+  2 (4.00%) high severe
 
 path_find/path_table_route
 
-                        time:   [199.02 us 200.32 us 201.99 us]
-
-Found 5 outliers among 50 measurements (10.00%)
-
-5 (10.00%) high severe
-
-path_find/actix_router_recognize
-
-                        time:   [11.120 ms 11.170 ms 11.230 ms]
+                        time:   [158.79 us 159.96 us 161.24 us]
 
 Found 4 outliers among 50 measurements (8.00%)
 
-1 (2.00%) high mild
+  4 (8.00%) high mild
 
-3 (6.00%) high severe
+path_find/actix_router_recognize
+
+                        time:   [9.1690 ms 9.1891 ms 9.2135 ms]
+
+Found 7 outliers among 50 measurements (14.00%)
+
+  3 (6.00%) high mild
+
+  4 (8.00%) high severe
 
 ```
 
