@@ -40,7 +40,7 @@ fn bench_path_insert(c: &mut Criterion) {
             let mut router = ActixRouter::<usize>::build();
             b.iter(|| {
                 for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
-                    router.path(r, i);
+                    router.path(*r, i);
                 }
             })
         })
@@ -90,7 +90,7 @@ fn bench_path_find(c: &mut Criterion) {
         .with_function("actix_router_recognize", |b| {
             let mut router = ActixRouter::<usize>::build();
             for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
-                router.path(r, i);
+                router.path(*r, i);
             }
             let router = router.finish();
             b.iter(|| {
