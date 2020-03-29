@@ -1,13 +1,27 @@
-# path-tree
+<h1 align="center">path-tree</h1>
+<div align="center">
+  <p><strong>A lightweight high performance HTTP request router for Rust.</strong></p>
+</div>
 
-path-tree is a lightweight high performance HTTP request router for Rust.
+<br />
 
-A compressing dynamic trie ([radix tree]) structure is used for efficient matching.
-
-[![Build Status](https://travis-ci.org/trek-rs/path-tree.svg?branch=master)](https://travis-ci.org/trek-rs/path-tree)
-[![Latest version](https://img.shields.io/crates/v/path-tree.svg)](https://crates.io/crates/path-tree)
-[![Documentation](https://docs.rs/path-tree/badge.svg)](https://docs.rs/path-tree)
-![License](https://img.shields.io/crates/l/path-tree.svg)
+<div align="center">
+  <!-- Crates version -->
+  <a href="https://crates.io/crates/path-tree">
+    <img src="https://img.shields.io/crates/v/path-tree.svg?style=flat-square"
+    alt="Crates.io version" />
+  </a>
+  <!-- Downloads -->
+  <a href="https://crates.io/crates/path-tree">
+    <img src="https://img.shields.io/crates/d/path-tree.svg?style=flat-square"
+      alt="Download" />
+  </a>
+  <!-- docs.rs docs -->
+  <a href="https://docs.rs/path-tree">
+    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
+      alt="docs.rs docs" />
+  </a>
+</div>
 
 ## Features
 
