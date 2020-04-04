@@ -61,7 +61,11 @@ impl<T> Node<T> {
     }
 
     pub fn add_node_static(&mut self, p: &str) -> &mut Self {
-        self.add_node(p.chars().next().unwrap(), NodeKind::Static(p.to_owned()))
+        if let Some(c) = p.chars().next() {
+            self.add_node(c, NodeKind::Static(p.to_owned()))
+        } else {
+            self
+        }
     }
 
     pub fn add_node_dynamic(&mut self, c: char, kind: NodeKind) -> &mut Self {
@@ -85,8 +89,8 @@ impl<T> Node<T> {
                         data: None,
                         params: None,
                         nodes: Some(Vec::new()),
-                        indices: Some(s.chars().next().unwrap().to_string()),
-                        kind: NodeKind::Static(np.to_owned()),
+                        indices: s.chars().next().map(|c| c.to_string()),
+                        kind: NodeKind::Static(np.clone()),
                     };
                     mem::swap(self, &mut node);
                     self.nodes.as_mut().unwrap().push(node);
@@ -278,21 +282,23 @@ impl<T> PathTree<T> {
     }
 
     pub fn find<'a>(&'a self, path: &'a str) -> Option<(&'a T, Vec<(&'a str, &'a str)>)> {
-        match self.0.find(path) {
-            Some((node, values)) => match (node.data.as_ref(), node.params.as_ref()) {
-                (Some(data), Some(params)) => Some((
+        self.0.find(path).and_then(|(node, values)| {
+            node.data.as_ref().map(|data| {
+                (
                     data,
-                    params
-                        .iter()
-                        .zip(values.iter())
-                        .map(|(a, b)| (a.as_str(), *b))
-                        .collect(),
-                )),
-                (Some(data), None) => Some((data, Vec::new())),
-                _ => None,
-            },
-            None => None,
-        }
+                    node.params
+                        .as_ref()
+                        .map(|params| {
+                            params
+                                .iter()
+                                .zip(values.iter())
+                                .map(|(a, b)| (a.as_str(), *b))
+                                .collect()
+                        })
+                        .unwrap_or_default(),
+                )
+            })
+        })
     }
 }
 
