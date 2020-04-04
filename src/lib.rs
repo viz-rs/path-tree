@@ -286,16 +286,13 @@ impl<T> PathTree<T> {
             node.data.as_ref().map(|data| {
                 (
                     data,
-                    node.params
-                        .as_ref()
-                        .map(|params| {
-                            params
-                                .iter()
-                                .zip(values.iter())
-                                .map(|(a, b)| (a.as_str(), *b))
-                                .collect()
-                        })
-                        .unwrap_or_default(),
+                    node.params.as_ref().map_or_else(Vec::new, |params| {
+                        params
+                            .iter()
+                            .zip(values.iter())
+                            .map(|(a, b)| (a.as_str(), *b))
+                            .collect()
+                    }),
                 )
             })
         })
