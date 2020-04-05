@@ -10,13 +10,20 @@
 
 use std::mem;
 
+/// The Kind of a node.
 #[derive(Clone, Debug)]
 pub enum NodeKind {
+    /// A static node with a path
     Static(String),
+
+    /// A named node
     Parameter,
+
+    /// A catch-all node
     CatchAll,
 }
 
+/// A node stores kind data params indices and children nodes.
 #[derive(Clone, Debug)]
 pub struct Node<T> {
     kind: NodeKind,
@@ -27,12 +34,15 @@ pub struct Node<T> {
 }
 
 impl<T> Default for Node<T> {
+    #[inline]
     fn default() -> Self {
         Self::new(NodeKind::Static(String::new()))
     }
 }
 
 impl<T> Node<T> {
+    /// Creates a new node with a special kind.
+    #[inline]
     pub fn new(kind: NodeKind) -> Self {
         Self {
             kind,
@@ -60,6 +70,7 @@ impl<T> Node<T> {
         }
     }
 
+    /// Adds a child node witch a static path.
     pub fn add_node_static(&mut self, p: &str) -> &mut Self {
         if let Some(c) = p.chars().next() {
             self.add_node(c, NodeKind::Static(p.to_owned()))
@@ -68,10 +79,12 @@ impl<T> Node<T> {
         }
     }
 
+    /// Adds a child node witch a dynamic path.
     pub fn add_node_dynamic(&mut self, c: char, kind: NodeKind) -> &mut Self {
         self.add_node(c, kind)
     }
 
+    /// Inserts a path into node.
     pub fn insert(&mut self, p: &str) -> &mut Self {
         match self.kind {
             NodeKind::Static(ref mut s) if s.len() == 0 => {
@@ -84,7 +97,7 @@ impl<T> Node<T> {
 
                 // Split node
                 if l < s.len() {
-                    *s = s[l..].to_string();
+                    *s = s[l..].to_owned();
                     let mut node = Node {
                         data: None,
                         params: None,
@@ -107,6 +120,7 @@ impl<T> Node<T> {
         }
     }
 
+    /// Returns a reference to the node corresponding to the path.
     pub fn find<'a>(&'a self, mut p: &'a str) -> Option<(&'a Self, Vec<&'a str>)> {
         let mut params = Vec::new();
 
@@ -209,23 +223,65 @@ impl<T> Node<T> {
     }
 }
 
-/// PathTree
+/// A path tree.
 ///
+/// # Examples
+///
+/// ```
+/// use path_tree::PathTree;
+///
+/// let mut tree = PathTree::new();
+/// tree.insert("/", 0);
+///
+/// tree.insert("/users/:id", 1)
+///     .insert("/users/:user_id/*", 2)
+///     .insert("/users/:user_id/repos/:id", 3)
+///     .insert("/*any", 4);
+///
+/// let r = tree.find("/").unwrap();
+/// assert_eq!(r.0, &0);
+/// assert_eq!(r.1, vec![]);
+///
+/// let r = tree.find("/users/31415926").unwrap();
+/// assert_eq!(r.0, &1);
+/// assert_eq!(r.1, vec![("id", "31415926")]);
+///
+/// let r = tree.find("/users/31415926/settings").unwrap();
+/// assert_eq!(r.0, &2);
+/// assert_eq!(r.1, vec![("user_id", "31415926"), ("", "settings")]);
+///
+/// let r = tree.find("/users/31415926/repos/53589793").unwrap();
+/// assert_eq!(r.0, &3);
+/// assert_eq!(r.1, vec![("user_id", "31415926"), ("id", "53589793")]);
+///
+/// let r = tree.find("/about").unwrap();
+/// assert_eq!(r.0, &4);
+/// assert_eq!(r.1, vec![("any", "about")]);
+///
+/// let r = tree.find("/users/31415926/repos/53589793/branches").unwrap();
+/// assert_eq!(r.0, &2);
+/// assert_eq!(r.1, vec![("user_id", "31415926"), ("", "repos/53589793/branches")]);
+/// ```
 #[derive(Clone, Debug)]
 pub struct PathTree<T>(Node<T>);
 
 impl<T> Default for PathTree<T> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
 impl<T> PathTree<T> {
+    /// Creates a new tree with a root node.
+    ///
+    /// The root node is a static node with `/`.
     #[inline]
     pub fn new() -> Self {
         Self(Node::new(NodeKind::Static("/".to_owned())))
     }
 
+    /// Inserts a path and data into tree.
     pub fn insert(&mut self, mut path: &str, data: T) -> &mut Self {
         let mut next = true;
         let mut node = &mut self.0;
@@ -234,7 +290,7 @@ impl<T> PathTree<T> {
         path = path.trim_start_matches('/');
 
         if path.len() == 0 {
-            node.data = Some(data);
+            node.data.replace(data);
             return self;
         }
 
@@ -284,6 +340,7 @@ impl<T> PathTree<T> {
         self
     }
 
+    /// Returns a reference to the node data and params corresponding to the path.
     pub fn find<'a>(&'a self, path: &'a str) -> Option<(&'a T, Vec<(&'a str, &'a str)>)> {
         self.0.find(path).and_then(|(node, values)| {
             node.data.as_ref().map(|data| {
