@@ -27,17 +27,11 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
 
-      - name: check
+      - name: bench
         uses: actions-rs/cargo@v1
         with:
-          command: check
-          args: --all --bins --examples
-
-      - name: check unstable
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --all --benches --bins --examples
+          command: bench
+          args: --all
 
       - name: tests
         uses: actions-rs/cargo@v1
