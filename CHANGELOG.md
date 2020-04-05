@@ -25,6 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Tuple struct for PathTree.
 
-[Unreleased] https://github.com/trek-rs/path-tree/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/trek-rs/path-tree/compare/v0.1.9...HEAD
 [0.1.9]: https://github.com/trek-rs/path-tree/compare/v0.1.4...v0.1.9
 [0.1.4]: https://github.com/trek-rs/path-tree/releases/tag/v0.1.4

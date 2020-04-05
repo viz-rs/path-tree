@@ -150,7 +150,7 @@ impl<T> Node<T> {
                     ))
                 } else {
                     let indices = self.indices.as_ref()?;
-                    let nodes = self.nodes.as_ref().unwrap();
+                    let nodes = self.nodes.as_ref()?;
 
                     p = &p[l..];
 
