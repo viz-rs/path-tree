@@ -1,4 +1,4 @@
-pub const ROUTES_WITH_COLON: [&'static str; 315] = [
+pub const ROUTES_WITH_COLON: [&str; 315] = [
     "/app",
     "/app-manifests/:code/conversions",
     "/app/installations",
@@ -321,7 +321,7 @@ pub const ROUTES_WITH_COLON: [&'static str; 315] = [
     "/:url",
 ];
 
-pub const ROUTES_WITH_BRACES: [&'static str; 315] = [
+pub const ROUTES_WITH_BRACES: [&str; 315] = [
     "/app",
     "/app-manifests/{code}/conversions",
     "/app/installations",
@@ -644,7 +644,7 @@ pub const ROUTES_WITH_BRACES: [&'static str; 315] = [
     "/{url}",
 ];
 
-pub const ROUTES_URLS: [&'static str; 315] = [
+pub const ROUTES_URLS: [&str; 315] = [
     "/app",
     "/app-manifests/0/conversions",
     "/app/installations",

@@ -84,7 +84,7 @@ impl<T> Node<T> {
 
                 // Split node
                 if l < s.len() {
-                    *s = s[l..].to_owned();
+                    *s = s[l..].to_string();
                     let mut node = Node {
                         data: None,
                         params: None,
@@ -209,6 +209,8 @@ impl<T> Node<T> {
     }
 }
 
+/// PathTree
+///
 #[derive(Clone, Debug)]
 pub struct PathTree<T>(Node<T>);
 
@@ -219,6 +221,7 @@ impl<T> Default for PathTree<T> {
 }
 
 impl<T> PathTree<T> {
+    #[inline]
     pub fn new() -> Self {
         Self(Node::new(NodeKind::Static("/".to_owned())))
     }

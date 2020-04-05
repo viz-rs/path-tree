@@ -1,10 +1,11 @@
 use path_tree::PathTree;
+use rand::seq::SliceRandom;
 
 #[test]
 fn new_tree() {
     let mut tree: PathTree<usize> = PathTree::default();
 
-    const ROUTES: [&'static str; 13] = [
+    const ROUTES: [&str; 13] = [
         "/",
         "/users",
         "/users/:id",
@@ -20,11 +21,7 @@ fn new_tree() {
         "/users/repos/*any",
     ];
 
-    for (i, u) in ROUTES.iter().enumerate() {
-        tree.insert(u, i);
-    }
-
-    const VALID_URLS: [&'static str; 13] = [
+    const VALID_URLS: [&str; 13] = [
         "/",
         "/users",
         "/users/fundon",
@@ -56,11 +53,24 @@ fn new_tree() {
         vec![("any", "trek-rs/trek")],
     ];
 
-    for (i, u) in VALID_URLS.iter().enumerate() {
+    let mut routes = ROUTES
+        .iter()
+        .zip(VALID_URLS.iter())
+        .zip(valid_res.into_iter())
+        .map(|(a, b)| (*a.0, *a.1, b))
+        .collect::<Vec<_>>();
+
+    routes.shuffle(&mut rand::thread_rng());
+
+    for (i, (u, ..)) in routes.iter().enumerate() {
+        tree.insert(u, i);
+    }
+
+    for (i, (_, u, v)) in routes.iter().enumerate() {
         let res = tree.find(u).unwrap();
-        // println!("{}, {}, {:#?}", i, r, res);
+        // println!("{}, {}, {:#?}", u, i, res);
         assert_eq!(*res.0, i);
-        assert_eq!(res.1, valid_res[i]);
+        assert_eq!(res.1, *v);
     }
 }
 
@@ -68,7 +78,7 @@ fn new_tree() {
 fn statics() {
     let mut tree = PathTree::<usize>::new();
 
-    const ROUTES: [&'static str; 11] = [
+    const ROUTES: [&str; 11] = [
         "/hi",
         "/contact",
         "/co",
@@ -82,13 +92,17 @@ fn statics() {
         "/β",
     ];
 
-    for (i, u) in ROUTES.iter().enumerate() {
+    let mut routes = ROUTES.to_vec();
+
+    routes.shuffle(&mut rand::thread_rng());
+
+    for (i, u) in routes.iter().enumerate() {
         tree.insert(u, i);
     }
 
-    for (i, u) in ROUTES.iter().enumerate() {
+    for (i, u) in routes.iter().enumerate() {
         let res = tree.find(u).unwrap();
-        // println!("{}, {}, {:#?}", i, r, res);
+        // println!("{}, {}, {:#?}", u, i, res);
         assert_eq!(*res.0, i);
     }
 }
@@ -97,7 +111,7 @@ fn statics() {
 fn wildcards() {
     let mut tree = PathTree::<usize>::new();
 
-    const ROUTES: [&'static str; 20] = [
+    const ROUTES: [&str; 20] = [
         "/",
         "/cmd/:tool/:sub",
         "/cmd/:tool/",
@@ -120,8 +134,12 @@ fn wildcards() {
         "/info/:user/project/:project",
     ];
 
-    for (i, u) in ROUTES.iter().enumerate() {
-        tree.insert(u, i);
+    let mut routes = (0..20).zip(ROUTES.iter()).collect::<Vec<_>>();
+
+    routes.shuffle(&mut rand::thread_rng());
+
+    for (i, u) in routes.iter() {
+        tree.insert(u, *i);
     }
 
     // println!("tree: {:#?}", tree);
@@ -154,7 +172,7 @@ fn wildcards() {
 
     for (u, h, p) in valid_res {
         let res = tree.find(u).unwrap();
-        // println!("{}, {:#?}", r, res);
+        // println!("{}, {:#?}", u, res);
         assert_eq!(*res.0, h);
         assert_eq!(res.1, p);
     }
