@@ -25,32 +25,32 @@ fn new_tree() {
         "/",
         "/users",
         "/users/fundon",
-        "/users/fundon/trek-rs",
+        "/users/fundon/viz-rs",
         "/users/fundon/repos",
         "/users/fundon/repos/path-tree",
-        "/users/fundon/repos/trek-rs/trek",
+        "/users/fundon/repos/viz-rs/viz",
         "/fundon",
-        "/fundon/trek-rs/trek",
+        "/fundon/viz-rs/viz",
         "/about",
         "/about/",
         "/about/us",
-        "/users/repos/trek-rs/trek",
+        "/users/repos/viz-rs/viz",
     ];
 
     let valid_res = vec![
         vec![],
         vec![],
         vec![("id", "fundon")],
-        vec![("id", "fundon"), ("org", "trek-rs")],
+        vec![("id", "fundon"), ("org", "viz-rs")],
         vec![("user_id", "fundon")],
         vec![("user_id", "fundon"), ("id", "path-tree")],
-        vec![("user_id", "fundon"), ("id", "trek-rs"), ("any", "trek")],
+        vec![("user_id", "fundon"), ("id", "viz-rs"), ("any", "viz")],
         vec![("username", "fundon")],
-        vec![("any", "fundon/trek-rs/trek")],
+        vec![("any", "fundon/viz-rs/viz")],
         vec![],
         vec![],
         vec![],
-        vec![("any", "trek-rs/trek")],
+        vec![("any", "viz-rs/viz")],
     ];
 
     let mut routes = ROUTES
@@ -484,20 +484,20 @@ fn test_readme_example() {
     assert_eq!(res.1, [("id", "fundon")]); // Params
 
     // Matched "/users/:user_id/repos/:id"
-    let node = tree.find("/users/fundon/repos/trek-rs");
+    let node = tree.find("/users/fundon/repos/viz-rs");
     let res = node.unwrap();
     assert_eq!(*res.0, 5);
-    assert_eq!(res.1, [("user_id", "fundon"), ("id", "trek-rs")]); // Params
+    assert_eq!(res.1, [("user_id", "fundon"), ("id", "viz-rs")]); // Params
 
     // Matched "/users/:user_id/repos/:id/*any"
-    let node = tree.find("/users/fundon/repos/trek-rs/noder/issues");
+    let node = tree.find("/users/fundon/repos/viz-rs/noder/issues");
     let res = node.unwrap();
     assert_eq!(*res.0, 6);
     assert_eq!(
         res.1,
         [
             ("user_id", "fundon"),
-            ("id", "trek-rs"),
+            ("id", "viz-rs"),
             ("any", "noder/issues"),
         ]
     ); // Params

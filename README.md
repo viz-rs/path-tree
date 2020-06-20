@@ -41,110 +41,6 @@
 
   - Don't care about routes orders, recursive lookup, `Static` -> `Named` -> `Catch-All`.
 
-## Benchmark
-
-```shell
-$ cargo bench
-```
-
-<details>
-    <summary>
-        <a href="https://travis-ci.org/trek-rs/path-tree/builds/607606611" rel="nofollow">From Travis</a>
-    </summary>
-
-```
-path_insert/path_tree_insert
-
-                        time:   [285.97 us 286.32 us 286.73 us]
-
-Found 6 outliers among 50 measurements (12.00%)
-
-  4 (8.00%) high mild
-
-  2 (4.00%) high severe
-
-path_insert/route_recognizer_add
-
-                        time:   [194.49 us 194.95 us 195.49 us]
-
-Found 4 outliers among 50 measurements (8.00%)
-
-  1 (2.00%) high mild
-
-  3 (6.00%) high severe
-
-path_insert/path_table_setup
-
-                        time:   [94.507 us 94.655 us 94.847 us]
-
-Found 9 outliers among 50 measurements (18.00%)
-
-  3 (6.00%) high mild
-
-  6 (12.00%) high severe
-
-path_insert/actix_router_path
-
-                        time:   [14.998 ms 15.013 ms 15.029 ms]
-
-Found 8 outliers among 50 measurements (16.00%)
-
-  2 (4.00%) low mild
-
-  3 (6.00%) high mild
-
-  3 (6.00%) high severe
-
-path_find/path_tree_find
-
-                        time:   [375.39 us 375.73 us 376.04 us]
-
-Found 2 outliers among 50 measurements (4.00%)
-
-  1 (2.00%) high mild
-
-  1 (2.00%) high severe
-
-path_find/route_recognizer_recognize
-
-                        time:   [1.1090 ms 1.1110 ms 1.1138 ms]
-
-Found 4 outliers among 50 measurements (8.00%)
-
-  2 (4.00%) high mild
-
-  2 (4.00%) high severe
-
-path_find/path_table_route
-
-                        time:   [158.79 us 159.96 us 161.24 us]
-
-Found 4 outliers among 50 measurements (8.00%)
-
-  4 (8.00%) high mild
-
-path_find/actix_router_recognize
-
-                        time:   [9.1690 ms 9.1891 ms 9.2135 ms]
-
-Found 7 outliers among 50 measurements (14.00%)
-
-  3 (6.00%) high mild
-
-  4 (8.00%) high severe
-
-```
-
-</details>
-
-### Path Find
-
-![Path Find](resources/bench-find.svg)
-
-### Path Insert
-
-![Path Insert](resources/bench-insert.svg)
-
 ## Examples
 
 ```rust
@@ -194,20 +90,20 @@ assert_eq!(*res.0, 2);
 assert_eq!(res.1, [("id", "fundon")]); // Params
 
 // Matched "/users/:user_id/repos/:id"
-let node = tree.find("/users/fundon/repos/trek-rs");
+let node = tree.find("/users/fundon/repos/viz-rs");
 let res = node.unwrap();
 assert_eq!(*res.0, 5);
-assert_eq!(res.1, [("user_id", "fundon"), ("id", "trek-rs")]); // Params
+assert_eq!(res.1, [("user_id", "fundon"), ("id", "viz-rs")]); // Params
 
 // Matched "/users/:user_id/repos/:id/*any"
-let node = tree.find("/users/fundon/repos/trek-rs/noder/issues");
+let node = tree.find("/users/fundon/repos/viz-rs/noder/issues");
 let res = node.unwrap();
 assert_eq!(*res.0, 6);
 assert_eq!(
     res.1,
     [
         ("user_id", "fundon"),
-        ("id", "trek-rs"),
+        ("id", "viz-rs"),
         ("any", "noder/issues"),
     ]
 ); // Params
@@ -334,6 +230,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 ```
 
+## Benchmark
+
+```shell
+$ cargo bench
+```
+
 ## Acknowledgements
 
 It is inspired by the:
@@ -358,7 +260,7 @@ for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
 be dual licensed as above, without any additional terms or conditions.
 </sub>
 
-[radix tree]: https://github.com/trek-rs/radix-tree
+[radix tree]: https://github.com/viz-rs/radix-tree
 [rax]: https://github.com/antirez/rax
 [httprouter]: https://github.com/julienschmidt/httprouter
 [echo]: https://github.com/labstack/echo
