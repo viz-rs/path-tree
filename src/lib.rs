@@ -46,8 +46,6 @@
     missing_debug_implementations
 )]
 
-use std::mem;
-
 /// The Kind of a node.
 #[derive(Clone, Debug)]
 pub enum NodeKind {
@@ -143,7 +141,7 @@ impl<T> Node<T> {
                         indices: s.chars().next().map(|c| c.to_string()),
                         kind: NodeKind::Static(np.clone()),
                     };
-                    mem::swap(self, &mut node);
+                    ::std::mem::swap(self, &mut node);
                     self.nodes.as_mut().unwrap().push(node);
                 }
 
@@ -360,12 +358,12 @@ impl<T> PathTree<T> {
 }
 
 #[inline]
-fn has_colon_or_star(c: char) -> bool {
+const fn has_colon_or_star(c: char) -> bool {
     (c == ':') | (c == '*')
 }
 
 #[inline]
-fn has_star_or_slash(c: char) -> bool {
+const fn has_star_or_slash(c: char) -> bool {
     (c == '*') | (c == '/')
 }
 
