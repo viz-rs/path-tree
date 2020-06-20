@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.10] - 2020-06-20
+
+### Changed
+
+- `const fn`
+
 ## [0.1.9] - 2019-11-05
 
 ### Added
@@ -25,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Tuple struct for PathTree.
 
-[Unreleased]: https://github.com/trek-rs/path-tree/compare/v0.1.9...HEAD
-[0.1.9]: https://github.com/trek-rs/path-tree/compare/v0.1.4...v0.1.9
-[0.1.4]: https://github.com/trek-rs/path-tree/releases/tag/v0.1.4
+[Unreleased]: https://github.com/viz-rs/path-tree/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/viz-rs/path-tree/compare/v0.1.9...v0.1.10
+[0.1.9]: https://github.com/viz-rs/path-tree/compare/v0.1.4...v0.1.9
+[0.1.4]: https://github.com/viz-rs/path-tree/releases/tag/v0.1.4
