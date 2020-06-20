@@ -1,4 +1,42 @@
 //! path-tree is a lightweight high performance HTTP request router for Rust.
+//!
+//! # Examples
+//!
+//! ```
+//! use path_tree::PathTree;
+//!
+//! let mut tree = PathTree::new();
+//! tree.insert("/", 0);
+//!
+//! tree.insert("/users/:id", 1)
+//!     .insert("/users/:user_id/*", 2)
+//!     .insert("/users/:user_id/repos/:id", 3)
+//!     .insert("/*any", 4);
+//!
+//! let r = tree.find("/").unwrap();
+//! assert_eq!(r.0, &0);
+//! assert_eq!(r.1, vec![]);
+//!
+//! let r = tree.find("/users/31415926").unwrap();
+//! assert_eq!(r.0, &1);
+//! assert_eq!(r.1, vec![("id", "31415926")]);
+//!
+//! let r = tree.find("/users/31415926/settings").unwrap();
+//! assert_eq!(r.0, &2);
+//! assert_eq!(r.1, vec![("user_id", "31415926"), ("", "settings")]);
+//!
+//! let r = tree.find("/users/31415926/repos/53589793").unwrap();
+//! assert_eq!(r.0, &3);
+//! assert_eq!(r.1, vec![("user_id", "31415926"), ("id", "53589793")]);
+//!
+//! let r = tree.find("/about").unwrap();
+//! assert_eq!(r.0, &4);
+//! assert_eq!(r.1, vec![("any", "about")]);
+//!
+//! let r = tree.find("/users/31415926/repos/53589793/branches").unwrap();
+//! assert_eq!(r.0, &2);
+//! assert_eq!(r.1, vec![("user_id", "31415926"), ("", "repos/53589793/branches")]);
+//! ```
 
 #![deny(unsafe_code)]
 #![warn(
@@ -47,9 +85,9 @@ impl<T> Node<T> {
         Self {
             kind,
             data: None,
+            nodes: None,
             params: None,
             indices: None,
-            nodes: None,
         }
     }
 
@@ -224,44 +262,6 @@ impl<T> Node<T> {
 }
 
 /// A path tree.
-///
-/// # Examples
-///
-/// ```
-/// use path_tree::PathTree;
-///
-/// let mut tree = PathTree::new();
-/// tree.insert("/", 0);
-///
-/// tree.insert("/users/:id", 1)
-///     .insert("/users/:user_id/*", 2)
-///     .insert("/users/:user_id/repos/:id", 3)
-///     .insert("/*any", 4);
-///
-/// let r = tree.find("/").unwrap();
-/// assert_eq!(r.0, &0);
-/// assert_eq!(r.1, vec![]);
-///
-/// let r = tree.find("/users/31415926").unwrap();
-/// assert_eq!(r.0, &1);
-/// assert_eq!(r.1, vec![("id", "31415926")]);
-///
-/// let r = tree.find("/users/31415926/settings").unwrap();
-/// assert_eq!(r.0, &2);
-/// assert_eq!(r.1, vec![("user_id", "31415926"), ("", "settings")]);
-///
-/// let r = tree.find("/users/31415926/repos/53589793").unwrap();
-/// assert_eq!(r.0, &3);
-/// assert_eq!(r.1, vec![("user_id", "31415926"), ("id", "53589793")]);
-///
-/// let r = tree.find("/about").unwrap();
-/// assert_eq!(r.0, &4);
-/// assert_eq!(r.1, vec![("any", "about")]);
-///
-/// let r = tree.find("/users/31415926/repos/53589793/branches").unwrap();
-/// assert_eq!(r.0, &2);
-/// assert_eq!(r.1, vec![("user_id", "31415926"), ("", "repos/53589793/branches")]);
-/// ```
 #[derive(Clone, Debug)]
 pub struct PathTree<T>(Node<T>);
 

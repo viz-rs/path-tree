@@ -11,7 +11,7 @@ keywords = ["radix", "tree", "path", "router"]
 license = "MIT/Apache-2.0"
 
 include = [
-    "src",
+    "src/*.rs",
     "Cargo.toml",
     "CHANGES.md",
     "README.md",
@@ -25,16 +25,17 @@ bench = false
 [dev-dependencies]
 actix-router = "0.2"
 path-table = "1.0"
-route-recognizer = "0.1"
+route-recognizer = "0.2"
 criterion = "0.2"
 hyper = "0.13"
 futures = "0.3"
-tokio = { version = "0.2", default-features = false, features = ["macros", "rt-util"] }
 rand = "0.7.3"
+tokio = { version = "0.2", default-features = false, features = ["macros"] }
 
 [[bench]]
 name = "routers"
 harness = false
+path = "benches/routers.rs"
 
 [[example]]
 name = "hello"
@@ -47,8 +48,3 @@ path = "tests/basic.rs"
 [[test]]
 name = "github"
 path = "tests/github.rs"
-
-[profile.release]
-lto = true
-opt-level = 3
-codegen-units = 1

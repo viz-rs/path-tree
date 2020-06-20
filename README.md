@@ -1,26 +1,28 @@
 <h1 align="center">path-tree</h1>
+
 <div align="center">
-  <p><strong>A lightweight high performance HTTP request router for Rust.</strong></p>
+  <p><strong>A lightweight high performance HTTP request router for Rust</strong></p>
 </div>
 
-<br />
-
 <div align="center">
+  <!-- Safety docs -->
+  <a href="/">
+    <img src="https://img.shields.io/badge/-safety!-success?style=flat-square" alt="Safety!" /></a>
+  <!-- Docs.rs docs -->
+  <a href="https://docs.rs/path-tree">
+    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
+      alt="Docs.rs docs" /></a>
   <!-- Crates version -->
   <a href="https://crates.io/crates/path-tree">
     <img src="https://img.shields.io/crates/v/path-tree.svg?style=flat-square"
-    alt="Crates.io version" />
-  </a>
+    alt="Crates.io version" /></a>
   <!-- Downloads -->
   <a href="https://crates.io/crates/path-tree">
     <img src="https://img.shields.io/crates/d/path-tree.svg?style=flat-square"
-      alt="Download" />
-  </a>
-  <!-- docs.rs docs -->
-  <a href="https://docs.rs/path-tree">
-    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
-      alt="docs.rs docs" />
-  </a>
+      alt="Download" /></a>
+  <!-- Twitter -->
+  <a href="https://twitter.com/_fundon">
+    <img src="https://img.shields.io/badge/twitter-@__fundon-blue.svg?style=flat-square" alt="Twitter: @_fundon" /></a>
 </div>
 
 ## Features
@@ -143,7 +145,7 @@ Found 7 outliers among 50 measurements (14.00%)
 
 ![Path Insert](resources/bench-insert.svg)
 
-## Usage
+## Examples
 
 ```rust
 use path_tree::PathTree;
@@ -218,27 +220,41 @@ assert_eq!(*res.0, 12);
 assert_eq!(res.1, []);
 ```
 
-## Examples
-
-### `async-await`
-
 ```rust
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Error, Request, Response, Server, StatusCode};
-use path_tree::PathTree;
+use std::convert::Infallible;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
 
-static NOTFOUND: &[u8] = b"Not Found";
+use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Request, Response, Server, StatusCode};
+use path_tree::PathTree;
 
-type Params<'a> = Vec<(&'a str, &'a str)>;
+static NOT_FOUND: &[u8] = b"Not Found";
 
-type Handler = fn(Request<Body>, Params) -> Body;
+type Params = Vec<(String, String)>;
 
-fn index(_: Request<Body>, _: Params) -> Body {
+trait Handler: Send + Sync + 'static {
+    fn call<'a>(&'a self, req: Request<Body>) -> Pin<Box<dyn Future<Output = Body> + Send + 'a>>;
+}
+
+impl<F, R> Handler for F
+where
+    F: Send + Sync + 'static + Fn(Request<Body>) -> R,
+    R: Future<Output = Body> + Send + 'static,
+{
+    fn call<'a>(&'a self, req: Request<Body>) -> Pin<Box<dyn Future<Output = Body> + Send + 'a>> {
+        let fut = (self)(req);
+        Box::pin(async move { fut.await })
+    }
+}
+
+async fn index(_: Request<Body>) -> Body {
     Body::from("Hello, Web!")
 }
 
-fn hello_world(_: Request<Body>, params: Params) -> Body {
+async fn hello_world(req: Request<Body>) -> Body {
+    let params = req.extensions().get::<Params>().unwrap();
     let mut s = String::new();
     s.push_str("Hello, World!\n");
     for (_, v) in params {
@@ -247,7 +263,8 @@ fn hello_world(_: Request<Body>, params: Params) -> Body {
     Body::from(s)
 }
 
-fn hello_user(_: Request<Body>, params: Params) -> Body {
+async fn hello_user(req: Request<Body>) -> Body {
+    let params = req.extensions().get::<Params>().unwrap();
     let mut s = String::new();
     s.push_str("Hello, ");
     for (k, v) in params {
@@ -257,11 +274,11 @@ fn hello_user(_: Request<Body>, params: Params) -> Body {
     Body::from(s)
 }
 
-fn hello_rust(_: Request<Body>, _: Params) -> Body {
+async fn hello_rust(_: Request<Body>) -> Body {
     Body::from("Hello, Rust!")
 }
 
-fn login(_req: Request<Body>, _: Params) -> Body {
+async fn login(_req: Request<Body>) -> Body {
     Body::from("I'm logined!")
 }
 
@@ -269,12 +286,12 @@ fn login(_req: Request<Body>, _: Params) -> Body {
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let addr = ([127, 0, 0, 1], 3000).into();
 
-    let mut tree = PathTree::<Handler>::new();
-    tree.insert("/GET/", index);
-    tree.insert("/GET/*", hello_world);
-    tree.insert("/GET/hello/:name", hello_user);
-    tree.insert("/GET/rust", hello_rust);
-    tree.insert("/POST/login", login);
+    let mut tree = PathTree::<Box<dyn Handler>>::new();
+    tree.insert("/GET/", Box::new(index));
+    tree.insert("/GET/*", Box::new(hello_world));
+    tree.insert("/GET/hello/:name", Box::new(hello_user));
+    tree.insert("/GET/rust", Box::new(hello_rust));
+    tree.insert("/POST/login", Box::new(login));
 
     let tree = Arc::new(tree);
 
@@ -282,20 +299,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let router = Arc::clone(&tree);
 
         async move {
-            Ok::<_, Error>(service_fn(move |req| {
+            Ok::<_, Infallible>(service_fn(move |mut req| {
+                let router = router.clone();
                 let path = "/".to_owned() + req.method().as_str() + req.uri().path();
+                let builder = Response::builder();
 
-                dbg!(&path);
-
-                let body = match router.find(&path) {
-                    Some((handler, params)) => Response::new(handler(req, params)),
-                    None => Response::builder()
-                        .status(StatusCode::NOT_FOUND)
-                        .body(NOTFOUND.into())
+                async move {
+                    Ok::<_, Infallible>(
+                        match router.find(&path) {
+                            Some((handler, params)) => {
+                                let p = params
+                                    .iter()
+                                    .map(|p| (p.0.to_owned(), p.1.to_owned()))
+                                    .collect::<Params>();
+                                req.extensions_mut().insert(p);
+                                builder.body(handler.call(req).await)
+                            }
+                            None => builder.status(StatusCode::NOT_FOUND).body(NOT_FOUND.into()),
+                        }
                         .unwrap(),
-                };
-
-                async move { Ok::<_, Error>(body) }
+                    )
+                }
             }))
         }
     });
@@ -307,93 +331,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     server.await?;
 
     Ok(())
-}
-```
-
-### `normal`
-
-```rust
-extern crate futures;
-extern crate hyper;
-extern crate path_tree;
-
-use futures::Future;
-use hyper::server::Server;
-use hyper::service::service_fn_ok;
-use hyper::{Body, Request, Response, StatusCode};
-use path_tree::PathTree;
-use std::sync::Arc;
-
-type Params<'a> = Vec<(&'a str, &'a str)>;
-
-type Handler = fn(Request<Body>, Params) -> Body;
-
-fn index(_: Request<Body>, _: Params) -> Body {
-    Body::from("Hello, Web!")
-}
-
-fn hello_world(_: Request<Body>, params: Params) -> Body {
-    let mut s = String::new();
-    s.push_str("Hello, World!\n");
-    for (_, v) in params {
-        s.push_str(&format!("param = {}", v));
-    }
-    Body::from(s)
-}
-
-fn hello_user(_: Request<Body>, params: Params) -> Body {
-    let mut s = String::new();
-    s.push_str("Hello, ");
-    for (k, v) in params {
-        s.push_str(&format!("{} = {}", k, v));
-    }
-    s.push_str("!");
-    Body::from(s)
-}
-
-fn hello_rust(_: Request<Body>, _: Params) -> Body {
-    Body::from("Hello, Rust!")
-}
-
-fn login(_req: Request<Body>, _: Params) -> Body {
-    Body::from("I'm logined!")
-}
-
-fn main() {
-    let addr = ([127, 0, 0, 1], 3000).into();
-
-    let mut tree = PathTree::<Handler>::new();
-    tree.insert("/GET/", index);
-    tree.insert("/GET/*", hello_world);
-    tree.insert("/GET/hello/:name", hello_user);
-    tree.insert("/GET/rust", hello_rust);
-    tree.insert("/POST/login", login);
-
-    let tree = Arc::new(tree);
-
-    let routing = move || {
-        let router = Arc::clone(&tree);
-
-        service_fn_ok(move |req| {
-            let path = "/".to_owned() + req.method().as_str() + req.uri().path();
-
-            dbg!(&path);
-
-            match router.find(&path) {
-                Some((handler, params)) => Response::new(handler(req, params)),
-                None => Response::builder()
-                    .status(StatusCode::NOT_FOUND)
-                    .body(Body::from("Not Found"))
-                    .unwrap(),
-            }
-        })
-    };
-
-    let server = Server::bind(&addr)
-        .serve(routing)
-        .map_err(|e| eprintln!("server error: {}", e));
-
-    hyper::rt::run(server);
 }
 ```
 
