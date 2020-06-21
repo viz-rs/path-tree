@@ -12,35 +12,41 @@ static NOT_FOUND: &[u8] = b"Not Found";
 type Params = Vec<(String, String)>;
 
 trait Handler: Send + Sync + 'static {
-    fn call<'a>(&'a self, req: Request<Body>) -> Pin<Box<dyn Future<Output = Body> + Send + 'a>>;
+    fn call<'a>(
+        &'a self,
+        req: Request<Body>,
+    ) -> Pin<Box<dyn Future<Output = Response<Body>> + Send + 'a>>;
 }
 
 impl<F, R> Handler for F
 where
     F: Send + Sync + 'static + Fn(Request<Body>) -> R,
-    R: Future<Output = Body> + Send + 'static,
+    R: Future<Output = Response<Body>> + Send + 'static,
 {
-    fn call<'a>(&'a self, req: Request<Body>) -> Pin<Box<dyn Future<Output = Body> + Send + 'a>> {
+    fn call<'a>(
+        &'a self,
+        req: Request<Body>,
+    ) -> Pin<Box<dyn Future<Output = Response<Body>> + Send + 'a>> {
         let fut = (self)(req);
         Box::pin(async move { fut.await })
     }
 }
 
-async fn index(_: Request<Body>) -> Body {
-    Body::from("Hello, Web!")
+async fn index(_: Request<Body>) -> Response<Body> {
+    Response::new(Body::from("Hello, Web!"))
 }
 
-async fn hello_world(req: Request<Body>) -> Body {
+async fn hello_world(req: Request<Body>) -> Response<Body> {
     let params = req.extensions().get::<Params>().unwrap();
     let mut s = String::new();
     s.push_str("Hello, World!\n");
     for (_, v) in params {
         s.push_str(&format!("param = {}", v));
     }
-    Body::from(s)
+    Response::new(Body::from(s))
 }
 
-async fn hello_user(req: Request<Body>) -> Body {
+async fn hello_user(req: Request<Body>) -> Response<Body> {
     let params = req.extensions().get::<Params>().unwrap();
     let mut s = String::new();
     s.push_str("Hello, ");
@@ -48,15 +54,15 @@ async fn hello_user(req: Request<Body>) -> Body {
         s.push_str(&format!("{} = {}", k, v));
     }
     s.push_str("!");
-    Body::from(s)
+    Response::new(Body::from(s))
 }
 
-async fn hello_rust(_: Request<Body>) -> Body {
-    Body::from("Hello, Rust!")
+async fn hello_rust(_: Request<Body>) -> Response<Body> {
+    Response::new(Body::from("Hello, Rust!"))
 }
 
-async fn login(_req: Request<Body>) -> Body {
-    Body::from("I'm logined!")
+async fn login(_req: Request<Body>) -> Response<Body> {
+    Response::new(Body::from("I'm logined!"))
 }
 
 #[tokio::main]
@@ -79,23 +85,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             Ok::<_, Infallible>(service_fn(move |mut req| {
                 let router = router.clone();
                 let path = "/".to_owned() + req.method().as_str() + req.uri().path();
-                let builder = Response::builder();
 
                 async move {
-                    Ok::<_, Infallible>(
-                        match router.find(&path) {
-                            Some((handler, params)) => {
-                                let p = params
-                                    .iter()
-                                    .map(|p| (p.0.to_string(), p.1.to_string()))
-                                    .collect::<Params>();
-                                req.extensions_mut().insert(p);
-                                builder.body(handler.call(req).await)
-                            }
-                            None => builder.status(StatusCode::NOT_FOUND).body(NOT_FOUND.into()),
+                    Ok::<_, Infallible>(match router.find(&path) {
+                        Some((handler, params)) => {
+                            let p = params
+                                .iter()
+                                .map(|p| (p.0.to_string(), p.1.to_string()))
+                                .collect::<Params>();
+                            req.extensions_mut().insert(p);
+                            handler.call(req).await
                         }
-                        .unwrap(),
-                    )
+                        None => Response::builder()
+                            .status(StatusCode::NOT_FOUND)
+                            .body(NOT_FOUND.into())
+                            .unwrap(),
+                    })
                 }
             }))
         }
