@@ -33,9 +33,11 @@
 
 - **Flexible**:
 
-  - Named parameters. e.g. `:name`.
+  - _**Static**_ segment. e.g. `/users`.
 
-  - Catch-All parameters. e.g. `*any`, it must always be at the end of the pattern.
+  - _**Named**_ parameters. e.g. `:name`.
+
+  - _**Catch-All**_ parameters. e.g. `*any`, it must always be at the end of the pattern.
 
   - Supports multiple naming for the same path segment. e.g. `/users/:id` and `/users/:user_id/repos`.
 
