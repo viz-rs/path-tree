@@ -87,7 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                             Some((handler, params)) => {
                                 let p = params
                                     .iter()
-                                    .map(|p| (p.0.to_owned(), p.1.to_owned()))
+                                    .map(|p| (p.0.to_string(), p.1.to_string()))
                                     .collect::<Params>();
                                 req.extensions_mut().insert(p);
                                 builder.body(handler.call(req).await)
