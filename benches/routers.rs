@@ -53,7 +53,7 @@ fn bench_path_insert(c: &mut Criterion) {
                 }
             })
         })
-        .sample_size(10),
+        .sample_size(20),
     );
 }
 
@@ -124,7 +124,7 @@ fn bench_path_find(c: &mut Criterion) {
                 }
             })
         })
-        .sample_size(50),
+        .sample_size(20),
     );
 }
 
