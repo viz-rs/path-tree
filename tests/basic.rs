@@ -508,3 +508,39 @@ fn test_readme_example() {
     assert_eq!(*res.0, 12);
     assert_eq!(res.1, []);
 }
+
+#[test]
+fn test_named_routes_with_non_ascii_paths() {
+    let mut tree = PathTree::<usize>::new();
+    tree.insert("/", 0);
+    tree.insert("/*any", 1);
+    tree.insert("/matchme/:slug/", 2);
+
+    // ASCII only (single-byte characters)
+    let node = tree.find("/matchme/abc-s-def/");
+    assert_eq!(node.is_some(), true);
+    let res = node.unwrap();
+    assert_eq!(*res.0, 2);
+    assert_eq!(res.1, [("slug", "abc-s-def")]);
+
+    // with multibyte character
+    let node = tree.find("/matchme/abc-ß-def/");
+    assert_eq!(node.is_some(), true);
+    let res = node.unwrap();
+    assert_eq!(*res.0, 2);
+    assert_eq!(res.1, [("slug", "abc-ß-def")]);
+
+    // with emoji (fancy multibyte character)
+    let node = tree.find("/matchme/abc-⭐-def/");
+    assert_eq!(node.is_some(), true);
+    let res = node.unwrap();
+    assert_eq!(*res.0, 2);
+    assert_eq!(res.1, [("slug", "abc-⭐-def")]);
+
+    // with multibyte character right before the slash (char boundary check)
+    let node = tree.find("/matchme/abc-def-ß/");
+    assert_eq!(node.is_some(), true);
+    let res = node.unwrap();
+    assert_eq!(*res.0, 2);
+    assert_eq!(res.1, [("slug", "abc-def-ß")]);
+}
