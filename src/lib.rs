@@ -232,7 +232,7 @@ impl<T> Node<T> {
                     None
                 }
             }
-            NodeKind::Parameter => match position(p, '/') {
+            NodeKind::Parameter => match p.find('/') {
                 Some(i) => {
                     let indices = self.indices.as_ref()?;
 
