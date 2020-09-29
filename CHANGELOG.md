@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12] - 2020-09-29
+
+### Fixed
+
+- Find byte index, use `str#find` instead of `position`. Thanks to @asaaki.
+
 ## [0.1.11] - 2020-06-21
 
 ### Changed
@@ -38,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tuple struct for PathTree.
 
 [Unreleased]: https://github.com/viz-rs/path-tree/compare/v0.1.11...HEAD
+[0.1.12]: https://github.com/viz-rs/path-tree/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/viz-rs/path-tree/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/viz-rs/path-tree/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/viz-rs/path-tree/compare/v0.1.4...v0.1.9
