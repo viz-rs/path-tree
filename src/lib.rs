@@ -128,8 +128,7 @@ impl<T> Node<T> {
                 self
             }
             NodeKind::Static(ref mut s) => {
-                let np = loc(s, p);
-                let l = np.len();
+                let l = loc(s, p);
 
                 // Split node
                 if l < s.len() {
@@ -139,7 +138,7 @@ impl<T> Node<T> {
                         params: None,
                         nodes: Some(Vec::new()),
                         indices: s.chars().next().map(|c| c.to_string()),
-                        kind: NodeKind::Static(np.clone()),
+                        kind: NodeKind::Static(String::from(&p[0..l])),
                     };
                     ::std::mem::swap(self, &mut node);
                     self.nodes.as_mut().unwrap().push(node);
@@ -157,20 +156,32 @@ impl<T> Node<T> {
     }
 
     /// Returns a reference to the node corresponding to the path.
-    pub fn find<'a>(&'a self, mut p: &'a str) -> Option<(&'a Self, Vec<&'a str>)> {
-        let mut params = Vec::new();
+    pub fn find<'a>(&'a self, p: &'a str) -> Option<(&'a Self, Vec<&'a str>)> {
+        self.find_with_capacity(p, 10)
+    }
 
+    /// Returns a reference to the node corresponding to the path.
+    pub fn find_with_capacity<'a>(
+        &'a self,
+        p: &'a str,
+        capacity: usize,
+    ) -> Option<(&'a Self, Vec<&'a str>)> {
+        let mut params = Vec::with_capacity(capacity);
+
+        self.find_inner(p, &mut params).zip(Some(params))
+    }
+
+    fn find_inner<'a>(&'a self, mut p: &'a str, params: &mut Vec<&'a str>) -> Option<&'a Self> {
         match self.kind {
             NodeKind::Static(ref s) => {
-                let np = loc(s, p);
-                let l = np.len();
+                let l = loc(s, p);
 
                 if l == 0 {
                     None
                 } else if l < s.len() {
                     None
                 } else if l == s.len() && l == p.len() {
-                    Some((
+                    Some(
                         // Fixed: has only route `/*`
                         // Ended `/` `/*any`
                         if self.data.is_none()
@@ -181,9 +192,7 @@ impl<T> Node<T> {
                                 [position(self.indices.as_ref().unwrap(), '*')?]
                         } else {
                             self
-                        },
-                        params,
-                    ))
+                        })
                 } else {
                     let indices = self.indices.as_ref()?;
                     let nodes = self.nodes.as_ref()?;
@@ -192,10 +201,8 @@ impl<T> Node<T> {
 
                     // Static
                     if let Some(i) = position(indices, p.chars().next().unwrap()) {
-                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
-                            params.append(ps);
-
-                            return Some((
+                        if let Some(n) = nodes[i].find_inner(p, params).as_mut() {
+                            return Some(
                                 // Ended `/` `/*any`
                                 match &n.kind {
                                     NodeKind::Static(s)
@@ -207,25 +214,22 @@ impl<T> Node<T> {
                                             [position(n.indices.as_ref().unwrap(), '*')?]
                                     }
                                     _ => n,
-                                },
-                                params,
-                            ));
+                                }
+                            );
                         }
                     }
 
                     // Named Parameter
                     if let Some(i) = position(indices, ':') {
-                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
-                            params.append(ps);
-                            return Some((n, params));
+                        if let Some(n) = nodes[i].find_inner(p, params).as_mut() {
+                            return Some(n);
                         }
                     }
 
                     // Catch-All Parameter
                     if let Some(i) = position(indices, '*') {
-                        if let Some((n, ps)) = nodes[i].find(p).as_mut() {
-                            params.append(ps);
-                            return Some((n, params));
+                        if let Some(n) = nodes[i].find_inner(p, params).as_mut() {
+                            return Some(n);
                         }
                     }
 
@@ -239,21 +243,20 @@ impl<T> Node<T> {
                     params.push(&p[..i]);
                     p = &p[i..];
 
-                    let (n, ref mut ps) = self.nodes.as_ref().unwrap()
+                    let n = self.nodes.as_ref().unwrap()
                         [position(indices, p.chars().next().unwrap())?]
-                    .find(p)?;
+                    .find_inner(p, params)?;
 
-                    params.append(ps);
-                    Some((n, params))
+                    Some(n)
                 }
                 None => {
                     params.push(p);
-                    Some((self, params))
+                    Some(self)
                 }
             },
             NodeKind::CatchAll => {
                 params.push(p);
-                Some((self, params))
+                Some(self)
             }
         }
     }
@@ -261,7 +264,10 @@ impl<T> Node<T> {
 
 /// A path tree.
 #[derive(Clone, Debug)]
-pub struct PathTree<T>(Node<T>);
+pub struct PathTree<T> {
+    root: Node<T>,
+    params: usize,
+}
 
 impl<T> Default for PathTree<T> {
     #[inline]
@@ -276,14 +282,19 @@ impl<T> PathTree<T> {
     /// The root node is a static node with `/`.
     #[inline]
     pub fn new() -> Self {
-        Self(Node::new(NodeKind::Static("/".to_owned())))
+        Self {
+            root: Node::new(NodeKind::Static("/".to_owned())),
+            params: 0,
+        }
     }
 
     /// Inserts a path and data into tree.
     pub fn insert(&mut self, mut path: &str, data: T) -> &mut Self {
         let mut next = true;
-        let mut node = &mut self.0;
+        let mut node = &mut self.root;
         let mut params: Option<Vec<String>> = None;
+
+        let mut most = 0;
 
         path = path.trim_start_matches('/');
 
@@ -322,6 +333,7 @@ impl<T> PathTree<T> {
                         next = false;
                         kind = NodeKind::CatchAll;
                     }
+                    most += 1;
                     params.get_or_insert_with(Vec::new).push(suffix.to_owned());
                     node = node.add_node_dynamic(c, kind);
                 }
@@ -332,6 +344,10 @@ impl<T> PathTree<T> {
             }
         }
 
+        if most > self.params {
+            self.params = most;
+        }
+
         node.data = Some(data);
         node.params = params;
 
@@ -340,7 +356,7 @@ impl<T> PathTree<T> {
 
     /// Returns a reference to the node data and params corresponding to the path.
     pub fn find<'a>(&'a self, path: &'a str) -> Option<(&'a T, Vec<(&'a str, &'a str)>)> {
-        self.0.find(path).and_then(|(node, values)| {
+        self.root.find_with_capacity(path, self.params).and_then(|(node, values)| {
             node.data.as_ref().map(|data| {
                 (
                     data,
@@ -373,10 +389,10 @@ fn position(p: &str, c: char) -> Option<usize> {
 }
 
 #[inline]
-fn loc(s: &str, p: &str) -> String {
+fn loc(s: &str, p: &str) -> usize {
     s.chars()
         .zip(p.chars())
         .take_while(|(a, b)| a == b)
-        .map(|v| v.0)
-        .collect()
+        .map(|(c, _)| c.len_utf8())
+        .sum()
 }

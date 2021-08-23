@@ -29,7 +29,7 @@
 
 - **Fast**: See benchmark
 
-- **Micro**: The [src/lib.rs](src/lib.rs) file is ~382 lines of code (Includes comments)
+- **Micro**: The [src/lib.rs](src/lib.rs) file is ~398 lines of code (Includes comments)
 
 - **Flexible**:
 
