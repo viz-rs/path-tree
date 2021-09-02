@@ -11,9 +11,10 @@ use path_tree::PathTree;
 use route_recognizer::Router as RRRouter;
 
 fn bench_path_insert(c: &mut Criterion) {
-    c.bench(
-        "path_insert",
-        Benchmark::new("actix_router_path", |b| {
+    let mut group = c.benchmark_group("path_insert");
+
+    group
+        .bench_function("actix_router_path", |b| {
             let mut router = ActixRouter::<usize>::build();
             b.iter(|| {
                 for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
@@ -21,7 +22,7 @@ fn bench_path_insert(c: &mut Criterion) {
                 }
             })
         })
-        .with_function("ntex_router_path", |b| {
+        .bench_function("ntex_router_path", |b| {
             let mut router = NtexRouter::<usize>::build();
             b.iter(|| {
                 for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
@@ -29,7 +30,7 @@ fn bench_path_insert(c: &mut Criterion) {
                 }
             })
         })
-        .with_function("path_table_setup", |b| {
+        .bench_function("path_table_setup", |b| {
             let mut table: PathTable<usize> = PathTable::new();
             b.iter(|| {
                 for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
@@ -37,7 +38,7 @@ fn bench_path_insert(c: &mut Criterion) {
                 }
             })
         })
-        .with_function("path_tree_insert", |b| {
+        .bench_function("path_tree_insert", |b| {
             let mut tree: PathTree<usize> = PathTree::new();
             b.iter(|| {
                 for (i, r) in ROUTES_WITH_COLON.iter().enumerate() {
@@ -45,7 +46,7 @@ fn bench_path_insert(c: &mut Criterion) {
                 }
             })
         })
-        .with_function("route_recognizer_add", |b| {
+        .bench_function("route_recognizer_add", |b| {
             let mut router = RRRouter::<usize>::new();
             b.iter(|| {
                 for (i, r) in ROUTES_WITH_COLON.iter().enumerate() {
@@ -53,14 +54,16 @@ fn bench_path_insert(c: &mut Criterion) {
                 }
             })
         })
-        .sample_size(20),
-    );
+        .sample_size(20);
+
+    group.finish()
 }
 
 fn bench_path_find(c: &mut Criterion) {
-    c.bench(
-        "path_find",
-        Benchmark::new("actix_router_recognize", |b| {
+    let mut group = c.benchmark_group("path_find");
+
+    group
+        .bench_function("actix_router_recognize", |b| {
             let mut router = ActixRouter::<usize>::build();
             for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
                 router.path(*r, i);
@@ -74,7 +77,7 @@ fn bench_path_find(c: &mut Criterion) {
                 }
             })
         })
-        .with_function("ntex_router_recognize", |b| {
+        .bench_function("ntex_router_recognize", |b| {
             let mut router = NtexRouter::<usize>::build();
             for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
                 router.path(*r, i);
@@ -88,7 +91,7 @@ fn bench_path_find(c: &mut Criterion) {
                 }
             })
         })
-        .with_function("path_table_route", |b| {
+        .bench_function("path_table_route", |b| {
             let mut table: PathTable<usize> = PathTable::new();
             for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
                 *table.setup(r) = i;
@@ -100,7 +103,7 @@ fn bench_path_find(c: &mut Criterion) {
                 }
             })
         })
-        .with_function("path_tree_find", |b| {
+        .bench_function("path_tree_find", |b| {
             let mut tree: PathTree<usize> = PathTree::new();
             for (i, r) in ROUTES_WITH_COLON.iter().enumerate() {
                 tree.insert(r, i);
@@ -112,7 +115,7 @@ fn bench_path_find(c: &mut Criterion) {
                 }
             })
         })
-        .with_function("route_recognizer_recognize", |b| {
+        .bench_function("route_recognizer_recognize", |b| {
             let mut router = RRRouter::<usize>::new();
             for (i, r) in ROUTES_WITH_COLON.iter().enumerate() {
                 router.add(r, i);
@@ -120,12 +123,13 @@ fn bench_path_find(c: &mut Criterion) {
             b.iter(|| {
                 for (i, r) in ROUTES_URLS.iter().enumerate() {
                     let n = router.recognize(r).unwrap();
-                    assert_eq!(*n.handler, i);
+                    assert_eq!(**n.handler(), i);
                 }
             })
         })
-        .sample_size(20),
-    );
+        .sample_size(20);
+
+    group.finish();
 }
 
 criterion_group!(benches, bench_path_insert, bench_path_find);

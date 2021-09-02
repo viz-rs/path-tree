@@ -1,10 +1,10 @@
-use std::convert::Infallible;
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
+use std::{convert::Infallible, future::Future, pin::Pin, sync::Arc};
 
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Request, Response, Server, StatusCode};
+use hyper::{
+    server::Server,
+    service::{make_service_fn, service_fn},
+    Body, Request, Response, StatusCode,
+};
 use path_tree::PathTree;
 
 static NOT_FOUND: &[u8] = b"Not Found";

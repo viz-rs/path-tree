@@ -23,15 +23,15 @@ include = [
 bench = false
 
 [dev-dependencies]
-actix-router = "0.2"
-ntex-router = "0.3"
+actix-router = "0.4"
+ntex-router = "0.5"
 path-table = "1.0"
-route-recognizer = "0.2"
+route-recognizer = "0.3"
 criterion = "0.3"
-hyper = "0.13"
 futures = "0.3"
-rand = "0.7"
-tokio = { version = "0.2", default-features = false, features = ["macros"] }
+rand = "0.8"
+hyper = { version="0.14", features=["full"] }
+tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread"] }
 
 [[bench]]
 name = "routers"
