@@ -192,7 +192,8 @@ impl<T> Node<T> {
                                 [position(self.indices.as_ref().unwrap(), '*')?]
                         } else {
                             self
-                        })
+                        },
+                    )
                 } else {
                     let indices = self.indices.as_ref()?;
                     let nodes = self.nodes.as_ref()?;
@@ -214,7 +215,7 @@ impl<T> Node<T> {
                                             [position(n.indices.as_ref().unwrap(), '*')?]
                                     }
                                     _ => n,
-                                }
+                                },
                             );
                         }
                     }
@@ -356,20 +357,22 @@ impl<T> PathTree<T> {
 
     /// Returns a reference to the node data and params corresponding to the path.
     pub fn find<'a>(&'a self, path: &'a str) -> Option<(&'a T, Vec<(&'a str, &'a str)>)> {
-        self.root.find_with_capacity(path, self.params).and_then(|(node, values)| {
-            node.data.as_ref().map(|data| {
-                (
-                    data,
-                    node.params.as_ref().map_or_else(Vec::new, |params| {
-                        params
-                            .iter()
-                            .zip(values.iter())
-                            .map(|(a, b)| (a.as_str(), *b))
-                            .collect()
-                    }),
-                )
+        self.root
+            .find_with_capacity(path, self.params)
+            .and_then(|(node, values)| {
+                node.data.as_ref().map(|data| {
+                    (
+                        data,
+                        node.params.as_ref().map_or_else(Vec::new, |params| {
+                            params
+                                .iter()
+                                .zip(values.iter())
+                                .map(|(a, b)| (a.as_str(), *b))
+                                .collect()
+                        }),
+                    )
+                })
             })
-        })
     }
 }
 
