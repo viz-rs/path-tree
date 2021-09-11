@@ -33,6 +33,7 @@ rand = "0.8"
 criterion = { version = "0.3", features = ["html_reports"] }
 hyper = { version="0.14", features = ["full"] }
 tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread"] }
+gonzales = "0.0.3-beta"
 
 [[bench]]
 name = "routers"

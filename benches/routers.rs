@@ -9,7 +9,8 @@ use ntex_router::{Path as NtexPath, Router as NtexRouter};
 use path_table::PathTable;
 use path_tree::PathTree;
 use route_recognizer::Router as RRRouter;
-use matchit::Node;
+// use gonzales::RouterBuilder;
+// use matchit::Node;
 
 fn bench_path_insert(c: &mut Criterion) {
     let mut group = c.benchmark_group("path_insert");
@@ -55,8 +56,15 @@ fn bench_path_insert(c: &mut Criterion) {
                 }
             })
         })
-        // Some errors
         /*
+        .bench_function("gonzales_route", |b| {
+            let mut router = RouterBuilder::new();
+            b.iter(|| {
+                for (_i, r) in ROUTES_WITH_COLON.iter().enumerate() {
+                    router.build([r]);
+                }
+            })
+        })
         .bench_function("matchit_insert", |b| {
             let mut matcher = Node::new();
             b.iter(|| {
@@ -122,7 +130,6 @@ fn bench_path_find(c: &mut Criterion) {
             }
             b.iter(|| {
                 for (i, r) in ROUTES_URLS.iter().enumerate() {
-                    dbg!(r);
                     let n = tree.find(r).unwrap();
                     assert_eq!(*n.0, i);
                 }
@@ -140,17 +147,29 @@ fn bench_path_find(c: &mut Criterion) {
                 }
             })
         })
-        // Some errors
         /*
+        .bench_function("gonzales_route", |b| {
+            let router = RouterBuilder::new()
+                .ascii_case_insensitive(false)
+                .build(ROUTES_WITH_BRACES);
+            b.iter(|| {
+                for (_i, r) in ROUTES_URLS.iter().enumerate() {
+                    // let n = router.route(r).unwrap();
+                    // assert_eq!(n.get_index(), i);
+                    black_box(router.route(r));
+                }
+            })
+        })
         .bench_function("matchit_at", |b| {
             let mut matcher = Node::new();
             for (i, r) in ROUTES_WITH_COLON.iter().enumerate() {
-                let _ = dbg!(matcher.insert(*r, i));
+                let _ = matcher.insert(*r, i);
             }
             b.iter(|| {
-                for (i, r) in ROUTES_URLS.iter().enumerate() {
-                    let n = matcher.at(r).unwrap();
-                    assert_eq!(*n.value, i);
+                for (_i, r) in ROUTES_URLS.iter().enumerate() {
+                    // let n = matcher.at(r).unwrap();
+                    // assert_eq!(*n.value, i);
+                    let _ = black_box(matcher.at(r));
                 }
             })
         })
