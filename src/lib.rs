@@ -176,18 +176,13 @@ impl<T> Node<T> {
             NodeKind::Static(ref s) => {
                 let l = loc(s, p);
 
-                if l == 0 {
-                    None
-                } else if l < s.len() {
+                if l == 0 || l < s.len() {
                     None
                 } else if l == s.len() && l == p.len() {
                     Some(
                         // Fixed: has only route `/*`
                         // Ended `/` `/*any`
-                        if self.data.is_none()
-                            && self.indices.is_some()
-                            && s.ends_with('/')
-                        {
+                        if self.data.is_none() && self.indices.is_some() && s.ends_with('/') {
                             &self.nodes.as_ref().unwrap()
                                 [position(self.indices.as_ref().unwrap(), '*')?]
                         } else {
