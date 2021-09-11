@@ -234,8 +234,7 @@ fn static_and_named_parameter() {
     for (u, b, a, p) in res {
         let r = tree.find(u);
         assert_eq!(r.is_some(), b);
-        if r.is_some() {
-            let res = r.unwrap();
+        if let Some(res) = r {
             assert_eq!(*res.0, a);
             assert_eq!(res.1, p);
         }
@@ -275,8 +274,7 @@ fn multi_named_parameters() {
     for (u, b, a, p) in res {
         let r = tree.find(u);
         assert_eq!(r.is_some(), b);
-        if r.is_some() {
-            let res = r.unwrap();
+        if let Some(res) = r {
             assert_eq!(*res.0, a);
             assert_eq!(res.1, p);
         }
@@ -311,8 +309,7 @@ fn catch_all_parameter() {
     for (u, b, p) in res {
         let r = tree.find(u);
         assert_eq!(r.is_some(), b);
-        if r.is_some() {
-            let res = r.unwrap();
+        if let Some(res) = r {
             assert_eq!(*res.0, "* files");
             assert_eq!(res.1, p);
         }
@@ -322,8 +319,7 @@ fn catch_all_parameter() {
 
     let r = tree.find("/src/");
     assert!(r.is_some());
-    if r.is_some() {
-        let res = r.unwrap();
+    if let Some(res) = r {
         assert_eq!(*res.0, "dir");
         assert_eq!(res.1, vec![]);
     }
@@ -358,8 +354,7 @@ fn static_and_catch_all_parameter() {
     for (u, b, a, p) in res {
         let r = tree.find(u);
         assert_eq!(r.is_some(), b);
-        if r.is_some() {
-            let res = r.unwrap();
+        if let Some(res) = r {
             assert_eq!(*res.0, a);
             assert_eq!(res.1, p);
         }
@@ -390,8 +385,7 @@ fn root_catch_all_parameter() {
     for (u, b, a, p) in res {
         let r = tree.find(u);
         assert_eq!(r.is_some(), b);
-        if r.is_some() {
-            let res = r.unwrap();
+        if let Some(res) = r {
             assert_eq!(res.0(), a);
             assert_eq!(res.1, p);
         }
@@ -421,8 +415,7 @@ fn root_catch_all_parameter_1() {
         let r = tree.find(u);
         //println!("route: {:#?}", r);
         assert_eq!(r.is_some(), b);
-        if r.is_some() {
-            let res = r.unwrap();
+        if let Some(res) = r {
             assert_eq!(res.0(), a);
             assert_eq!(res.1, p);
         }
@@ -432,8 +425,7 @@ fn root_catch_all_parameter_1() {
     let r = tree.find("/");
     //println!("route: {:#?}", r);
     assert!(r.is_some());
-    if r.is_some() {
-        let res = r.unwrap();
+    if let Some(res) = r {
         assert_eq!(res.0(), 0);
         assert_eq!(res.1, []);
     }
