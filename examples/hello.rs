@@ -53,7 +53,7 @@ async fn hello_user(req: Request<Body>) -> Response<Body> {
     for (k, v) in params {
         s.push_str(&format!("{} = {}", k, v));
     }
-    s.push_str("!");
+    s.push('!');
     Response::new(Body::from(s))
 }
 

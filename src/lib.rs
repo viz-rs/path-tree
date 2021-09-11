@@ -123,7 +123,7 @@ impl<T> Node<T> {
     /// Inserts a path into node.
     pub fn insert(&mut self, p: &str) -> &mut Self {
         match self.kind {
-            NodeKind::Static(ref mut s) if s.len() == 0 => {
+            NodeKind::Static(ref mut s) if s.is_empty() => {
                 *s += p;
                 self
             }
@@ -186,7 +186,7 @@ impl<T> Node<T> {
                         // Ended `/` `/*any`
                         if self.data.is_none()
                             && self.indices.is_some()
-                            && '/' == s.chars().last().unwrap()
+                            && s.ends_with('/')
                         {
                             &self.nodes.as_ref().unwrap()
                                 [position(self.indices.as_ref().unwrap(), '*')?]
@@ -209,7 +209,7 @@ impl<T> Node<T> {
                                     NodeKind::Static(s)
                                         if n.data.is_none()
                                             && n.indices.is_some()
-                                            && '/' == s.chars().last().unwrap() =>
+                                            && s.ends_with('/') =>
                                     {
                                         &n.nodes.as_ref().unwrap()
                                             [position(n.indices.as_ref().unwrap(), '*')?]
@@ -299,7 +299,7 @@ impl<T> PathTree<T> {
 
         path = path.trim_start_matches('/');
 
-        if path.len() == 0 {
+        if path.is_empty() {
             node.data.replace(data);
             return self;
         }
@@ -311,7 +311,7 @@ impl<T> PathTree<T> {
                     let mut prefix = &path[..i];
                     let mut suffix = &path[i..];
 
-                    if prefix.len() > 0 {
+                    if !prefix.is_empty() {
                         node = node.add_node_static(prefix);
                     }
 
