@@ -321,7 +321,7 @@ fn catch_all_parameter() {
     tree.insert("/src/", "dir");
 
     let r = tree.find("/src/");
-    assert_eq!(r.is_some(), true);
+    assert!(r.is_some());
     if r.is_some() {
         let res = r.unwrap();
         assert_eq!(*res.0, "dir");
@@ -459,14 +459,14 @@ fn test_readme_example() {
 
     // Matched "/"
     let node = tree.find("/");
-    assert_eq!(node.is_some(), true);
+    assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.0, 0);
     assert_eq!(res.1, []); // Params
 
     // Matched "/:username"
     let node = tree.find("/username");
-    assert_eq!(node.is_some(), true);
+    assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.0, 7);
     assert_eq!(res.1, [("username", "username")]); // Params
@@ -518,28 +518,28 @@ fn test_named_routes_with_non_ascii_paths() {
 
     // ASCII only (single-byte characters)
     let node = tree.find("/matchme/abc-s-def/");
-    assert_eq!(node.is_some(), true);
+    assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.0, 2);
     assert_eq!(res.1, [("slug", "abc-s-def")]);
 
     // with multibyte character
     let node = tree.find("/matchme/abc-ß-def/");
-    assert_eq!(node.is_some(), true);
+    assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.0, 2);
     assert_eq!(res.1, [("slug", "abc-ß-def")]);
 
     // with emoji (fancy multibyte character)
     let node = tree.find("/matchme/abc-⭐-def/");
-    assert_eq!(node.is_some(), true);
+    assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.0, 2);
     assert_eq!(res.1, [("slug", "abc-⭐-def")]);
 
     // with multibyte character right before the slash (char boundary check)
     let node = tree.find("/matchme/abc-def-ß/");
-    assert_eq!(node.is_some(), true);
+    assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.0, 2);
     assert_eq!(res.1, [("slug", "abc-def-ß")]);
