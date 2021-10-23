@@ -245,10 +245,11 @@ impl<T> Node<T> {
 
                     Some(n)
                 }
-                None => {
+                None if self.params.is_some() => {
                     params.push(p);
                     Some(self)
                 }
+                None => None,
             },
             NodeKind::CatchAll => {
                 params.push(p);

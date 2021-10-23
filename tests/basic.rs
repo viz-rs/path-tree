@@ -536,3 +536,22 @@ fn test_named_routes_with_non_ascii_paths() {
     assert_eq!(*res.0, 2);
     assert_eq!(res.1, [("slug", "abc-def-ß")]);
 }
+
+#[test]
+fn test_named_wildcard_collide() {
+    let mut tree = PathTree::<usize>::new();
+    tree.insert("/git/:org/:repo", 1);
+    tree.insert("/git/*any", 2);
+
+    let node = tree.find("/git/rust-lang/rust");
+    assert!(node.is_some());
+    let res = node.unwrap();
+    assert_eq!(*res.0, 1);
+    assert_eq!(res.1, [("org", "rust-lang"), ("repo", "rust")]);
+
+    let node = tree.find("/git/rust-lang");
+    assert!(node.is_some());
+    let res = node.unwrap();
+    assert_eq!(*res.0, 2);
+    assert_eq!(res.1, [("any", "rust-lang")]);
+}
