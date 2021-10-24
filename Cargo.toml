@@ -2,13 +2,13 @@
 name = "path-tree"
 version = "0.2.2"
 authors = ["Fangdun Cai <cfddream@gmail.com>"]
-edition = "2018"
 description = "path-tree is a lightweight high performance HTTP request router for Rust"
 homepage = "https://github.com/viz-rs/path-tree"
-license = "MIT/Apache-2.0"
-readme = "README.md"
 keywords = ["radix", "tree", "path", "router"]
 categories = ["asynchronous", "web-programming", "web-programming::http-server"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+edition = "2021"
 
 include = [
   "CHANGES.md",
