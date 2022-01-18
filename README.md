@@ -135,6 +135,12 @@ It is inspired by the:
 - [echo] router
 - [trekjs] router
 
+## Other languages
+
+Wrappers for path-tree in other languages:
+
+- Python: https://github.com/adriangb/routrie
+
 ## License
 
 <sup>
