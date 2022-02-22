@@ -23,7 +23,7 @@ include = [
 bench = false
 
 [dev-dependencies]
-actix-router = "0.4"
+actix-router = "0.5"
 ntex-router = "0.5"
 path-table = "1.0"
 route-recognizer = "0.3"
