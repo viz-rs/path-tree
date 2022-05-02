@@ -10,7 +10,7 @@ use path_table::PathTable;
 use path_tree::PathTree;
 use route_recognizer::Router as RRRouter;
 // use gonzales::RouterBuilder;
-use matchit::{Router as MatchitRouter};
+use matchit::Router as MatchitRouter
 
 fn bench_path_insert(c: &mut Criterion) {
     let mut group = c.benchmark_group("path_insert");
