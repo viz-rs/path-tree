@@ -10,7 +10,7 @@ use path_table::PathTable;
 use path_tree::PathTree;
 use route_recognizer::Router as RRRouter;
 // use gonzales::RouterBuilder;
-// use matchit::Node;
+use matchit::{Router as MatchitRouter};
 
 fn bench_path_insert(c: &mut Criterion) {
     let mut group = c.benchmark_group("path_insert");
@@ -65,15 +65,15 @@ fn bench_path_insert(c: &mut Criterion) {
                 }
             })
         })
+        */
         .bench_function("matchit_insert", |b| {
-            let mut matcher = Node::new();
+            let mut matcher = MatchitRouter::new();
             b.iter(|| {
                 for (i, r) in ROUTES_WITH_COLON.iter().enumerate() {
                     let _ = matcher.insert(*r, i);
                 }
             })
         })
-        */
         .sample_size(20);
 
     group.finish()
@@ -160,8 +160,9 @@ fn bench_path_find(c: &mut Criterion) {
                 }
             })
         })
+        */
         .bench_function("matchit_at", |b| {
-            let mut matcher = Node::new();
+            let mut matcher = MatchitRouter::new();
             for (i, r) in ROUTES_WITH_COLON.iter().enumerate() {
                 let _ = matcher.insert(*r, i);
             }
@@ -173,8 +174,7 @@ fn bench_path_find(c: &mut Criterion) {
                 }
             })
         })
-        */
-        .sample_size(20);
+        .sample_size(12);
 
     group.finish();
 }
