@@ -64,7 +64,7 @@ pub enum NodeKind {
 pub struct Node<T> {
     kind: NodeKind,
     data: Option<T>,
-    indices: Option<String>,
+    indices: Option<Vec<char>>,
     nodes: Option<Vec<Self>>,
     params: Option<Vec<String>>,
 }
@@ -90,7 +90,7 @@ impl<T> Node<T> {
     }
 
     fn add_node(&mut self, c: char, kind: NodeKind) -> &mut Self {
-        let indices: &mut String = self.indices.get_or_insert_with(String::new);
+        let indices: &mut Vec<char> = self.indices.get_or_insert_with(Vec::new);
         let nodes: &mut Vec<Node<T>> = self.nodes.get_or_insert_with(Vec::new);
 
         match position(indices, c) {
@@ -137,7 +137,7 @@ impl<T> Node<T> {
                         data: None,
                         params: None,
                         nodes: Some(Vec::new()),
-                        indices: s.chars().next().map(|c| c.to_string()),
+                        indices: s.chars().next().map(|c| vec![c]),
                         kind: NodeKind::Static(String::from(&p[0..l])),
                     };
                     ::std::mem::swap(self, &mut node);
@@ -156,7 +156,7 @@ impl<T> Node<T> {
     }
 
     /// Returns a reference to the node corresponding to the path.
-    pub fn find<'a>(&'a self, p: &'a str) -> Option<(&'a Self, Vec<&'a str>)> {
+    pub fn find<'a>(&'a self, p: &'a str) -> Option<(&'a Self, Vec<(&'a str, &'a str)>)> {
         self.find_with_capacity(p, 10)
     }
 
@@ -165,13 +165,36 @@ impl<T> Node<T> {
         &'a self,
         p: &'a str,
         capacity: usize,
-    ) -> Option<(&'a Self, Vec<&'a str>)> {
+    ) -> Option<(&'a Self, Vec<(&'a str, &'a str)>)> {
         let mut params = Vec::with_capacity(capacity);
 
-        self.find_inner(p, &mut params).zip(Some(params))
+        self.find_inner(p, &mut params).map(|node| (
+            node,
+            node.params.as_ref().map_or_else(Vec::new, |np| {
+                for (value, (key, _)) in np.iter().zip(params.iter_mut()) {
+                    *key = Some(value);
+                }
+
+                // This is just [`Vec::into_raw_parts`] which is nightly.
+                let (ptr, len, cap) = {
+                    let mut me = std::mem::ManuallyDrop::new(params);
+                    (me.as_mut_ptr(), me.len(), me.capacity())
+                };
+
+                // # Safety
+                //
+                // This is safe as it follows the guides in [`Vec::from_raw_parts`],
+                // as well as only being used to put a existing [`Vec`] back together.
+                //
+                // It also follows the guide of [`std::mem::transmute`] which points us to this
+                // because the data layout of a [`Vec`] is not a constant.
+                #[allow(unsafe_code)]
+                unsafe { Vec::from_raw_parts(ptr as *mut (&'a str, &'a str), len, cap) }
+            }),
+        ))
     }
 
-    fn find_inner<'a>(&'a self, mut p: &'a str, params: &mut Vec<&'a str>) -> Option<&'a Self> {
+    fn find_inner<'a>(&'a self, mut p: &'a str, params: &mut Vec<(Option<&'a str>, &'a str)>) -> Option<&'a Self> {
         match self.kind {
             NodeKind::Static(ref s) => {
                 let l = loc(s, p);
@@ -236,7 +259,7 @@ impl<T> Node<T> {
                 Some(i) => {
                     let indices = self.indices.as_ref()?;
 
-                    params.push(&p[..i]);
+                    params.push((None, &p[..i]));
                     p = &p[i..];
 
                     let n = self.nodes.as_ref().unwrap()
@@ -246,13 +269,13 @@ impl<T> Node<T> {
                     Some(n)
                 }
                 None if self.params.is_some() => {
-                    params.push(p);
+                    params.push((None, p));
                     Some(self)
                 }
                 None => None,
             },
             NodeKind::CatchAll => {
-                params.push(p);
+                params.push((None, p));
                 Some(self)
             }
         }
@@ -355,20 +378,7 @@ impl<T> PathTree<T> {
     pub fn find<'a>(&'a self, path: &'a str) -> Option<(&'a T, Vec<(&'a str, &'a str)>)> {
         self.root
             .find_with_capacity(path, self.params)
-            .and_then(|(node, values)| {
-                node.data.as_ref().map(|data| {
-                    (
-                        data,
-                        node.params.as_ref().map_or_else(Vec::new, |params| {
-                            params
-                                .iter()
-                                .zip(values.iter())
-                                .map(|(a, b)| (a.as_str(), *b))
-                                .collect()
-                        }),
-                    )
-                })
-            })
+            .and_then(|(node, params)| node.data.as_ref().map(|data| (data, params)))
     }
 }
 
@@ -383,8 +393,8 @@ const fn has_star_or_slash(c: char) -> bool {
 }
 
 #[inline]
-fn position(p: &str, c: char) -> Option<usize> {
-    p.chars().position(|x| x == c)
+fn position(p: &[char], c: char) -> Option<usize> {
+    p.iter().position(|x| *x == c)
 }
 
 #[inline]
