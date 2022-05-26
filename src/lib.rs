@@ -156,11 +156,13 @@ impl<T> Node<T> {
     }
 
     /// Returns a reference to the node corresponding to the path.
+    #[inline]
     pub fn find<'a>(&'a self, p: &'a str) -> Option<(&'a Self, Vec<(&'a str, &'a str)>)> {
         self.find_with_capacity(p, 10)
     }
 
     /// Returns a reference to the node corresponding to the path.
+    #[inline]
     pub fn find_with_capacity<'a>(
         &'a self,
         p: &'a str,
@@ -168,33 +170,25 @@ impl<T> Node<T> {
     ) -> Option<(&'a Self, Vec<(&'a str, &'a str)>)> {
         let mut params = Vec::with_capacity(capacity);
 
-        self.find_inner(p, &mut params).map(|node| (
-            node,
-            node.params.as_ref().map_or_else(Vec::new, |np| {
-                for (value, (key, _)) in np.iter().zip(params.iter_mut()) {
-                    *key = Some(value);
-                }
+        self.find_inner(p, &mut params).map(|node| {
+            (
+                node,
+                node.params.as_ref().map_or_else(Vec::new, |node_params| {
+                    for (value, (key, _)) in node_params.iter().zip(params.iter_mut()) {
+                        *key = value;
+                    }
 
-                // This is just [`Vec::into_raw_parts`] which is nightly.
-                let (ptr, len, cap) = {
-                    let mut me = std::mem::ManuallyDrop::new(params);
-                    (me.as_mut_ptr(), me.len(), me.capacity())
-                };
-
-                // # Safety
-                //
-                // This is safe as it follows the guides in [`Vec::from_raw_parts`],
-                // as well as only being used to put a existing [`Vec`] back together.
-                //
-                // It also follows the guide of [`std::mem::transmute`] which points us to this
-                // because the data layout of a [`Vec`] is not a constant.
-                #[allow(unsafe_code)]
-                unsafe { Vec::from_raw_parts(ptr as *mut (&'a str, &'a str), len, cap) }
-            }),
-        ))
+                    params
+                }),
+            )
+        })
     }
 
-    fn find_inner<'a>(&'a self, mut p: &'a str, params: &mut Vec<(Option<&'a str>, &'a str)>) -> Option<&'a Self> {
+    fn find_inner<'a>(
+        &'a self,
+        mut p: &'a str,
+        params: &mut Vec<(&'a str, &'a str)>,
+    ) -> Option<&'a Self> {
         match self.kind {
             NodeKind::Static(ref s) => {
                 let l = loc(s, p);
@@ -259,7 +253,7 @@ impl<T> Node<T> {
                 Some(i) => {
                     let indices = self.indices.as_ref()?;
 
-                    params.push((None, &p[..i]));
+                    params.push(("", &p[..i]));
                     p = &p[i..];
 
                     let n = self.nodes.as_ref().unwrap()
@@ -269,13 +263,13 @@ impl<T> Node<T> {
                     Some(n)
                 }
                 None if self.params.is_some() => {
-                    params.push((None, p));
+                    params.push(("", p));
                     Some(self)
                 }
                 None => None,
             },
             NodeKind::CatchAll => {
-                params.push((None, p));
+                params.push(("", p));
                 Some(self)
             }
         }
