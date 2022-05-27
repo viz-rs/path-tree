@@ -321,8 +321,8 @@ impl<T> PathTree<T> {
             match path.chars().position(has_colon_or_star) {
                 Some(i) => {
                     let kind: NodeKind;
-                    let mut prefix = &path[..i];
-                    let mut suffix = &path[i..];
+                    let i = char_offset(path, i);
+                    let (mut prefix, mut suffix) = path.split_at(i);
 
                     if !prefix.is_empty() {
                         node = node.add_node_static(prefix);
@@ -335,6 +335,7 @@ impl<T> PathTree<T> {
                     if c == ':' {
                         match suffix.chars().position(has_star_or_slash) {
                             Some(i) => {
+                                let i = char_offset(suffix, i);
                                 path = &suffix[i..];
                                 suffix = &suffix[..i];
                             }
@@ -398,4 +399,9 @@ fn loc(s: &str, p: &str) -> usize {
         .take_while(|(a, b)| a == b)
         .map(|(c, _)| c.len_utf8())
         .sum()
+}
+
+#[inline]
+fn char_offset(p: &str, i: usize) -> usize {
+    p.chars().take(i).map(|c| c.len_utf8()).sum()
 }
