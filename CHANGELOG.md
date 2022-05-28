@@ -14,11 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#17] - Add basic fuzzing. Thanks to @Txuritan.
 - [#16] - Replace the Node.indices String with a Vec<char>, this avoids the expensive code point decoding in position. Thanks to @Txuritan.
 
+[#17]: https://github.com/viz-rs/path-tree/pull/17
+[#16]: https://github.com/viz-rs/path-tree/pull/16
+
 ## [0.2.2] - 2021-10-24
 
 ### Fixed
 
-- [#8]. Thanks to @josalmi
+- [#8] - Thanks to @josalmi
+
+[#8]: https://github.com/viz-rs/path-tree/pull/8
 
 ## [0.2.1] - 2021-09-11
 
