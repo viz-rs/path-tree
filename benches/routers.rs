@@ -167,10 +167,9 @@ fn bench_path_find(c: &mut Criterion) {
                 let _ = matcher.insert(*r, i);
             }
             b.iter(|| {
-                for (_i, r) in ROUTES_URLS.iter().enumerate() {
-                    // let n = matcher.at(r).unwrap();
-                    // assert_eq!(*n.value, i);
-                    let _ = black_box(matcher.at(r));
+                for (i, r) in ROUTES_URLS.iter().enumerate() {
+                    let n = matcher.at(r).unwrap();
+                    assert_eq!(*n.value, i);
                 }
             })
         })
