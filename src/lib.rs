@@ -193,7 +193,7 @@ impl<T> Node<T> {
             NodeKind::Static(ref s) => {
                 let l = loc(s, p);
 
-                if l == 0 || l < s.len() {
+                if l < s.len() {
                     None
                 } else if l == s.len() && l == p.len() {
                     Some(
@@ -297,7 +297,7 @@ impl<T> PathTree<T> {
     #[inline]
     pub fn new() -> Self {
         Self {
-            root: Node::new(NodeKind::Static("/".to_owned())),
+            root: Node::new(NodeKind::Static("".to_owned())),
             params: 0,
         }
     }
@@ -309,8 +309,6 @@ impl<T> PathTree<T> {
         let mut params: Option<Vec<String>> = None;
 
         let mut most = 0;
-
-        path = path.trim_start_matches('/');
 
         if path.is_empty() {
             node.data.replace(data);
