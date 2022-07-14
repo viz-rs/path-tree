@@ -5,7 +5,8 @@ use rand::seq::SliceRandom;
 fn new_tree() {
     let mut tree: PathTree<usize> = PathTree::default();
 
-    const ROUTES: [&str; 13] = [
+    const ROUTES: [&str; 14] = [
+        "",
         "/",
         "/users",
         "/users/:id",
@@ -21,7 +22,8 @@ fn new_tree() {
         "/users/repos/*any",
     ];
 
-    const VALID_URLS: [&str; 13] = [
+    const VALID_URLS: [&str; 14] = [
+        "",
         "/",
         "/users",
         "/users/fundon",
@@ -38,6 +40,7 @@ fn new_tree() {
     ];
 
     let valid_res = vec![
+        vec![],
         vec![],
         vec![],
         vec![("id", "fundon")],
