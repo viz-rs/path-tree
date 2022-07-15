@@ -293,11 +293,11 @@ impl<T> Default for PathTree<T> {
 impl<T> PathTree<T> {
     /// Creates a new tree with a root node.
     ///
-    /// The root node is a static node with `/`.
+    /// The root node is a static node with empty path.
     #[inline]
     pub fn new() -> Self {
         Self {
-            root: Node::new(NodeKind::Static("".to_owned())),
+            root: Node::new(NodeKind::Static(String::new())),
             params: 0,
         }
     }
