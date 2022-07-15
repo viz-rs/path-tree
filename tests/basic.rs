@@ -342,6 +342,30 @@ fn catch_all_parameter_with_prefix() {
     let mut tree = PathTree::new();
 
     tree.insert("/commit_*sha", "* sha");
+    tree.insert("/commit/:sha", "hex");
+    tree.insert("/commit/:sha0/compare/:sha1", "compare");
+    tree.insert("/src/", "dir");
+
+    let r = tree.find("/src/");
+    assert!(r.is_some());
+    if let Some(res) = r {
+        assert_eq!(*res.0, "dir");
+        assert_eq!(res.1, vec![]);
+    }
+
+    let r = tree.find("/commit/123");
+    assert!(r.is_some());
+    if let Some(res) = r {
+        assert_eq!(*res.0, "hex");
+        assert_eq!(res.1, vec![("sha", "123")]);
+    }
+
+    let r = tree.find("/commit/123/compare/321");
+    assert!(r.is_some());
+    if let Some(res) = r {
+        assert_eq!(*res.0, "compare");
+        assert_eq!(res.1, vec![("sha0", "123"), ("sha1", "321")]);
+    }
 
     let res = vec![
         ("/commit", false, vec![]),
@@ -361,15 +385,6 @@ fn catch_all_parameter_with_prefix() {
             assert_eq!(*res.0, "* sha");
             assert_eq!(res.1, p);
         }
-    }
-
-    tree.insert("/src/", "dir");
-
-    let r = tree.find("/src/");
-    assert!(r.is_some());
-    if let Some(res) = r {
-        assert_eq!(*res.0, "dir");
-        assert_eq!(res.1, vec![]);
     }
 }
 
