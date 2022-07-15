@@ -329,6 +329,51 @@ fn catch_all_parameter() {
 }
 
 #[test]
+fn catch_all_parameter_with_prefix() {
+    //  Pattern: /commit_*sha
+    //
+    //      /commit                   no match
+    //      /commit_                  match
+    //      /commit_/                 match
+    //      /commit_/foo              match
+    //      /commit_123               match
+    //      /commit_123/              match
+    //      /commit_123/foo           match
+    let mut tree = PathTree::new();
+
+    tree.insert("/commit_*sha", "* sha");
+
+    let res = vec![
+        ("/commit", false, vec![]),
+        ("/commit_", true, vec![]),
+        ("/commit_/", true, vec![("sha", "/")]),
+        ("/commit_/foo", true, vec![("sha", "/foo")]),
+        ("/commit123", false, vec![]),
+        ("/commit_123", true, vec![("sha", "123")]),
+        ("/commit_123/", true, vec![("sha", "123/")]),
+        ("/commit_123/foo", true, vec![("sha", "123/foo")]),
+    ];
+
+    for (u, b, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if let Some(res) = r {
+            assert_eq!(*res.0, "* sha");
+            assert_eq!(res.1, p);
+        }
+    }
+
+    tree.insert("/src/", "dir");
+
+    let r = tree.find("/src/");
+    assert!(r.is_some());
+    if let Some(res) = r {
+        assert_eq!(*res.0, "dir");
+        assert_eq!(res.1, vec![]);
+    }
+}
+
+#[test]
 fn static_and_catch_all_parameter() {
     //  Pattern: /a/b/c
     //  Pattern: /a/c/d

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- [#20] - Support wildcards that are not preceded by a "/" (`"/foo_*rest"` matches `"foo_bar/baz"`).
+
+### Changed
+
+[#20]: https://github.com/viz-rs/path-tree/pull/20
+
 ## [0.3.1] - 2022-07-15
 
 - [#19] - PathTree initializes with an empty path. Thanks to @adriangb.
