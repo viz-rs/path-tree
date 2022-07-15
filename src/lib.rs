@@ -199,7 +199,7 @@ impl<T> Node<T> {
                     Some(
                         // Fixed: has only route `/*`
                         // Ended `/` `/*any`
-                        if self.data.is_none() && self.indices.is_some() && s.ends_with('/') {
+                        if self.data.is_none() && self.indices.is_some() {
                             &self.nodes.as_ref().unwrap()
                                 [position(self.indices.as_ref().unwrap(), '*')?]
                         } else {
