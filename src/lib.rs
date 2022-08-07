@@ -38,12 +38,12 @@
 //! assert_eq!(r.1, vec![("user_id", "31415926"), ("", "repos/53589793/branches")]);
 //! ```
 
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 #![warn(
-    nonstandard_style,
+    missing_debug_implementations,
+    missing_docs,
     rust_2018_idioms,
-    future_incompatible,
-    missing_debug_implementations
+    unreachable_pub
 )]
 
 /// The Kind of a node.
