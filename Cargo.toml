@@ -1,0 +1,53 @@
+[package]
+name = "path-tree"
+version = "0.4.0"
+authors = ["Fangdun Cai <cfddream@gmail.com>"]
+description = "path-tree is a lightweight high performance HTTP request router for Rust"
+homepage = "https://github.com/viz-rs/path-tree"
+keywords = ["radix", "tree", "path", "router"]
+categories = ["asynchronous", "web-programming", "web-programming::http-server"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+edition = "2021"
+
+include = [
+  "CHANGES.md",
+  "Cargo.toml",
+  "LICENSE-APACHE",
+  "LICENSE-MIT",
+  "README.md",
+  "src/lib.rs"
+]
+
+[lib]
+bench = false
+
+[dev-dependencies]
+actix-router = "0.5"
+ntex-router = "0.5"
+path-table = "1.0"
+route-recognizer = "0.3"
+matchit = "0.6"
+futures = "0.3"
+rand = "0.8"
+criterion = { version = "0.4", features = ["html_reports"] }
+hyper = { version="0.14", features = ["full"] }
+tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread"] }
+gonzales = "0.0.3-beta"
+#
+# [[bench]]
+# name = "routers"
+# harness = false
+# path = "benches/routers.rs"
+#
+# [[example]]
+# name = "hello"
+# path = "examples/hello.rs"
+#
+# [[test]]
+# name = "basic"
+# path = "tests/basic.rs"
+#
+# [[test]]
+# name = "github"
+# path = "tests/github.rs"
