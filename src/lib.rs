@@ -1,3 +1,5 @@
+mod node;
 mod parser;
 
-pub use parser::Parser;
+pub use node::{Node, NodeKind};
+pub use parser::{Kind, Parser, Piece, Position};

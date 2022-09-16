@@ -1,6 +1,6 @@
 [package]
 name = "path-tree"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Fangdun Cai <cfddream@gmail.com>"]
 description = "path-tree is a lightweight high performance HTTP request router for Rust"
 homepage = "https://github.com/viz-rs/path-tree"
@@ -9,6 +9,7 @@ categories = ["asynchronous", "web-programming", "web-programming::http-server"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 edition = "2021"
+publish = false
 
 include = [
   "CHANGES.md",

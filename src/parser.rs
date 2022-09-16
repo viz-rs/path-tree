@@ -3,9 +3,10 @@ use std::{iter::Peekable, str::CharIndices};
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Kind {
     /// `:` 58
+    /// `:name`
     Normal,
     /// `?` 63
-    /// Optional: `/:name?-`
+    /// Optional: `:name?-`
     Optional,
     /// Optional Segment: `/:name?/` or `/:name?`
     OptionalSegment,
@@ -13,7 +14,7 @@ pub enum Kind {
     /// `+` 43
     OneOrMore,
     /// `*` 42
-    /// ZeroOrMore: `/*-`
+    /// ZeroOrMore: `*-`
     ZeroOrMore,
     /// ZeroOrMore Segment: `/*/` or `/*`
     ZeroOrMoreSegment,
@@ -495,6 +496,17 @@ mod tests {
                 Piece::Parameter(Position::Index(1), Kind::ZeroOrMore),
                 Piece::String(b"v1"),
                 Piece::Parameter(Position::Index(2), Kind::ZeroOrMore),
+                Piece::String(b"/proxy")
+            ]
+        );
+
+        assert_eq!(
+            Parser::new("/:a*v1:b+/proxy").collect::<Vec<_>>(),
+            [
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("a"), Kind::ZeroOrMore),
+                Piece::String(b"v1"),
+                Piece::Parameter(Position::Named("b"), Kind::OneOrMore),
                 Piece::String(b"/proxy")
             ]
         );
