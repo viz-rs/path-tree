@@ -1,5 +1,5 @@
 use std::{
-    cmp,
+    cmp::Ordering,
     fmt::{self, Write},
 };
 
@@ -68,7 +68,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
 
             match nodes.binary_search_by(|node| match &node.kind {
                 NodeKind::String(s) => s[0].cmp(&bytes[0]),
-                _ => cmp::Ordering::Greater,
+                _ => Ordering::Greater,
             }) {
                 Ok(i) => nodes[i].insert_bytes(bytes),
                 Err(i) => {
@@ -91,12 +91,12 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
 
     pub fn insert_parameter(&mut self, kind: Kind) -> &mut Self {
         let nodes = self.nodes1.get_or_insert_with(Vec::new);
-        match nodes.binary_search_by(|node| match &node.kind {
-            NodeKind::Parameter(pk) => pk.cmp(&kind),
-            _ => cmp::Ordering::Less,
-        }) {
-            Ok(i) => nodes[i].insert_parameter(kind),
-            Err(i) => {
+        let i = nodes
+            .binary_search_by(|node| match &node.kind {
+                NodeKind::Parameter(pk) => pk.cmp(&kind),
+                _ => Ordering::Less,
+            })
+            .unwrap_or_else(|i| {
                 nodes.insert(
                     i,
                     Node {
@@ -106,9 +106,10 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                         nodes1: None,
                     },
                 );
-                &mut nodes[i]
-            }
-        }
+                i
+            });
+
+        &mut nodes[i]
     }
 }
 
@@ -233,10 +234,10 @@ mod tests {
         node.insert_bytes(b"/sponsors/explore");
         node.insert_bytes(b"/sponsors/accounts");
         let n = node.insert_bytes(b"/sponsors/");
+        n.insert_parameter(Kind::ZeroOrMoreSegment);
         n.insert_parameter(Kind::OptionalSegment);
         n.insert_parameter(Kind::ZeroOrMore);
         n.insert_parameter(Kind::Normal);
-        n.insert_parameter(Kind::ZeroOrMoreSegment);
         n.insert_parameter(Kind::Optional);
         n.insert_parameter(Kind::OneOrMore);
 
@@ -278,6 +279,11 @@ mod tests {
         node.insert_bytes(b"/settings/apps");
         node.insert_bytes(b"/settings/developers");
         node.insert_bytes(b"/settings/tokens");
+
+        node.insert_bytes(b"/404");
+        node.insert_bytes(b"/401");
+        node.insert_bytes(b"/500");
+        node.insert_bytes(b"/503");
 
         dbg!(node);
     }
