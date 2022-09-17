@@ -1,6 +1,6 @@
 use std::{iter::Peekable, str::CharIndices};
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Kind {
     /// `:` 58
     /// `:name`

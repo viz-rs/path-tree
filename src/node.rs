@@ -88,6 +88,28 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
             self
         }
     }
+
+    pub fn insert_parameter(&mut self, kind: Kind) -> &mut Self {
+        let nodes = self.nodes1.get_or_insert_with(Vec::new);
+        match nodes.binary_search_by(|node| match &node.kind {
+            NodeKind::Parameter(pk) => pk.cmp(&kind),
+            _ => cmp::Ordering::Less,
+        }) {
+            Ok(i) => nodes[i].insert_parameter(kind),
+            Err(i) => {
+                nodes.insert(
+                    i,
+                    Node {
+                        kind: NodeKind::Parameter(kind),
+                        value: None,
+                        nodes0: None,
+                        nodes1: None,
+                    },
+                );
+                &mut nodes[i]
+            }
+        }
+    }
 }
 
 impl<'a, T: fmt::Debug> fmt::Debug for Node<'a, T> {
@@ -210,7 +232,13 @@ mod tests {
 
         node.insert_bytes(b"/sponsors/explore");
         node.insert_bytes(b"/sponsors/accounts");
-        node.insert_bytes(b"/sponsors/:repo");
+        let n = node.insert_bytes(b"/sponsors/");
+        n.insert_parameter(Kind::OptionalSegment);
+        n.insert_parameter(Kind::ZeroOrMore);
+        n.insert_parameter(Kind::Normal);
+        n.insert_parameter(Kind::ZeroOrMoreSegment);
+        n.insert_parameter(Kind::Optional);
+        n.insert_parameter(Kind::OneOrMore);
 
         node.insert_bytes(b"/about/careers");
         node.insert_bytes(b"/about/press");
