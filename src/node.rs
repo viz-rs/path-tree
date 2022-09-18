@@ -2,7 +2,7 @@ use std::fmt::{self, Write};
 
 use crate::Kind;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum NodeKind<'a> {
     String(&'a [u8]),
     Parameter(Kind),
@@ -162,14 +162,11 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                                                 return Some(id);
                                             }
                                         }
-                                    } else {
-                                        if let Some(n) = memchr::memmem::find(bytes, s) {
-                                            if let Some(id) =
-                                                node._find(&bytes[n..], ranges, start + n)
-                                            {
-                                                ranges.push((start, start + n));
-                                                return Some(id);
-                                            }
+                                    } else if let Some(n) = memchr::memmem::find(bytes, s) {
+                                        if let Some(id) = node._find(&bytes[n..], ranges, start + n)
+                                        {
+                                            ranges.push((start, start + n));
+                                            return Some(id);
                                         }
                                     }
                                 }
@@ -207,12 +204,11 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
 
                     if k == Kind::OptionalSegment {
                         if let Some(nodes) = &self.nodes0 {
-                            if let Some(i) = nodes
-                                .binary_search_by_key(&b'/', |node| match node.kind {
+                            if let Ok(i) =
+                                nodes.binary_search_by_key(&b'/', |node| match node.kind {
                                     NodeKind::String(s) => s[0],
                                     _ => unreachable!(),
                                 })
-                                .ok()
                             {
                                 if let Some(id) = nodes[i]._find(bytes, ranges, start) {
                                     ranges.push((start, start + m));
@@ -237,8 +233,8 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                             for node in nodes {
                                 if let NodeKind::String(s) = &node.kind {
                                     if m > s.len() {
-                                        let mut iter = memchr::memmem::find_iter(bytes, s);
-                                        while let Some(n) = iter.next() {
+                                        let iter = memchr::memmem::find_iter(bytes, s);
+                                        for n in iter {
                                             if let Some(id) =
                                                 node._find(&bytes[n..], ranges, start + n)
                                             {
@@ -254,12 +250,11 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
 
                     if k == Kind::ZeroOrMoreSegment {
                         if let Some(nodes) = &self.nodes0 {
-                            if let Some(i) = nodes
-                                .binary_search_by_key(&b'/', |node| match node.kind {
+                            if let Ok(i) =
+                                nodes.binary_search_by_key(&b'/', |node| match node.kind {
                                     NodeKind::String(s) => s[0],
                                     _ => unreachable!(),
                                 })
-                                .ok()
                             {
                                 if let Some(id) = nodes[i]._find(bytes, ranges, start) {
                                     ranges.push((start, start + m));
@@ -274,7 +269,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
         None
     }
 
-    pub fn find(&self, bytes: &[u8]) -> Option<(&T, Vec<(usize, usize)>)> {
+    pub fn find<'b>(&self, bytes: &'b [u8]) -> Option<(&T, Vec<(usize, usize)>)> {
         let mut ranges = Vec::with_capacity(3);
         return self._find(bytes, &mut ranges, 0).map(|t| (t, ranges));
     }
@@ -323,7 +318,7 @@ impl<'a, T: fmt::Debug> fmt::Debug for Node<'a, T> {
             };
             match &node.kind {
                 NodeKind::String(path) => {
-                    f.write_str(&String::from_utf8_lossy(path).replace(":", "\\:"))?;
+                    f.write_str(&String::from_utf8_lossy(path).replace(':', "\\:"))?;
                 }
                 NodeKind::Parameter(kind) => {
                     let c = match kind {

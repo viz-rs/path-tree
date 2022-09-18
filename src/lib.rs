@@ -28,12 +28,12 @@ impl<'a, T: fmt::Debug> PathTree<'a, T> {
         }
 
         let mut node = &mut self.node;
-        let pieces = dbg!(Parser::new(path).collect::<Vec<_>>());
+        let pieces = Parser::new(path).collect::<Vec<_>>();
 
         for piece in &pieces {
             match piece {
                 Piece::String(s) => {
-                    node = node.insert_bytes(&s);
+                    node = node.insert_bytes(s);
                 }
                 Piece::Parameter(_, k) => {
                     node = node.insert_parameter(*k);

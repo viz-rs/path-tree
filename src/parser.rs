@@ -20,13 +20,13 @@ pub enum Kind {
     ZeroOrMoreSegment,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Piece<'a> {
     String(&'a [u8]),
     Parameter(Position<'a>, Kind),
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Position<'a> {
     Index(usize),
     Named(&'a str),
@@ -116,12 +116,10 @@ impl<'a> Parser<'a> {
                                 } else {
                                     Kind::Optional
                                 }
+                            } else if f {
+                                Kind::ZeroOrMoreSegment
                             } else {
-                                if f {
-                                    Kind::ZeroOrMoreSegment
-                                } else {
-                                    Kind::ZeroOrMore
-                                }
+                                Kind::ZeroOrMore
                             }
                         },
                     );
