@@ -4,17 +4,16 @@ use path_tree::*;
 fn nodes() {
     let mut node = Node::<'static, usize>::new(NodeKind::String(b"/"), None);
 
-    node.insert_bytes(b"/");
+    let mut n = node.insert_bytes(b"/");
+    n = n.insert_parameter(Kind::Normal);
+    n = n.insert_bytes(b"/");
+    n.insert_parameter(Kind::Normal);
+
     node.insert_bytes(b"/api");
     node.insert_bytes(b"/about");
     node.insert_bytes(b"/login");
     node.insert_bytes(b"/signup");
     node.insert_bytes(b"/pricing");
-
-    node.insert_bytes(b"/pulls");
-    node.insert_bytes(b"/issues");
-    node.insert_bytes(b"/marketplace");
-    node.insert_bytes(b"/explore");
 
     node.insert_bytes(b"/features");
     node.insert_bytes(b"/features/actions");
@@ -35,16 +34,15 @@ fn nodes() {
     node.insert_bytes(b"/trending");
     node.insert_bytes(b"/collections");
     node.insert_bytes(b"/search");
+    node.insert_bytes(b"/pulls");
+    node.insert_bytes(b"/issues");
+    node.insert_bytes(b"/marketplace");
+    node.insert_bytes(b"/explore");
 
     node.insert_bytes(b"/sponsors/explore");
     node.insert_bytes(b"/sponsors/accounts");
     let n = node.insert_bytes(b"/sponsors/");
-    n.insert_parameter(Kind::ZeroOrMoreSegment);
-    n.insert_parameter(Kind::OptionalSegment);
-    n.insert_parameter(Kind::ZeroOrMore);
     n.insert_parameter(Kind::Normal);
-    n.insert_parameter(Kind::Optional);
-    n.insert_parameter(Kind::OneOrMore);
 
     node.insert_bytes(b"/about/careers");
     node.insert_bytes(b"/about/press");
@@ -86,7 +84,6 @@ fn nodes() {
     node.insert_bytes(b"/settings/tokens");
 
     node.insert_bytes(b"/404");
-    node.insert_bytes(b"/401");
     node.insert_bytes(b"/500");
     node.insert_bytes(b"/503");
 

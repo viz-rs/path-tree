@@ -1,4 +1,3 @@
-
 use path_tree::*;
 
 #[test]

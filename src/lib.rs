@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, str::from_utf8};
 
 mod node;
 mod parser;
@@ -9,8 +9,8 @@ pub use parser::{Kind, Parser, Piece, Position};
 #[derive(Debug)]
 pub struct PathTree<'a, T> {
     id: usize,
-    node: Node<'a, usize>,
     routes: Vec<(T, Vec<Piece<'a>>)>,
+    pub node: Node<'a, usize>,
 }
 
 impl<'a, T: fmt::Debug> PathTree<'a, T> {
@@ -28,7 +28,7 @@ impl<'a, T: fmt::Debug> PathTree<'a, T> {
         }
 
         let mut node = &mut self.node;
-        let pieces = Parser::new(path).collect::<Vec<_>>();
+        let pieces = dbg!(Parser::new(path).collect::<Vec<_>>());
 
         for piece in &pieces {
             match piece {
@@ -47,9 +47,28 @@ impl<'a, T: fmt::Debug> PathTree<'a, T> {
         self
     }
 
-    pub fn find(&self) {}
+    pub fn find<'b>(&'b self, path: &'b str) -> Option<(&T, &Vec<Piece<'a>>, Vec<&'b str>)> {
+        let bytes = path.as_bytes();
+        self.node.find(bytes).and_then(|(id, mut ranges)| {
+            self.get_route(*id).map(|(t, p)| {
+                ranges.reverse();
+                (
+                    t,
+                    p,
+                    ranges
+                        .iter()
+                        .map(|&(start, end)| from_utf8(&bytes[start..end]).unwrap())
+                        .collect(),
+                )
+            })
+        })
+    }
 
     pub fn get_route(&self, index: usize) -> Option<&(T, Vec<Piece<'a>>)> {
         self.routes.get(index)
     }
+
+    // pub fn url_for(&self, index: usize, params: Vec<String>) -> Option<String> {
+    //     None
+    // }
 }

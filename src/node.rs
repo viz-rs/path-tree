@@ -1,7 +1,4 @@
-use std::{
-    cmp::Ordering,
-    fmt::{self, Write},
-};
+use std::fmt::{self, Write};
 
 use crate::Kind;
 
@@ -14,10 +11,10 @@ pub enum NodeKind<'a> {
 pub struct Node<'a, T> {
     pub value: Option<T>,
     pub kind: NodeKind<'a>,
-    /// Stores  string node
-    pub nodes0: Option<Vec<Node<'a, T>>>,
+    /// Stores string node
+    pub nodes0: Option<Vec<Self>>,
     /// Stores parameter node
-    pub nodes1: Option<Vec<Node<'a, T>>>,
+    pub nodes1: Option<Vec<Self>>,
 }
 
 impl<'a, T: fmt::Debug> Node<'a, T> {
@@ -39,48 +36,41 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                     .take_while(|(a, b)| a == b)
                     .count();
 
-                let pl = p.len();
+                (
+                    cursor,
+                    if cursor == 0 {
+                        true
+                    } else {
+                        let pl = p.len();
 
-                // split node
-                if cursor < pl {
-                    let (prefix, suffix) = p.split_at(cursor);
-                    let mut node = Node {
-                        kind: NodeKind::String(prefix),
-                        value: None,
-                        nodes0: None,
-                        nodes1: None,
-                    };
-                    *p = suffix;
-                    ::std::mem::swap(self, &mut node);
-                    self.nodes0
-                        .get_or_insert_with(|| Vec::with_capacity(1))
-                        .push(node);
-                }
-                (cursor, cursor != bytes.len())
+                        // split node
+                        if cursor < pl {
+                            let (prefix, suffix) = p.split_at(cursor);
+                            let mut node = Node::new(NodeKind::String(prefix), None);
+                            *p = suffix;
+                            ::std::mem::swap(self, &mut node);
+                            self.nodes0
+                                .get_or_insert_with(|| Vec::with_capacity(1))
+                                .push(node);
+                        }
+                        cursor != bytes.len()
+                    },
+                )
             }
             NodeKind::Parameter(_) => (0, true),
         };
 
         // insert node
         if diff {
-            let nodes = self.nodes0.get_or_insert_with(Vec::new);
             bytes = &bytes[cursor..];
-
-            match nodes.binary_search_by(|node| match &node.kind {
+            let nodes = self.nodes0.get_or_insert_with(Vec::new);
+            match nodes.binary_search_by(|node| match node.kind {
                 NodeKind::String(s) => s[0].cmp(&bytes[0]),
-                _ => Ordering::Greater,
+                _ => unreachable!(),
             }) {
                 Ok(i) => nodes[i].insert_bytes(bytes),
                 Err(i) => {
-                    nodes.insert(
-                        i,
-                        Node {
-                            kind: NodeKind::String(bytes),
-                            value: None,
-                            nodes0: None,
-                            nodes1: None,
-                        },
-                    );
+                    nodes.insert(i, Node::new(NodeKind::String(bytes), None));
                     &mut nodes[i]
                 }
             }
@@ -92,24 +82,201 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
     pub fn insert_parameter(&mut self, kind: Kind) -> &mut Self {
         let nodes = self.nodes1.get_or_insert_with(Vec::new);
         let i = nodes
-            .binary_search_by(|node| match &node.kind {
+            .binary_search_by(|node| match node.kind {
                 NodeKind::Parameter(pk) => pk.cmp(&kind),
-                _ => Ordering::Less,
+                _ => unreachable!(),
             })
             .unwrap_or_else(|i| {
-                nodes.insert(
-                    i,
-                    Node {
-                        kind: NodeKind::Parameter(kind),
-                        value: None,
-                        nodes0: None,
-                        nodes1: None,
-                    },
-                );
+                nodes.insert(i, Node::new(NodeKind::Parameter(kind), None));
                 i
             });
-
         &mut nodes[i]
+    }
+
+    #[inline]
+    fn _find(&self, bytes: &[u8], ranges: &mut Vec<(usize, usize)>, start: usize) -> Option<&T> {
+        let m = bytes.len();
+        match self.kind {
+            NodeKind::String(s) => {
+                let n = s.len();
+                // starts with prefix
+                if m >= n && &bytes[..n] == s {
+                    if m == n {
+                        if let Some(id) = &self.value {
+                            return Some(id);
+                        }
+                    }
+
+                    // static
+                    if let Some(nodes) = &self.nodes0 {
+                        for node in nodes {
+                            if let Some(id) = node._find(&bytes[n..], ranges, start + n) {
+                                return Some(id);
+                            }
+                        }
+                    }
+
+                    // parameter
+                    if let Some(nodes) = &self.nodes1 {
+                        for node in nodes {
+                            if let Some(id) = node._find(&bytes[n..], ranges, start + n) {
+                                return Some(id);
+                            }
+                        }
+                    }
+                } else if s == b"/" {
+                    if let Some(nodes) = &self.nodes1 {
+                        let mut iter = nodes.iter();
+
+                        if let Some(node) = iter
+                            .find(|node| node.kind == NodeKind::Parameter(Kind::OptionalSegment))
+                        {
+                            if let Some(id) = node._find(bytes, ranges, start) {
+                                return Some(id);
+                            }
+                        }
+
+                        if let Some(node) = iter
+                            .find(|node| node.kind == NodeKind::Parameter(Kind::ZeroOrMoreSegment))
+                        {
+                            if let Some(id) = node._find(bytes, ranges, start) {
+                                return Some(id);
+                            }
+                        }
+                    }
+                }
+            }
+            NodeKind::Parameter(k) => match k {
+                Kind::Normal | Kind::Optional | Kind::OptionalSegment => {
+                    if m > 0 {
+                        // static
+                        if let Some(nodes) = &self.nodes0 {
+                            for node in nodes {
+                                if let NodeKind::String(s) = node.kind {
+                                    if s[0] == b'/' {
+                                        if let Some(n) = bytes.iter().position(|b| *b == b'/') {
+                                            if let Some(id) =
+                                                node._find(&bytes[n..], ranges, start + n)
+                                            {
+                                                ranges.push((start, start + n));
+                                                return Some(id);
+                                            }
+                                        }
+                                    } else {
+                                        if let Some(n) = memchr::memmem::find(bytes, s) {
+                                            if let Some(id) =
+                                                node._find(&bytes[n..], ranges, start + n)
+                                            {
+                                                ranges.push((start, start + n));
+                                                return Some(id);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // parameter
+                        if let Some(nodes) = &self.nodes1 {
+                            for node in nodes {
+                                if let Some(id) = node._find(&bytes[1..], ranges, start + 1) {
+                                    ranges.push((start, start + 1));
+                                    return Some(id);
+                                }
+                            }
+                        }
+                    }
+
+                    if k == Kind::Optional || k == Kind::OptionalSegment {
+                        if let Some(nodes) = &self.nodes1 {
+                            for node in nodes {
+                                if let Some(id) = node._find(bytes, ranges, start) {
+                                    ranges.push((start, start + m));
+                                    return Some(id);
+                                }
+                            }
+                        }
+                    }
+
+                    if !bytes.contains(&b'/') {
+                        if let Some(id) = &self.value {
+                            ranges.push((start, start + m));
+                            return Some(id);
+                        }
+                    }
+
+                    if k == Kind::OptionalSegment {
+                        if let Some(nodes) = &self.nodes0 {
+                            if let Some(i) = nodes
+                                .binary_search_by_key(&b'/', |node| match node.kind {
+                                    NodeKind::String(s) => s[0],
+                                    _ => unreachable!(),
+                                })
+                                .ok()
+                            {
+                                if let Some(id) = nodes[i]._find(bytes, ranges, start) {
+                                    ranges.push((start, start + m));
+                                    return Some(id);
+                                }
+                            }
+                        }
+                    }
+                }
+                Kind::OneOrMore | Kind::ZeroOrMore | Kind::ZeroOrMoreSegment => {
+                    let flag = if k == Kind::OneOrMore { m > 0 } else { true };
+                    if flag {
+                        if self.nodes0.is_none() && self.nodes1.is_none() {
+                            if let Some(id) = &self.value {
+                                ranges.push((start, start + m));
+                                return Some(id);
+                            }
+                        }
+
+                        // static
+                        if let Some(nodes) = &self.nodes0 {
+                            for node in nodes {
+                                if let NodeKind::String(s) = &node.kind {
+                                    if m > s.len() {
+                                        let mut iter = memchr::memmem::find_iter(bytes, s);
+                                        while let Some(n) = iter.next() {
+                                            if let Some(id) =
+                                                node._find(&bytes[n..], ranges, start + n)
+                                            {
+                                                ranges.push((start, start + n));
+                                                return Some(id);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if k == Kind::ZeroOrMoreSegment {
+                        if let Some(nodes) = &self.nodes0 {
+                            if let Some(i) = nodes
+                                .binary_search_by_key(&b'/', |node| match node.kind {
+                                    NodeKind::String(s) => s[0],
+                                    _ => unreachable!(),
+                                })
+                                .ok()
+                            {
+                                if let Some(id) = nodes[i]._find(bytes, ranges, start) {
+                                    ranges.push((start, start + m));
+                                    return Some(id);
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+        }
+        None
+    }
+
+    pub fn find(&self, bytes: &[u8]) -> Option<(&T, Vec<(usize, usize)>)> {
+        let mut ranges = Vec::with_capacity(3);
+        return self._find(bytes, &mut ranges, 0).map(|t| (t, ranges));
     }
 }
 
@@ -120,9 +287,30 @@ impl<'a, T: fmt::Debug> fmt::Debug for Node<'a, T> {
         const CORNER: &str = "└──";
         const BLANK: &str = "   ";
 
-        fn print_tree<'a, T: fmt::Debug>(
-            node: &Node<'a, T>,
+        fn print_nodes<'a, T: fmt::Debug>(
             f: &mut fmt::Formatter<'_>,
+            nodes: &Vec<Node<'a, T>>,
+            check: bool,
+            pad: &str,
+            space: &str,
+        ) -> fmt::Result {
+            for (index, node) in nodes.iter().enumerate() {
+                let (left, right) = if check && index == nodes.len() - 1 {
+                    (BLANK, CORNER)
+                } else {
+                    (LINE, EDGE)
+                };
+                f.write_str(pad)?;
+                f.write_str(space)?;
+                f.write_str(right)?;
+                print_tree(f, node, false, &format!("{}{}{}", pad, space, left))?;
+            }
+            Ok(())
+        }
+
+        fn print_tree<'a, T: fmt::Debug>(
+            f: &mut fmt::Formatter<'_>,
+            node: &Node<'a, T>,
             root: bool,
             pad: &str,
         ) -> fmt::Result {
@@ -135,16 +323,25 @@ impl<'a, T: fmt::Debug> fmt::Debug for Node<'a, T> {
             };
             match &node.kind {
                 NodeKind::String(path) => {
-                    f.write_str(&String::from_utf8_lossy(path))?;
+                    f.write_str(&String::from_utf8_lossy(path).replace(":", "\\:"))?;
                 }
-                NodeKind::Parameter(kind) => match kind {
-                    Kind::Normal => f.write_char(':')?,
-                    Kind::Optional => f.write_char('?')?,
-                    Kind::OptionalSegment => f.write_str("??")?,
-                    Kind::OneOrMore => f.write_char('+')?,
-                    Kind::ZeroOrMore => f.write_char('*')?,
-                    Kind::ZeroOrMoreSegment => f.write_str("**")?,
-                },
+                NodeKind::Parameter(kind) => {
+                    let c = match kind {
+                        Kind::Normal => ':',
+                        Kind::Optional => '?',
+                        Kind::OptionalSegment => {
+                            f.write_char('?')?;
+                            '?'
+                        }
+                        Kind::OneOrMore => '+',
+                        Kind::ZeroOrMore => '*',
+                        Kind::ZeroOrMoreSegment => {
+                            f.write_char('*')?;
+                            '*'
+                        }
+                    };
+                    f.write_char(c)?;
+                }
             }
             if let Some(value) = &node.value {
                 f.write_str(" •")?;
@@ -152,41 +349,19 @@ impl<'a, T: fmt::Debug> fmt::Debug for Node<'a, T> {
             }
             f.write_char('\n')?;
 
-            let check = node.nodes1.is_none();
-
             // nodes0
             if let Some(nodes) = &node.nodes0 {
-                for (index, node) in nodes.iter().enumerate() {
-                    let (left, right) = if check && index == nodes.len() - 1 {
-                        (BLANK, CORNER)
-                    } else {
-                        (LINE, EDGE)
-                    };
-                    f.write_str(pad)?;
-                    f.write_str(space)?;
-                    f.write_str(right)?;
-                    print_tree(node, f, false, &format!("{}{}{}", pad, space, left))?;
-                }
+                print_nodes(f, nodes, node.nodes1.is_none(), pad, space)?;
             }
 
             // nodes1
             if let Some(nodes) = &node.nodes1 {
-                for (index, node) in nodes.iter().enumerate() {
-                    let (left, right) = if index == nodes.len() - 1 {
-                        (BLANK, CORNER)
-                    } else {
-                        (LINE, EDGE)
-                    };
-                    f.write_str(pad)?;
-                    f.write_str(space)?;
-                    f.write_str(right)?;
-                    print_tree(node, f, false, &format!("{}{}{}", pad, space, left))?;
-                }
+                print_nodes(f, nodes, true, pad, space)?;
             }
 
             Ok(())
         }
 
-        print_tree(self, f, true, "")
+        print_tree(f, self, true, "")
     }
 }
