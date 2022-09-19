@@ -1,3 +1,20 @@
+#![forbid(unsafe_code)]
+// #![warn(
+//     missing_debug_implementations,
+//     missing_docs,
+//     rust_2018_idioms,
+//     unreachable_pub
+// )]
+// #![doc(test(
+//     no_crate_inject,
+//     attr(
+//         deny(warnings, rust_2018_idioms),
+//         allow(dead_code, unused_assignments, unused_variables)
+//     )
+// ))]
+// #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
+
+use smallvec::SmallVec;
 use std::{fmt, str::from_utf8};
 
 mod node;
@@ -47,17 +64,20 @@ impl<'a, T: fmt::Debug> PathTree<'a, T> {
         self
     }
 
-    pub fn find<'b>(&'b self, path: &'b str) -> Option<(&T, &Vec<Piece<'a>>, Vec<&'b str>)> {
+    pub fn find<'b>(
+        &'b self,
+        path: &'b str,
+    ) -> Option<(&T, &Vec<Piece<'a>>, SmallVec<[&'b str; 3]>)> {
         let bytes = path.as_bytes();
-        self.node.find(bytes).and_then(|(id, mut ranges)| {
+        self.node.find(bytes).and_then(|(id, ranges)| {
             self.get_route(*id).map(|(t, p)| {
-                ranges.reverse();
                 (
                     t,
                     p,
                     ranges
-                        .iter()
-                        .map(|&(start, end)| from_utf8(&bytes[start..end]).unwrap())
+                        .chunks(2)
+                        .map(|c| from_utf8(&bytes[c[0]..c[1]]).unwrap())
+                        .rev()
                         .collect(),
                 )
             })

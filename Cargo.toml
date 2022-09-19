@@ -35,6 +35,10 @@ criterion = { version = "0.4", features = ["html_reports"] }
 hyper = { version="0.14", features = ["full"] }
 tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread"] }
 gonzales = "0.0.3-beta"
+
+[dependencies]
+memchr = "2.5.0"
+smallvec = "1.9.0"
 #
 # [[bench]]
 # name = "routers"

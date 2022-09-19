@@ -1,4 +1,5 @@
 use path_tree::*;
+use smallvec::smallvec;
 // use rand::seq::SliceRandom;
 //
 // fn shuffle<'a>(routes: &'a [(&str, usize)]) -> PathTree<'a, usize> {
@@ -62,11 +63,11 @@ fn basic() {
 
     assert_eq!(
         tree.find("/"),
-        Some((&0, &vec![Piece::String(b"/")], vec![]))
+        Some((&0, &vec![Piece::String(b"/")], smallvec![]))
     );
     assert_eq!(
         tree.find("/users"),
-        Some((&1, &vec![Piece::String(b"/users")], vec![]))
+        Some((&1, &vec![Piece::String(b"/users")], smallvec![]))
     );
     assert_eq!(
         tree.find("/users/foo"),
@@ -76,7 +77,7 @@ fn basic() {
                 Piece::String(b"/users/"),
                 Piece::Parameter(Position::Named("id"), Kind::Normal)
             ],
-            vec!["foo"]
+            smallvec!["foo"]
         ))
     );
     assert_eq!(
@@ -89,7 +90,7 @@ fn basic() {
                 Piece::String(b"/"),
                 Piece::Parameter(Position::Named("org"), Kind::Normal),
             ],
-            vec!["foo", "bar"]
+            smallvec!["foo", "bar"]
         ))
     );
     assert_eq!(
@@ -101,7 +102,7 @@ fn basic() {
                 Piece::Parameter(Position::Named("userId"), Kind::Normal),
                 Piece::String(b"/repos"),
             ],
-            vec!["foo"]
+            smallvec!["foo"]
         ))
     );
     assert_eq!(
@@ -114,7 +115,7 @@ fn basic() {
                 Piece::String(b"/repos/"),
                 Piece::Parameter(Position::Named("id"), Kind::Normal),
             ],
-            vec!["foo", "bar"]
+            smallvec!["foo", "bar"]
         ))
     );
     assert_eq!(
@@ -129,7 +130,7 @@ fn basic() {
                 Piece::String(b"/"),
                 Piece::Parameter(Position::Named("any"), Kind::ZeroOrMoreSegment),
             ],
-            vec!["foo", "bar", ""]
+            smallvec!["foo", "bar", ""]
         ))
     );
     assert_eq!(
@@ -144,7 +145,7 @@ fn basic() {
                 Piece::String(b"/"),
                 Piece::Parameter(Position::Named("any"), Kind::ZeroOrMoreSegment),
             ],
-            vec!["foo", "bar", "baz"]
+            smallvec!["foo", "bar", "baz"]
         ))
     );
     assert_eq!(
@@ -156,7 +157,7 @@ fn basic() {
                 Piece::String(b":"),
                 Piece::Parameter(Position::Named("username"), Kind::Normal),
             ],
-            vec!["foo"]
+            smallvec!["foo"]
         ))
     );
     assert_eq!(
@@ -167,20 +168,20 @@ fn basic() {
                 Piece::String(b"/"),
                 Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
             ],
-            vec!["foo/bar/baz/404"]
+            smallvec!["foo/bar/baz/404"]
         ))
     );
     assert_eq!(
         tree.find("/about"),
-        Some((&9, &vec![Piece::String(b"/about")], vec![]))
+        Some((&9, &vec![Piece::String(b"/about")], smallvec![]))
     );
     assert_eq!(
         tree.find("/about/"),
-        Some((&10, &vec![Piece::String(b"/about/")], vec![]))
+        Some((&10, &vec![Piece::String(b"/about/")], smallvec![]))
     );
     assert_eq!(
         tree.find("/about/us"),
-        Some((&11, &vec![Piece::String(b"/about/us")], vec![]))
+        Some((&11, &vec![Piece::String(b"/about/us")], smallvec![]))
     );
     assert_eq!(
         tree.find("/users/repos/foo"),
@@ -190,7 +191,7 @@ fn basic() {
                 Piece::String(b"/users/repos/"),
                 Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
             ],
-            vec!["foo"]
+            smallvec!["foo"]
         ))
     );
     assert_eq!(
@@ -201,7 +202,7 @@ fn basic() {
                 Piece::String(b"/users/repos/"),
                 Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
             ],
-            vec!["foo/bar"]
+            smallvec!["foo/bar"]
         ))
     );
     assert_eq!(
@@ -212,7 +213,7 @@ fn basic() {
                 Piece::String(b"/"),
                 Piece::Parameter(Position::Named("action"), Kind::Normal),
             ],
-            vec!["-foo"]
+            smallvec!["-foo"]
         ))
     );
 }
@@ -352,7 +353,7 @@ fn print_github_tree() {
     tree.insert("/:org/:repo/releases/download/:tag/:filename.:ext", 3002);
 
     assert_eq!(
-        format!("{:?}", dbg!(&tree.node)),
+        format!("{:?}", &tree.node),
         r#"
 / •0
 ├── 404 •67
@@ -529,11 +530,106 @@ fn print_github_tree() {
 "#
     );
 
-    dbg!(tree.find("/rust-lang/rust"));
-    dbg!(tree.find("/settings"));
-    dbg!(tree.find("/rust-lang/rust/actions/runs/1"));
-    dbg!(tree.find("/rust-lang/rust/"));
-    dbg!(tree.find("/rust-lang/rust/any"));
-    dbg!(tree.find("/rust-lang/rust/releases/"));
-    dbg!(tree.find("/rust-lang/rust-analyzer/releases/download/2022-09-12/rust-analyzer-aarch64-apple-darwin.gz"));
+    assert_eq!(
+        tree.find("/rust-lang/rust"),
+        Some((
+            &2400,
+            &vec![
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("org"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("repo"), Kind::Normal),
+            ],
+            smallvec!["rust-lang", "rust"]
+        ))
+    );
+
+    assert_eq!(
+        tree.find("/settings"),
+        Some((&20, &vec![Piece::String(b"/settings")], smallvec![]))
+    );
+
+    assert_eq!(
+        tree.find("/rust-lang/rust/actions/runs/1"),
+        Some((
+            &2442,
+            &vec![
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("org"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("repo"), Kind::Normal),
+                Piece::String(b"/actions/runs/"),
+                Piece::Parameter(Position::Named("id"), Kind::Normal),
+            ],
+            smallvec!["rust-lang", "rust", "1"]
+        ))
+    );
+
+    assert_eq!(
+        tree.find("/rust-lang/rust/"),
+        Some((
+            &3000,
+            &vec![
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("org"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("repo"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["rust-lang", "rust", ""]
+        ))
+    );
+
+    assert_eq!(
+        tree.find("/rust-lang/rust/any"),
+        Some((
+            &3000,
+            &vec![
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("org"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("repo"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["rust-lang", "rust", "any"]
+        ))
+    );
+
+    assert_eq!(
+        tree.find("/rust-lang/rust/releases/"),
+        Some((
+            &3001,
+            &vec![
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("org"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("repo"), Kind::Normal),
+                Piece::String(b"/releases/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["rust-lang", "rust", ""]
+        ))
+    );
+
+    assert_eq!(
+        tree.find("/rust-lang/rust-analyzer/releases/download/2022-09-12/rust-analyzer-aarch64-apple-darwin.gz"),
+        Some((
+            &3002,
+            &vec![
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("org"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("repo"), Kind::Normal),
+                Piece::String(b"/releases/download/"),
+                Piece::Parameter(Position::Named("tag"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("filename"), Kind::Normal),
+                Piece::String(b"."),
+                Piece::Parameter(Position::Named("ext"), Kind::Normal),
+            ],
+            smallvec!["rust-lang", "rust-analyzer", "2022-09-12", "rust-analyzer-aarch64-apple-darwin", "gz"]
+        ))
+    );
 }

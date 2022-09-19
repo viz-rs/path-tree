@@ -18,6 +18,7 @@ pub enum Kind {
     ZeroOrMore,
     /// ZeroOrMore Segment: `/*/` or `/*`
     ZeroOrMoreSegment,
+    // TODO: regexp
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
