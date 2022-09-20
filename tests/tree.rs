@@ -1,19 +1,338 @@
 use path_tree::*;
 use smallvec::smallvec;
-// use rand::seq::SliceRandom;
-//
-// fn shuffle<'a>(routes: &'a [(&str, usize)]) -> PathTree<'a, usize> {
-//     let mut routes = routes.to_vec();
-//     let mut tree = PathTree::new("/");
-//
-//     routes.shuffle(&mut rand::thread_rng());
-//
-//     for (path, value) in routes {
-//         tree.insert(path, value);
-//     }
-//
-//     tree
-// }
+
+#[test]
+fn match_params() {
+    // /
+    // └── api/v1/
+    //     └── :
+    //         └── /
+    //             └── ** •0
+    let mut tree = PathTree::<'static, usize>::new("/");
+
+    tree.insert("/api/v1/:param/*", 1);
+
+    assert_eq!(tree.find("/api/v1/entity"), None);
+    assert_eq!(
+        tree.find("/api/v1/entity/"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Named("param"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["entity", ""]
+        ))
+    );
+    assert_eq!(
+        tree.find("/api/v1/entity/1"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Named("param"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["entity", "1"]
+        ))
+    );
+    assert_eq!(tree.find("/api/v"), None);
+    assert_eq!(tree.find("/api/v2"), None);
+    assert_eq!(tree.find("/api/v1/"), None);
+    assert_eq!(
+        tree.find("/api/v1/entity/1/foo/bar"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Named("param"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["entity", "1/foo/bar"]
+        ))
+    );
+
+    // /
+    // └── api/v1/
+    //     └── :
+    //         └── /
+    //             └── + •0
+    let mut tree = PathTree::<'static, usize>::new("/");
+
+    tree.insert("/api/v1/:param/+", 1);
+
+    assert_eq!(tree.find("/api/v1/entity"), None);
+    assert_eq!(tree.find("/api/v1/entity/"), None);
+    assert_eq!(
+        tree.find("/api/v1/entity/1"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Named("param"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Index(1), Kind::OneOrMore),
+            ],
+            smallvec!["entity", "1"]
+        ))
+    );
+    assert_eq!(tree.find("/api/v"), None);
+    assert_eq!(tree.find("/api/v2"), None);
+    assert_eq!(tree.find("/api/v1/"), None);
+    assert_eq!(
+        tree.find("/api/v1/entity/1/foo/bar"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Named("param"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Index(1), Kind::OneOrMore),
+            ],
+            smallvec!["entity", "1/foo/bar"]
+        ))
+    );
+
+    // /
+    // └── api/v1/
+    //     └── ?? •0
+    let mut tree = PathTree::<'static, usize>::new("/");
+
+    tree.insert("/api/v1/:param?", 1);
+
+    assert_eq!(
+        tree.find("/api/v1/"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Named("param"), Kind::OptionalSegment)
+            ],
+            smallvec![""]
+        ))
+    );
+    assert_eq!(tree.find("/api/v1/entity/1/foo/bar"), None);
+    assert_eq!(tree.find("/api/v"), None);
+    assert_eq!(tree.find("/api/v2"), None);
+    assert_eq!(tree.find("/api/xyz"), None);
+
+    // /
+    // └── v1/some/resource/name
+    //     └── \:
+    //         └── customVerb •0
+    let mut tree = PathTree::<'static, usize>::new("/");
+
+    tree.insert("/v1/some/resource/name\\:customVerb", 1);
+
+    assert_eq!(
+        tree.find("/v1/some/resource/name:customVerb"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/v1/some/resource/name"),
+                Piece::String(b":"),
+                Piece::String(b"customVerb"),
+            ],
+            smallvec![]
+        ))
+    );
+    assert_eq!(tree.find("/v1/some/resource/name:test"), None);
+
+    // /
+    // └── v1/some/resource/
+    //     └── :
+    //         └── \:
+    //             └── customVerb •0
+    let mut tree = PathTree::<'static, usize>::new("/");
+
+    tree.insert(r"/v1/some/resource/:name\:customVerb", 1);
+
+    assert_eq!(
+        tree.find("/v1/some/resource/test:customVerb"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/v1/some/resource/"),
+                Piece::Parameter(Position::Named("name"), Kind::Normal),
+                Piece::String(b":"),
+                Piece::String(b"customVerb"),
+            ],
+            smallvec!["test"]
+        ))
+    );
+    assert_eq!(tree.find("/v1/some/resource/test:test"), None);
+
+    // /
+    // └── v1/some/resource/name
+    //     └── \:
+    //         └── customVerb\?
+    //             └── \?
+    //                 └── /
+    //                     └── :
+    //                         └── /
+    //                             └── ** •0
+    let mut tree = PathTree::<'static, usize>::new("/");
+
+    tree.insert(r"/v1/some/resource/name\\\\:customVerb?\?/:param/*", 1);
+
+    assert_eq!(
+        tree.find("/v1/some/resource/name:customVerb??/test/optionalWildCard/character"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/v1/some/resource/name"),
+                Piece::String(b":"),
+                Piece::String(b"customVerb?"),
+                Piece::String(b"?"),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("param"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["test", "optionalWildCard/character"]
+        ))
+    );
+    assert_eq!(
+        tree.find("/v1/some/resource/name:customVerb??/test/"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/v1/some/resource/name"),
+                Piece::String(b":"),
+                Piece::String(b"customVerb?"),
+                Piece::String(b"?"),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Named("param"), Kind::Normal),
+                Piece::String(b"/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["test", ""]
+        ))
+    );
+    assert_eq!(tree.find("/v1/some/resource/name:customVerb??/test"), None);
+
+    // /
+    // └── api/v1/
+    //     └── ** •0
+    let mut tree = PathTree::<'static, usize>::new("/");
+
+    tree.insert("/api/v1/*", 1);
+
+    assert_eq!(tree.find("/api/v1"), None);
+    assert_eq!(
+        tree.find("/api/v1/"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec![""]
+        ))
+    );
+    assert_eq!(
+        tree.find("/api/v1/entity"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["entity"]
+        ))
+    );
+    assert_eq!(
+        tree.find("/api/v1/entity/1/2"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["entity/1/2"]
+        ))
+    );
+    assert_eq!(
+        tree.find("/api/v1/Entity/1/2"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            ],
+            smallvec!["Entity/1/2"]
+        ))
+    );
+
+    // /
+    // └── api/v1/
+    //     └── : •0
+    let mut tree = PathTree::<'static, usize>::new("/");
+
+    tree.insert("/api/v1/:param", 1);
+
+    assert_eq!(tree.find("/api/v1"), None);
+    assert_eq!(tree.find("/api/v1/"), None);
+    assert_eq!(
+        tree.find("/api/v1/entity"),
+        Some((
+            &1,
+            &vec![
+                Piece::String(b"/api/v1/"),
+                Piece::Parameter(Position::Named("param"), Kind::Normal),
+            ],
+            smallvec!["entity"]
+        ))
+    );
+    assert_eq!(tree.find("/api/v1/entity/1/2"), None);
+    assert_eq!(tree.find("/api/v1/Entity/1/2"), None);
+
+    // /
+    // └── api/v1/
+    //     └── :
+    //         └── -
+    //             └── : •0
+    let mut tree = PathTree::<'static, usize>::new("/");
+
+    tree.insert("/api/v1/:param-:param2", 1);
+    tree.insert("/api/v1/:param~:param2", 1);
+    tree.insert("/api/v1/:param/:param2", 2);
+    dbg!(&tree.node);
+
+    // assert_eq!(
+    //     tree.find("/api/v1/entity-entity2"),
+    //     Some((
+    //         &1,
+    //         &vec![
+    //             Piece::String(b"/api/v1/"),
+    //             Piece::Parameter(Position::Named("param"), Kind::Normal),
+    //             Piece::String(b"-"),
+    //             Piece::Parameter(Position::Named("param2"), Kind::Normal),
+    //         ],
+    //         smallvec!["entity", "entity2"]
+    //     )),
+    // );
+    // assert_eq!(tree.find("/api/v1/entity/entity2"), None);
+    // assert_eq!(
+    //     tree.find("/api/v1/entity-1234567"),
+    //     Some((
+    //         &1,
+    //         &vec![
+    //             Piece::String(b"/api/v1/"),
+    //             Piece::Parameter(Position::Named("param"), Kind::Normal),
+    //             Piece::String(b"-"),
+    //             Piece::Parameter(Position::Named("param2"), Kind::Normal),
+    //         ],
+    //         smallvec!["entity", "1234567"]
+    //     )),
+    // );
+    // assert_eq!(tree.find("/api/v1"), None);
+    // assert_eq!(tree.find("/api/v1/"), None);
+}
 
 #[test]
 fn basic() {
@@ -219,7 +538,7 @@ fn basic() {
 }
 
 #[test]
-fn print_github_tree() {
+fn github_tree() {
     let mut tree = PathTree::<'static, usize>::new("/");
 
     tree.insert("/", 0);
@@ -353,7 +672,7 @@ fn print_github_tree() {
     tree.insert("/:org/:repo/releases/download/:tag/:filename.:ext", 3002);
 
     assert_eq!(
-        format!("{:?}", &tree.node),
+        format!("{:?}", dbg!(&tree.node)),
         r#"
 / •0
 ├── 404 •67
@@ -493,9 +812,9 @@ fn print_github_tree() {
                 │       └── members •96
                 ├── pul
                 │   ├── l
-                │   │   ├── /
-                │   │   │   └── : •76
-                │   │   └── s •75
+                │   │   ├── s •75
+                │   │   └── /
+                │   │       └── : •76
                 │   └── se •88
                 ├── releases •100
                 │   └── /

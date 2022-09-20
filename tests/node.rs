@@ -1,7 +1,7 @@
 use path_tree::*;
 
 #[test]
-fn nodes() {
+fn github_nodes() {
     let mut node = Node::<'static, usize>::new(NodeKind::String(b"/"), None);
 
     let mut n = node.insert_bytes(b"/");
@@ -87,5 +87,100 @@ fn nodes() {
     node.insert_bytes(b"/500");
     node.insert_bytes(b"/503");
 
-    dbg!(node);
+    assert_eq!(
+        format!("{:?}", node),
+        r#"
+/
+├── 404
+├── 50
+│   ├── 0
+│   └── 3
+├── a
+│   ├── bout
+│   │   └── /
+│   │       ├── careers
+│   │       ├── diversity
+│   │       └── press
+│   └── pi
+├── c
+│   ├── ollections
+│   └── ustomer-stories
+├── e
+│   ├── nterprise
+│   └── xplore
+├── features
+│   └── /
+│       ├── actions
+│       ├── co
+│       │   ├── de
+│       │   │   ├── -review
+│       │   │   └── spaces
+│       │   └── pilot
+│       ├── discussions
+│       ├── issues
+│       ├── packages
+│       └── security
+├── issues
+├── login
+├── marketplace
+├── p
+│   ├── ricing
+│   └── ulls
+├── readme
+├── s
+│   ├── e
+│   │   ├── arch
+│   │   └── ttings
+│   │       └── /
+│   │           ├── a
+│   │           │   ├── ccessibility
+│   │           │   ├── dmin
+│   │           │   └── pp
+│   │           │       ├── earance
+│   │           │       └── s
+│   │           ├── b
+│   │           │   ├── illing
+│   │           │   │   └── /plans
+│   │           │   └── locked_users
+│   │           ├── co
+│   │           │   ├── de
+│   │           │   │   ├── _review_limits
+│   │           │   │   └── spaces
+│   │           │   └── pilot
+│   │           ├── de
+│   │           │   ├── leted_packages
+│   │           │   └── velopers
+│   │           ├── in
+│   │           │   ├── stallations
+│   │           │   └── teraction_limits
+│   │           ├── keys
+│   │           ├── notifications
+│   │           ├── organizations
+│   │           ├── pages
+│   │           ├── re
+│   │           │   ├── minders
+│   │           │   └── p
+│   │           │       ├── lies
+│   │           │       └── ositories
+│   │           ├── s
+│   │           │   ├── ecurity
+│   │           │   │   ├── -log
+│   │           │   │   └── _analysis
+│   │           │   └── ponsors-log
+│   │           └── tokens
+│   ├── ignup
+│   └── ponsors
+│       └── /
+│           ├── accounts
+│           ├── explore
+│           └── :
+├── t
+│   ├── eam
+│   ├── opics
+│   └── rending
+└── :
+    └── /
+        └── :
+"#
+    );
 }

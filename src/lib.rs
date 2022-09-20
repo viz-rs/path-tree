@@ -67,16 +67,17 @@ impl<'a, T: fmt::Debug> PathTree<'a, T> {
     pub fn find<'b>(
         &'b self,
         path: &'b str,
-    ) -> Option<(&T, &Vec<Piece<'a>>, SmallVec<[&'b str; 3]>)> {
+    ) -> Option<(&T, &Vec<Piece<'a>>, SmallVec<[&'b str; 4]>)> {
         let bytes = path.as_bytes();
         self.node.find(bytes).and_then(|(id, ranges)| {
             self.get_route(*id).map(|(t, p)| {
                 (
                     t,
                     p,
+                    // opt!
                     ranges
                         .chunks(2)
-                        .map(|c| from_utf8(&bytes[c[0]..c[1]]).unwrap())
+                        .map(|r| from_utf8(&bytes[r[0]..r[1]]).unwrap())
                         .rev()
                         .collect(),
                 )
@@ -84,10 +85,12 @@ impl<'a, T: fmt::Debug> PathTree<'a, T> {
         })
     }
 
+    #[inline]
     pub fn get_route(&self, index: usize) -> Option<&(T, Vec<Piece<'a>>)> {
         self.routes.get(index)
     }
 
+    // Generates URL
     // pub fn url_for(&self, index: usize, params: Vec<String>) -> Option<String> {
     //     None
     // }
