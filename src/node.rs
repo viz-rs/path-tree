@@ -132,50 +132,55 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                         }
                     } else {
                         // static
-                        if let Some(nodes) = &self.nodes0 {
-                            if let Ok(i) = nodes.binary_search_by(|node| match node.kind {
-                                NodeKind::String(s) => {
-                                    // s[0].cmp(&bytes[0])
-                                    // opt!
-                                    // lets `/` at end
-                                    compare(s[0], bytes[0])
-                                }
-                                _ => unreachable!(),
-                            }) {
-                                if let Some(id) = nodes[i]._find(start, bytes, ranges) {
-                                    return Some(id);
-                                }
-                            }
+                        if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
+                            nodes
+                                .binary_search_by(|node| match node.kind {
+                                    NodeKind::String(s) => {
+                                        // s[0].cmp(&bytes[0])
+                                        // opt!
+                                        // lets `/` at end
+                                        compare(s[0], bytes[0])
+                                    }
+                                    _ => unreachable!(),
+                                })
+                                .ok()
+                                .and_then(|i| nodes[i]._find(start, bytes, ranges))
+                        }) {
+                            return Some(id);
                         }
                     }
 
                     // parameter
-                    if let Some(nodes) = &self.nodes1 {
-                        for node in nodes {
-                            if let Some(id) = node._find(start, bytes, ranges) {
-                                return Some(id);
-                            }
-                        }
+                    if let Some(id) = self.nodes1.as_ref().and_then(|nodes| {
+                        let b = m > 0;
+                        nodes
+                            .iter()
+                            .filter(|node| match node.kind {
+                                NodeKind::Parameter(pk)
+                                    if pk == Kind::Normal || pk == Kind::OneOrMore =>
+                                {
+                                    b
+                                }
+                                _ => true,
+                            })
+                            .find_map(|node| node._find(start, bytes, ranges))
+                    }) {
+                        return Some(id);
                     }
                 } else if n == 1 && s[0] == b'/' {
-                    if let Some(nodes) = &self.nodes1 {
-                        let mut iter = nodes.iter();
-
-                        if let Some(node) = iter
-                            .find(|node| node.kind == NodeKind::Parameter(Kind::OptionalSegment))
-                        {
-                            if let Some(id) = node._find(start, bytes, ranges) {
-                                return Some(id);
-                            }
-                        }
-
-                        if let Some(node) = iter
-                            .find(|node| node.kind == NodeKind::Parameter(Kind::ZeroOrMoreSegment))
-                        {
-                            if let Some(id) = node._find(start, bytes, ranges) {
-                                return Some(id);
-                            }
-                        }
+                    if let Some(id) = self.nodes1.as_ref().and_then(|nodes| {
+                        nodes
+                            .iter()
+                            .filter(|node| {
+                                matches!(node.kind,
+                                    NodeKind::Parameter(pk)
+                                        if pk == Kind::OptionalSegment
+                                            || pk == Kind::ZeroOrMoreSegment
+                                )
+                            })
+                            .find_map(|node| node._find(start, bytes, ranges))
+                    }) {
+                        return Some(id);
                     }
                 }
             }
@@ -187,60 +192,73 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                         } else {
                             // last
                             if self.nodes0.is_none() && self.nodes1.is_none() {
-                                if let Some(id) = &self.value {
+                                return self.value.as_ref().map(|id| {
                                     ranges.push(start);
                                     ranges.push(start);
-                                    return Some(id);
-                                } else {
-                                    return None;
-                                }
+                                    id
+                                });
                             }
                         }
                     } else {
                         // static
-                        if let Some(nodes) = &self.nodes0 {
-                            for node in nodes {
-                                if let NodeKind::String(s) = node.kind {
-                                    let finder = if s.len() == 1 {
-                                        bytes.iter().position(|b| b == &s[0])
-                                    } else {
-                                        memchr::memmem::find(bytes, s)
-                                    };
-                                    if let Some(n) = finder {
-                                        if let Some(id) = node._find(start + n, &bytes[n..], ranges)
-                                        {
+                        if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
+                            nodes.iter().find_map(|node| match node.kind {
+                                NodeKind::String(s) => {
+                                    bytes.iter().position(|b| s[0] == *b).and_then(|n| {
+                                        node._find(start + n, &bytes[n..], ranges).map(|id| {
                                             ranges.push(start);
                                             ranges.push(start + n);
-                                            return Some(id);
-                                        }
-                                    }
+                                            id
+                                        })
+                                    })
                                 }
-                            }
+                                _ => unreachable!(),
+                            })
+                        }) {
+                            return Some(id);
                         }
 
                         // parameter => `:a:b:c`
-                        if let Some(nodes) = &self.nodes1 {
-                            for node in nodes {
-                                if let Some(id) = node._find(start + 1, &bytes[1..], ranges) {
-                                    ranges.push(start);
-                                    ranges.push(start + 1);
-                                    return Some(id);
-                                }
-                            }
+                        if let Some(id) = self.nodes1.as_ref().and_then(|nodes| {
+                            let b = m - 1 > 0;
+                            nodes
+                                .iter()
+                                .filter(|node| match node.kind {
+                                    NodeKind::Parameter(pk)
+                                        if pk == Kind::Normal || pk == Kind::OneOrMore =>
+                                    {
+                                        b
+                                    }
+                                    _ => true,
+                                })
+                                .find_map(|node| node._find(start + 1, &bytes[1..], ranges))
+                        }) {
+                            ranges.push(start);
+                            ranges.push(start + 1);
+                            return Some(id);
                         }
                     }
 
-                    // dbg!(start, start + m, bytes);
                     // parameter => `:a:b?:c?`
                     if k == Kind::Optional || k == Kind::OptionalSegment {
-                        if let Some(nodes) = &self.nodes1 {
-                            for node in nodes {
-                                if let Some(id) = node._find(start, bytes, ranges) {
-                                    ranges.push(start);
-                                    ranges.push(start + m);
-                                    return Some(id);
-                                }
-                            }
+                        if let Some(id) = self.nodes1.as_ref().and_then(|nodes| {
+                            let b = m > 0;
+                            nodes
+                                .iter()
+                                .filter(|node| match node.kind {
+                                    NodeKind::Parameter(pk)
+                                        if pk == Kind::Normal || pk == Kind::OneOrMore =>
+                                    {
+                                        b
+                                    }
+                                    _ => true,
+                                })
+                                .find_map(|node| node._find(start, bytes, ranges))
+                        }) {
+                            // param should be empty
+                            ranges.push(start + m);
+                            ranges.push(start + m);
+                            return Some(id);
                         }
                     }
 
@@ -253,34 +271,34 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                     }
 
                     if k == Kind::OptionalSegment {
-                        if let Some(node) = self.nodes0.as_ref().and_then(|nodes| {
-                            nodes.last().filter(|node| match node.kind {
-                                NodeKind::String(s) => s[0] == b'/',
-                                _ => unreachable!(),
-                            })
+                        if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
+                            nodes
+                                .last()
+                                .filter(|node| match node.kind {
+                                    NodeKind::String(s) => s[0] == b'/',
+                                    _ => unreachable!(),
+                                })
+                                .and_then(|node| node._find(start, bytes, ranges))
                         }) {
-                            if let Some(id) = node._find(start, bytes, ranges) {
-                                ranges.push(start);
-                                ranges.push(start + m);
-                                return Some(id);
-                            }
+                            ranges.push(start);
+                            ranges.push(start + m);
+                            return Some(id);
                         }
                     }
                 }
                 Kind::OneOrMore | Kind::ZeroOrMore | Kind::ZeroOrMoreSegment => {
+                    let is_one_or_more = k == Kind::OneOrMore;
                     if m == 0 {
-                        if k == Kind::OneOrMore {
+                        if is_one_or_more {
                             return None;
                         } else {
                             // last
                             if self.nodes0.is_none() && self.nodes1.is_none() {
-                                if let Some(id) = &self.value {
+                                return self.value.as_ref().map(|id| {
                                     ranges.push(start);
                                     ranges.push(start);
-                                    return Some(id);
-                                } else {
-                                    return None;
-                                }
+                                    id
+                                });
                             }
                         }
                     } else {
@@ -293,38 +311,49 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                         }
 
                         // static
-                        if let Some(nodes) = &self.nodes0 {
-                            for node in nodes {
-                                if let NodeKind::String(s) = &node.kind {
-                                    if m > s.len() {
-                                        let iter = memchr::memmem::find_iter(bytes, s);
-                                        for n in iter {
-                                            if let Some(id) =
-                                                node._find(start + n, &bytes[n..], ranges)
-                                            {
-                                                ranges.push(start);
-                                                ranges.push(start + n);
-                                                return Some(id);
-                                            }
-                                        }
+                        if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
+                            nodes.iter().find_map(|node| {
+                                if let NodeKind::String(s) = node.kind {
+                                    let right_length = if is_one_or_more {
+                                        m > s.len()
+                                    } else {
+                                        m >= s.len()
+                                    };
+                                    if right_length {
+                                        return memchr::memmem::find_iter(bytes, s)
+                                            .into_iter()
+                                            .find_map(|n| {
+                                                node._find(start + n, &bytes[n..], ranges).map(
+                                                    |id| {
+                                                        ranges.push(start);
+                                                        ranges.push(start + n);
+                                                        id
+                                                    },
+                                                )
+                                            });
                                     }
                                 }
-                            }
+                                None
+                            })
+                        }) {
+                            return Some(id);
                         }
                     }
 
                     if k == Kind::ZeroOrMoreSegment {
-                        if let Some(node) = self.nodes0.as_ref().and_then(|nodes| {
-                            nodes.last().filter(|node| match node.kind {
-                                NodeKind::String(s) => s[0] == b'/',
-                                _ => unreachable!(),
-                            })
+                        if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
+                            nodes
+                                .last()
+                                .filter(|node| match node.kind {
+                                    NodeKind::String(s) => s[0] == b'/',
+                                    _ => unreachable!(),
+                                })
+                                .and_then(|node| node._find(start, bytes, ranges))
                         }) {
-                            if let Some(id) = node._find(start, bytes, ranges) {
-                                ranges.push(start);
-                                ranges.push(start + m);
-                                return Some(id);
-                            }
+                            // param should be empty
+                            ranges.push(start + m);
+                            ranges.push(start + m);
+                            return Some(id);
                         }
                     }
                 }
