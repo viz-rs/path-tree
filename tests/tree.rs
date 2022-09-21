@@ -239,7 +239,7 @@ fn match_params() {
     tree.insert("/api/v1/:param-:param2", 1);
     tree.insert("/api/v1/:param~:param2", 2);
     tree.insert("/api/v1/:param.:param2", 4);
-    tree.insert("/api/v1/:param_:param2", 5);
+    tree.insert("/api/v1/:param\\_:param2", 5);
     tree.insert("/api/v1/:param\\::param2", 6);
 
     let p = tree.find("/api/v1/entity-entity2").unwrap();
@@ -1139,9 +1139,9 @@ fn basic() {
     tree.insert("/users", 1);
     tree.insert("/users/:id", 2);
     tree.insert("/users/:id/:org", 3);
-    tree.insert("/users/:userId/repos", 4);
-    tree.insert("/users/:userId/repos/:id", 5);
-    tree.insert("/users/:userId/repos/:id/:any*", 6);
+    tree.insert("/users/:user_id/repos", 4);
+    tree.insert("/users/:user_id/repos/:id", 5);
+    tree.insert("/users/:user_id/repos/:id/:any*", 6);
     tree.insert(r"/\\::username", 7);
     tree.insert("/*", 8);
     tree.insert("/about", 9);
@@ -1212,7 +1212,7 @@ fn basic() {
         p.pieces,
         vec![
             Piece::String(b"/users/"),
-            Piece::Parameter(Position::Named("userId"), Kind::Normal),
+            Piece::Parameter(Position::Named("user_id"), Kind::Normal),
             Piece::String(b"/repos/"),
             Piece::Parameter(Position::Named("id"), Kind::Normal),
             Piece::String(b"/"),

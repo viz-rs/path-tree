@@ -89,7 +89,7 @@ impl<'a> Parser<'a> {
         let start = self.pos;
         while let Some(&(i, c)) = self.cursor.peek() {
             match c {
-                '-' | '.' | '_' | '~' | '/' | '\\' | ':' => {
+                '-' | '.' | '~' | '/' | '\\' | ':' => {
                     self.pos = i;
                     return (Position::Named(&self.input[start..i]), Kind::Normal);
                 }
