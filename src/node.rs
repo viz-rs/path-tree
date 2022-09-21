@@ -190,6 +190,76 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                 }
             }
             NodeKind::Parameter(k) => match k {
+                // Kind::Normal => {
+                //     if m == 0 {
+                //         return None;
+                //     }
+                //
+                //     // slash node
+                //     let mut slash = None;
+                //     // slash position at path
+                //     let sp = bytes.iter().position(|b| *b == b'/');
+                //
+                //     // static
+                //     if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
+                //         let tmp = &bytes[0..sp.unwrap_or(m)];
+                //         nodes.iter().find_map(|node| match node.kind {
+                //             NodeKind::String(s) => {
+                //                 if s[0] == b'/' {
+                //                     slash.replace(node);
+                //                     return None;
+                //                 }
+                //
+                //                 tmp.iter().position(|b| s[0] == *b).and_then(|n| {
+                //                     node._find(start + n, &bytes[n..], ranges).map(|id| {
+                //                         ranges.push(start);
+                //                         ranges.push(start + n);
+                //                         id
+                //                     })
+                //                 })
+                //             }
+                //             _ => unreachable!(),
+                //         })
+                //     }) {
+                //         return Some(id);
+                //     }
+                //
+                //     // parameter => `:a:b:c`
+                //     if let Some(id) = self.nodes1.as_ref().and_then(|nodes| {
+                //         let b = m - 1 > 0;
+                //         nodes
+                //             .iter()
+                //             .filter(|node| match node.kind {
+                //                 NodeKind::Parameter(pk)
+                //                     if pk == Kind::Normal || pk == Kind::OneOrMore =>
+                //                 {
+                //                     b
+                //                 }
+                //                 _ => true,
+                //             })
+                //             .find_map(|node| node._find(start + 1, &bytes[1..], ranges))
+                //     }) {
+                //         ranges.push(start);
+                //         ranges.push(start + 1);
+                //         return Some(id);
+                //     }
+                //
+                //     if let Some(n) = sp {
+                //         return slash
+                //             .and_then(|node| node._find(start + n, &bytes[n..], ranges))
+                //             .map(|id| {
+                //                 ranges.push(start);
+                //                 ranges.push(start + n);
+                //                 id
+                //             });
+                //     } else {
+                //         return self.value.as_ref().map(|id| {
+                //             ranges.push(start);
+                //             ranges.push(start + m);
+                //             id
+                //         });
+                //     }
+                // }
                 Kind::Normal | Kind::Optional | Kind::OptionalSegment => {
                     if m == 0 {
                         if k == Kind::Normal {
