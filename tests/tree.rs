@@ -1,14 +1,100 @@
 use path_tree::*;
-// use smallvec::smallvec;
-// use rand::seq::SliceRandom;
+use rand::seq::SliceRandom;
 
 #[test]
 fn statics() {
-    // let mut tree = PathTree::<'static, usize>::new("/");
-    //
-    // // tree.insert(path, value);
-    //
-    // dbg!(&tree.node);
+    const ROUTES: [&str; 11] = [
+        "/hi",
+        "/contact",
+        "/co",
+        "/c",
+        "/a",
+        "/ab",
+        "/doc/",
+        "/doc/go_faq.html",
+        "/doc/go1.html",
+        "/α",
+        "/β",
+    ];
+
+    let mut routes = ROUTES.to_vec();
+
+    routes.shuffle(&mut rand::thread_rng());
+
+    let mut tree = PathTree::<'static, usize>::new();
+
+    for (i, u) in routes.iter().enumerate() {
+        tree.insert(u, i);
+    }
+
+    for (i, u) in routes.iter().enumerate() {
+        let p = tree.find(u).unwrap();
+        assert_eq!(p.value, &i);
+    }
+}
+
+#[test]
+fn wildcards() {
+    const ROUTES: [&str; 20] = [
+        "/",
+        "/cmd/:tool/:sub",
+        "/cmd/:tool/",
+        "/cmd/vet",
+        "/src/:filepath*",
+        "/src1/",
+        "/src1/:filepath*",
+        "/src2:filepath*",
+        "/search/",
+        "/search/:query",
+        "/search/invalid",
+        "/user_:name",
+        "/user_:name/about",
+        "/user_x",
+        "/files/:dir/:filepath*",
+        "/doc/",
+        "/doc/rust_faq.html",
+        "/doc/rust1.html",
+        "/info/:user/public",
+        "/info/:user/project/:project",
+    ];
+
+    let mut routes = (0..20).zip(ROUTES.iter()).collect::<Vec<_>>();
+
+    routes.shuffle(&mut rand::thread_rng());
+
+    let mut tree = PathTree::<usize>::new();
+
+    for (i, u) in routes.iter() {
+        tree.insert(u, *i);
+    }
+
+    let valid_res = vec![
+        ("/", 0, vec![]),
+        ("/cmd/test/", 2, vec!["test"]),
+        ("/cmd/test/3", 1, vec!["test", "3"]),
+        ("/src/", 4, vec![""]),
+        ("/src/some/file.png", 4, vec!["some/file.png"]),
+        (
+            "/search/someth!ng+in+ünìcodé",
+            9,
+            vec!["someth!ng+in+ünìcodé"],
+        ),
+        ("/user_rust", 11, vec!["rust"]),
+        ("/user_rust/about", 12, vec!["rust"]),
+        (
+            "/files/js/inc/framework.js",
+            14,
+            vec!["js", "inc/framework.js"],
+        ),
+        ("/info/gordon/public", 18, vec!["gordon"]),
+        ("/info/gordon/project/rust", 19, vec!["gordon", "rust"]),
+    ];
+
+    for (u, h, p) in valid_res {
+        let res = tree.find(u).unwrap();
+        assert_eq!(*res.value, h);
+        assert_eq!(res.params.to_vec(), p);
+    }
 }
 
 #[test]
@@ -18,7 +104,7 @@ fn match_params() {
     //     └── :
     //         └── /
     //             └── ** •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/v1/:param/*", 1);
 
@@ -55,7 +141,7 @@ fn match_params() {
     //     └── :
     //         └── /
     //             └── + •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/v1/:param/+", 1);
 
@@ -77,7 +163,7 @@ fn match_params() {
     // /
     // └── api/v1/
     //     └── ?? •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/v1/:param?", 1);
 
@@ -103,7 +189,7 @@ fn match_params() {
     // └── v1/some/resource/name
     //     └── \:
     //         └── customVerb •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/v1/some/resource/name\\:customVerb", 1);
 
@@ -127,7 +213,7 @@ fn match_params() {
     //     └── :
     //         └── \:
     //             └── customVerb •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert(r"/v1/some/resource/:name\:customVerb", 1);
 
@@ -155,7 +241,7 @@ fn match_params() {
     //                     └── :
     //                         └── /
     //                             └── ** •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert(r"/v1/some/resource/name\\\\:customVerb?\?/:param/*", 1);
 
@@ -179,7 +265,7 @@ fn match_params() {
     // /
     // └── api/v1/
     //     └── ** •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/v1/*", 1);
 
@@ -204,7 +290,7 @@ fn match_params() {
     // /
     // └── api/v1/
     //     └── : •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/v1/:param", 1);
 
@@ -233,7 +319,7 @@ fn match_params() {
     //         │   └── : •2
     //         └── /
     //             └── : •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/v1/:param/:param2", 3);
     tree.insert("/api/v1/:param-:param2", 1);
@@ -275,7 +361,7 @@ fn match_params() {
 
     // /
     // └── api/v1/const •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/v1/const", 1);
 
@@ -296,7 +382,7 @@ fn match_params() {
     // └── api/
     //     └── :
     //         └── /fixedEnd •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/:param/fixedEnd", 1);
 
@@ -326,7 +412,7 @@ fn match_params() {
     //                         └── /size
     //                             └── \:
     //                                 └── : •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert(r"/shop/product/\::filter/color\::color/size\::size", 1);
 
@@ -358,7 +444,7 @@ fn match_params() {
     // /
     // └── \:
     //     └── ? •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/\\::param?", 1);
 
@@ -386,7 +472,7 @@ fn match_params() {
     // └── test
     //     └── :
     //         └── : •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/test:sign:param", 1);
 
@@ -415,7 +501,7 @@ fn match_params() {
     // └── :
     //     └── ?
     //         └── : •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/:param1:param2?:param3", 1);
 
@@ -444,7 +530,7 @@ fn match_params() {
     // └── test
     //     └── ?
     //         └── : •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/test:optional?:mandatory", 1);
 
@@ -473,7 +559,7 @@ fn match_params() {
     // └── test
     //     └── ?
     //         └── ? •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/test:optional?:optional2?", 1);
 
@@ -505,7 +591,7 @@ fn match_params() {
     // └── foo
     //     └── ?
     //         └── bar •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/foo:param?bar", 1);
 
@@ -534,7 +620,7 @@ fn match_params() {
     // └── foo
     //     └── *
     //         └── bar •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/foo*bar", 1);
 
@@ -571,7 +657,7 @@ fn match_params() {
     // └── foo
     //     └── +
     //         └── bar •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/foo+bar", 1);
 
@@ -608,7 +694,7 @@ fn match_params() {
     //         └── cde
     //             └── *
     //                 └── g/ •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/a*cde*g/", 1);
 
@@ -652,7 +738,7 @@ fn match_params() {
     //     └── v1
     //         └── *
     //             └── proxy/ •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/*v1*/proxy", 1);
 
@@ -691,7 +777,7 @@ fn match_params() {
     // ├── ~
     // │   └── : •4
     // └── : •6
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/name\\::name", 1);
     tree.insert("/@:name", 2);
@@ -791,7 +877,7 @@ fn match_params() {
     //     └── :
     //         └── /abc/
     //             └── ** •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/v1/:param/abc/*", 1);
 
@@ -822,7 +908,7 @@ fn match_params() {
     //             └── ??
     //                 └── /
     //                     └── ?? •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/:day/:month?/:year?", 1);
 
@@ -868,7 +954,7 @@ fn match_params() {
     //             └── ?
     //                 └── .
     //                     └── ? •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/:day.:month?.:year?", 1);
     tree.insert("/api/:day-:month?-:year?", 2);
@@ -934,7 +1020,7 @@ fn match_params() {
     //     │   └── .json •1
     //     └── *
     //         └── .json •2
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/config/abc.json", 1);
     tree.insert("/config/+.json", 2);
@@ -989,7 +1075,7 @@ fn match_params() {
     //     └── **
     //         └── /
     //             └── ?? •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/*/:param?", 1);
 
@@ -1027,7 +1113,7 @@ fn match_params() {
     //     └── **
     //         └── /
     //             └── : •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/*/:param", 1);
 
@@ -1059,7 +1145,7 @@ fn match_params() {
     //     └── +
     //         └── /
     //             └── : •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/+/:param", 1);
 
@@ -1090,7 +1176,7 @@ fn match_params() {
     //             └── :
     //                 └── /
     //                     └── : •0
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/api/*/:param/:param2", 1);
 
@@ -1133,7 +1219,7 @@ fn match_params() {
 
 #[test]
 fn basic() {
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/", 0);
     tree.insert("/users", 1);
@@ -1294,7 +1380,7 @@ fn basic() {
 
 #[test]
 fn github_tree() {
-    let mut tree = PathTree::<'static, usize>::new("/");
+    let mut tree = PathTree::<'static, usize>::new();
 
     tree.insert("/", 0);
     tree.insert("/api", 1);

@@ -34,6 +34,11 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
     pub fn insert_bytes(&mut self, mut bytes: &'a [u8]) -> &mut Self {
         let (cursor, diff) = match &mut self.kind {
             NodeKind::String(p) => {
+                if p.is_empty() {
+                    *p = bytes;
+                    return self;
+                }
+
                 let cursor = p
                     .iter()
                     .zip(bytes.iter())
@@ -64,7 +69,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
         if diff {
             bytes = &bytes[cursor..];
             let nodes = self.nodes0.get_or_insert_with(Vec::new);
-            match nodes.binary_search_by(|node| match node.kind {
+            return match nodes.binary_search_by(|node| match node.kind {
                 NodeKind::String(s) => {
                     // s[0].cmp(&bytes[0])
                     // opt!
@@ -78,10 +83,10 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                     nodes.insert(i, Node::new(NodeKind::String(bytes), None));
                     &mut nodes[i]
                 }
-            }
-        } else {
-            self
+            };
         }
+
+        self
     }
 
     pub fn insert_parameter(&mut self, kind: Kind) -> &mut Self {

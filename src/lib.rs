@@ -30,12 +30,18 @@ pub struct PathTree<'a, T> {
     pub node: Node<'a, usize>,
 }
 
+impl<'a, T: fmt::Debug> Default for PathTree<'a, T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, T: fmt::Debug> PathTree<'a, T> {
-    pub fn new(root: &'a str) -> Self {
+    pub fn new() -> Self {
         Self {
             id: 0,
             routes: Vec::new(),
-            node: Node::new(NodeKind::String(root.as_bytes()), None),
+            node: Node::new(NodeKind::String("".as_bytes()), None),
         }
     }
 
@@ -94,7 +100,7 @@ impl<'a, T: fmt::Debug> PathTree<'a, T> {
     // }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Path<'a, 'b, T> {
     pub id: &'a usize,
     pub value: &'a T,
