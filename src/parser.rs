@@ -67,7 +67,7 @@ impl<'a> Parser<'a> {
                             start = j;
                         } else {
                             self.cursor.next();
-                            self.pos = j + 1;
+                            self.pos = j + c.len_utf8();
                             return self.input[j..self.pos].as_bytes();
                         }
                     }
@@ -102,11 +102,14 @@ impl<'a> Parser<'a> {
                             Kind::OneOrMore
                         } else {
                             let f = {
-                                let prefix = self
-                                    .input
-                                    .get(start - 2..start - 1)
-                                    .map(|s| s == "/")
-                                    .unwrap_or(false);
+                                let prefix = if start >= 2 {
+                                    self.input
+                                        .get(start - 2..start - 1)
+                                        .map(|s| s == "/")
+                                        .unwrap_or(false)
+                                } else {
+                                    false
+                                };
                                 let suffix =
                                     self.cursor.peek().map(|(_, c)| *c == '/').unwrap_or(true);
                                 prefix && suffix
@@ -160,8 +163,11 @@ impl<'a> Iterator for Parser<'a> {
                             Kind::OneOrMore
                         } else {
                             let f = {
-                                let prefix =
-                                    self.input.get(i - 1..i).map(|s| s == "/").unwrap_or(false);
+                                let prefix = if i >= 1 {
+                                    self.input.get(i - 1..i).map(|s| s == "/").unwrap_or(false)
+                                } else {
+                                    false
+                                };
                                 let suffix =
                                     self.cursor.peek().map(|(_, c)| *c == '/').unwrap_or(true);
                                 prefix && suffix
