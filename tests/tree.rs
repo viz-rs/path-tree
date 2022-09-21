@@ -98,6 +98,361 @@ fn wildcards() {
 }
 
 #[test]
+fn single_named_parameter() {
+    //  Pattern: /users/:id
+    //
+    //      /users/gordon              match
+    //      /users/you                 match
+    //      /users/gordon/profile      no match
+    //      /users/                    no match
+    let mut tree = PathTree::new();
+
+    tree.insert("/users/:id", 0);
+
+    let res = vec![
+        ("/", false),
+        ("/users/gordon", true),
+        ("/users/you", true),
+        ("/users/gordon/profile", false),
+        ("/users/", false),
+        ("/users", false),
+    ];
+
+    for (u, b) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+    }
+}
+
+#[test]
+fn static_and_named_parameter() {
+    //  Pattern: /a/b/c
+    //  Pattern: /a/c/d
+    //  Pattern: /a/c/a
+    //  Pattern: /:id/c/e
+    //
+    //      /a/b/c                  match
+    //      /a/c/d                  match
+    //      /a/c/a                  match
+    //      /a/c/e                  match
+    let mut tree = PathTree::new();
+
+    tree.insert("/a/b/c", "/a/b/c");
+    tree.insert("/a/c/d", "/a/c/d");
+    tree.insert("/a/c/a", "/a/c/a");
+    tree.insert("/:id/c/e", "/:id/c/e");
+
+    let res = vec![
+        ("/", false, "", vec![]),
+        ("/a/b/c", true, "/a/b/c", vec![]),
+        ("/a/c/d", true, "/a/c/d", vec![]),
+        ("/a/c/a", true, "/a/c/a", vec![]),
+        ("/a/c/e", true, "/:id/c/e", vec!["a"]),
+    ];
+
+    for (u, b, a, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if let Some(res) = r {
+            assert_eq!(*res.value, a);
+            assert_eq!(res.params.to_vec(), p);
+        }
+    }
+}
+
+#[test]
+fn multi_named_parameters() {
+    //  Pattern: /:lang/:keyword
+    //  Pattern: /:id
+    //
+    //      /rust                     match
+    //      /rust/let                 match
+    //      /rust/let/const           no match
+    //      /rust/let/                no match
+    //      /rust/                    no match
+    //      /                         no match
+    let mut tree = PathTree::new();
+
+    tree.insert("/:lang/:keyword", true);
+    tree.insert("/:id", true);
+
+    let res = vec![
+        ("/", false, false, vec![]),
+        ("/rust/", false, false, vec![]),
+        ("/rust/let/", false, false, vec![]),
+        ("/rust/let/const", false, false, vec![]),
+        ("/rust/let", true, true, vec!["rust", "let"]),
+        ("/rust", true, true, vec!["rust"]),
+    ];
+
+    for (u, b, a, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if let Some(res) = r {
+            assert_eq!(*res.value, a);
+            assert_eq!(res.params.to_vec(), p);
+        }
+    }
+}
+
+#[test]
+fn catch_all_parameter() {
+    //  Pattern: /src/*filepath
+    //
+    //      /src                      no match
+    //      /src/                     match
+    //      /src/somefile.go          match
+    //      /src/subdir/somefile.go   match
+    let mut tree = PathTree::new();
+
+    tree.insert("/src/:filepath*", "* files");
+
+    let res = vec![
+        ("/src", false, vec![]),
+        ("/src/", true, vec![""]),
+        ("/src/somefile.rs", true, vec!["somefile.rs"]),
+        ("/src/subdir/somefile.rs", true, vec!["subdir/somefile.rs"]),
+        ("/src.rs", false, vec![]),
+        ("/rust", false, vec![]),
+    ];
+
+    for (u, b, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if let Some(res) = r {
+            assert_eq!(*res.value, "* files");
+            assert_eq!(res.params.to_vec(), p);
+        }
+    }
+
+    tree.insert("/src/", "dir");
+
+    let r = tree.find("/src/");
+    assert!(r.is_some());
+    if let Some(res) = r {
+        assert_eq!(*res.value, "dir");
+        assert_eq!(res.params.to_vec(), vec![] as Vec<&str>);
+    }
+}
+
+#[test]
+fn catch_all_parameter_with_prefix() {
+    //  Pattern: /commit_*sha
+    //
+    //      /commit                   no match
+    //      /commit_                  match
+    //      /commit_/                 match
+    //      /commit_/foo              match
+    //      /commit_123               match
+    //      /commit_123/              match
+    //      /commit_123/foo           match
+    let mut tree = PathTree::new();
+
+    tree.insert("/commit_:sha*", "* sha");
+    tree.insert("/commit/:sha", "hex");
+    tree.insert("/commit/:sha0/compare/:sha1", "compare");
+    tree.insert("/src/", "dir");
+
+    let r = tree.find("/src/");
+    assert!(r.is_some());
+    if let Some(res) = r {
+        assert_eq!(*res.value, "dir");
+        assert_eq!(res.params.to_vec(), vec![] as Vec<&str>);
+    }
+
+    let r = tree.find("/commit/123");
+    assert!(r.is_some());
+    if let Some(res) = r {
+        assert_eq!(*res.value, "hex");
+        assert_eq!(res.params.to_vec(), vec!["123"]);
+    }
+
+    let r = tree.find("/commit/123/compare/321");
+    assert!(r.is_some());
+    if let Some(res) = r {
+        assert_eq!(*res.value, "compare");
+        assert_eq!(res.params.to_vec(), vec!["123", "321"]);
+    }
+
+    let res = vec![
+        ("/commit", false, vec![]),
+        ("/commit_", true, vec![""]),
+        ("/commit_/", true, vec!["/"]),
+        ("/commit_/foo", true, vec!["/foo"]),
+        ("/commit123", false, vec![]),
+        ("/commit_123", true, vec!["123"]),
+        ("/commit_123/", true, vec!["123/"]),
+        ("/commit_123/foo", true, vec!["123/foo"]),
+    ];
+
+    for (u, b, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if let Some(res) = r {
+            assert_eq!(*res.value, "* sha");
+            assert_eq!(res.params.to_vec(), p);
+        }
+    }
+}
+
+#[test]
+fn static_and_catch_all_parameter() {
+    //  Pattern: /a/b/c
+    //  Pattern: /a/c/d
+    //  Pattern: /a/c/a
+    //  Pattern: /a/*c
+    //
+    //      /a/b/c                  match
+    //      /a/c/d                  match
+    //      /a/c/a                  match
+    //      /a/c/e                  match
+    let mut tree = PathTree::new();
+
+    tree.insert("/a/b/c", "/a/b/c");
+    tree.insert("/a/c/d", "/a/c/d");
+    tree.insert("/a/c/a", "/a/c/a");
+    tree.insert("/a/*", "/a/*c");
+
+    let res = vec![
+        ("/", false, "", vec![]),
+        ("/a/b/c", true, "/a/b/c", vec![]),
+        ("/a/c/d", true, "/a/c/d", vec![]),
+        ("/a/c/a", true, "/a/c/a", vec![]),
+        ("/a/c/e", true, "/a/*c", vec!["c/e"]),
+    ];
+
+    for (u, b, a, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if let Some(res) = r {
+            assert_eq!(*res.value, a);
+            assert_eq!(res.params.to_vec(), p);
+        }
+    }
+}
+
+#[test]
+fn root_catch_all_parameter() {
+    //  Pattern: /
+    //  Pattern: /*
+    //  Pattern: /users/*
+    //
+    //      /                  match *
+    //      /download          match *
+    //      /users/jordan      match users *
+    let mut tree = PathTree::<fn() -> usize>::new();
+
+    tree.insert("/", || 1);
+    tree.insert("/*", || 2);
+    tree.insert("/users/*", || 3);
+
+    let res = vec![
+        ("/", true, 1, vec![]),
+        ("/download", true, 2, vec!["download"]),
+        ("/users/jordan", true, 3, vec!["jordan"]),
+    ];
+
+    for (u, b, a, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if let Some(res) = r {
+            assert_eq!((res.value)(), a);
+            assert_eq!(res.params.to_vec(), p);
+        }
+    }
+}
+
+#[test]
+fn root_catch_all_parameter_1() {
+    //  Pattern: /*
+    //
+    //      /                  match *
+    //      /download          match *
+    //      /users/jordan      match *
+    let mut tree = PathTree::<fn() -> usize>::new();
+
+    tree.insert("/*", || 1);
+
+    let res = vec![
+        ("/", true, 1, vec![""]),
+        ("/download", true, 1, vec!["download"]),
+        ("/users/jordan", true, 1, vec!["users/jordan"]),
+    ];
+
+    for (u, b, a, p) in res {
+        let r = tree.find(u);
+        assert_eq!(r.is_some(), b);
+        if let Some(res) = r {
+            assert_eq!((res.value)(), a);
+            assert_eq!(res.params.to_vec(), p);
+        }
+    }
+
+    tree.insert("/", || 0);
+    let r = tree.find("/");
+    assert!(r.is_some());
+    if let Some(res) = r {
+        assert_eq!((res.value)(), 0);
+        assert_eq!(res.params.to_vec(), vec![] as Vec<&str>);
+    }
+}
+
+#[test]
+fn test_named_routes_with_non_ascii_paths() {
+    let mut tree = PathTree::<usize>::new();
+    tree.insert("/", 0);
+    tree.insert("/*any", 1);
+    tree.insert("/matchme/:slug/", 2);
+
+    // ASCII only (single-byte characters)
+    let node = tree.find("/matchme/abc-s-def/");
+    assert!(node.is_some());
+    let res = node.unwrap();
+    assert_eq!(*res.value, 2);
+    assert_eq!(res.params.to_vec(), ["abc-s-def"]);
+
+    // with multibyte character
+    let node = tree.find("/matchme/abc-ß-def/");
+    assert!(node.is_some());
+    let res = node.unwrap();
+    assert_eq!(*res.value, 2);
+    assert_eq!(res.params.to_vec(), ["abc-ß-def"]);
+
+    // with emoji (fancy multibyte character)
+    let node = tree.find("/matchme/abc-⭐-def/");
+    assert!(node.is_some());
+    let res = node.unwrap();
+    assert_eq!(*res.value, 2);
+    assert_eq!(res.params.to_vec(), ["abc-⭐-def"]);
+
+    // with multibyte character right before the slash (char boundary check)
+    let node = tree.find("/matchme/abc-def-ß/");
+    assert!(node.is_some());
+    let res = node.unwrap();
+    assert_eq!(*res.value, 2);
+    assert_eq!(res.params.to_vec(), ["abc-def-ß"]);
+}
+
+#[test]
+fn test_named_wildcard_collide() {
+    let mut tree = PathTree::<usize>::new();
+    tree.insert("/git/:org/:repo", 1);
+    tree.insert("/git/*", 2);
+
+    let node = tree.find("/git/rust-lang/rust");
+    assert!(node.is_some());
+    let res = node.unwrap();
+    assert_eq!(*res.value, 1);
+    assert_eq!(res.params.to_vec(), ["rust-lang", "rust"]);
+
+    let node = tree.find("/git/rust-lang");
+    assert!(node.is_some());
+    let res = node.unwrap();
+    assert_eq!(*res.value, 2);
+    assert_eq!(res.params.to_vec(), ["rust-lang"]);
+}
+
+#[test]
 fn match_params() {
     // /
     // └── api/v1/
