@@ -64,23 +64,21 @@ impl<'a, T: fmt::Debug> PathTree<'a, T> {
         self
     }
 
-    pub fn find<'b>(
-        &'b self,
-        path: &'b str,
-    ) -> Option<(&T, &Vec<Piece<'a>>, SmallVec<[&'b str; 4]>)> {
+    pub fn find<'b>(&'a self, path: &'b str) -> Option<Path<'a, 'b, T>> {
         let bytes = path.as_bytes();
         self.node.find(bytes).and_then(|(id, ranges)| {
-            self.get_route(*id).map(|(t, p)| {
-                (
-                    t,
-                    p,
+            self.get_route(*id).map(|(value, pieces)| {
+                Path {
+                    id,
+                    value,
+                    pieces,
                     // opt!
-                    ranges
+                    params: ranges
                         .chunks(2)
                         .map(|r| from_utf8(&bytes[r[0]..r[1]]).unwrap())
                         .rev()
                         .collect(),
-                )
+                }
             })
         })
     }
@@ -94,4 +92,57 @@ impl<'a, T: fmt::Debug> PathTree<'a, T> {
     // pub fn url_for(&self, index: usize, params: Vec<String>) -> Option<String> {
     //     None
     // }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Path<'a, 'b, T> {
+    pub id: &'a usize,
+    pub value: &'a T,
+    pub pieces: &'a [Piece<'a>],
+    pub params: SmallVec<[&'b str; 4]>,
+}
+
+impl<'a, 'b, T> Path<'a, 'b, T> {
+    pub fn pattern(&self) -> String {
+        let mut bytes = Vec::new();
+
+        for piece in self.pieces {
+            match piece {
+                Piece::String(s) => {
+                    if s == b":" || s == b"+" || s == b"?" {
+                        bytes.push(b'\\');
+                    }
+                    bytes.extend_from_slice(s);
+                }
+                Piece::Parameter(p, k) => match p {
+                    Position::Index(_) => {
+                        if *k == Kind::OneOrMore {
+                            bytes.push(b'+');
+                        } else if *k == Kind::ZeroOrMore || *k == Kind::ZeroOrMoreSegment {
+                            bytes.push(b'*');
+                        }
+                    }
+                    Position::Named(n) => match k {
+                        Kind::Normal | Kind::Optional | Kind::OptionalSegment => {
+                            bytes.push(b':');
+                            bytes.extend_from_slice(n.as_bytes());
+                            if *k == Kind::Optional || *k == Kind::OptionalSegment {
+                                bytes.push(b'?');
+                            }
+                        }
+                        Kind::OneOrMore => {
+                            bytes.push(b'+');
+                            bytes.extend_from_slice(n.as_bytes());
+                        }
+                        Kind::ZeroOrMore | Kind::ZeroOrMoreSegment => {
+                            bytes.push(b'*');
+                            bytes.extend_from_slice(n.as_bytes());
+                        }
+                    },
+                },
+            }
+        }
+
+        String::from_utf8_lossy(&bytes).to_string()
+    }
 }

@@ -262,12 +262,15 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                         }
                     }
 
-                    if !bytes.contains(&b'/') {
+                    if let Some(n) = bytes.iter().position(|b| *b == b'/') {
+                        bytes = &bytes[n..];
+                    } else {
                         if let Some(id) = &self.value {
                             ranges.push(start);
                             ranges.push(start + m);
                             return Some(id);
                         }
+                        bytes = &bytes[m..];
                     }
 
                     if k == Kind::OptionalSegment {
