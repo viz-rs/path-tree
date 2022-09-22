@@ -22,27 +22,35 @@
       alt="Download" /></a>
 </div>
 
-## Features
+## Parameters Syntax
 
-- **Fast**: See benchmark
+| Pattern                    | Kind                | Description                                                                    |
+| -------------------------- | ------------------- | ------------------------------------------------------------------------------ |
+| `:name`                    | `Normal`            | Matches a path piece, excludes `/`                                             |
+| `:name?`                   | `Optional`          | Matches an optional path piece, excludes `/`                                   |
+| `/:name?/` `/:name?`       | `OptionalSegment`   | Matches an optional path segment, excludes `/`, prefix or suffix should be `/` |
+| `+` `:name+`               | `OneOrMore`         | Matches a path piece, includes `/`                                             |
+| `*` `:name*`               | `ZeroOrMore`        | Matches an optional path piece, includes `/`                                   |
+| `/*/` `/:name*/` `/:name*` | `ZeroOrMoreSegment` | Matches zero or more path segments, prefix or suffix should be `/`             |
 
-- **Micro**: The [src/lib.rs](src/lib.rs) file is ~405 lines of code (Includes comments)
+## Supports
 
-- **Flexible**:
-
-  - _**Static**_ segment. e.g. `/users`.
-
-  - _**Named**_ parameters. e.g. `:name`.
-
-  - _**Catch-All**_ parameters. e.g. `*any`, it must always be at the end of the pattern.
-
-  - Supports multiple naming for the same path segment. e.g. `/users/:id` and `/users/:user_id/repos`.
-
-  - Don't care about routes orders, recursive lookup, `Static` -> `Named` -> `Catch-All`.
+| Case                    | Parameters  |
+| ----------------------- | ----------- |
+| `:a:b`                  | `a` `b`     |
+| `:a:b?`                 | `a` `b`     |
+| `:a-:b` `:a.:b` `:a~:b` | `a` `b`     |
+| `:a_a-:b_b`             | `a_a` `b_b` |
+| `:a\\:` `:a\\_`         | `a`         |
+| `:a\\::b` `:a\\_:b`     | `a` `b`     |
+| `:a*`                   | `a`         |
+| `*`                     | `*1`        |
+| `*.*`                   | `*1` `*2`   |
+| `:a+`                   | `a`         |
+| `+`                     | `+1`        |
+| `+.+`                   | `+1` `+2`   |
 
 ## Examples
-
-- [hello-hyper](examples/hello.rs)
 
 ```rust
 use path_tree::PathTree;
@@ -119,6 +127,8 @@ let r = tree.find("/viz-rs/path-tree").unwrap();
 assert_eq!(r.value, &6);
 assert_eq!(r.params(), vec![("user", "viz-rs"), ("repo", "path-tree")]);
 
+assert_eq!(tree.url_for(*r.id, &["viz-rs", "viz"]).unwrap(), "/viz-rs/viz");
+
 let r = tree.find("/rust-lang/rust-analyzer/releases/download/2022-09-12/rust-analyzer-aarch64-apple-darwin.gz").unwrap();
 assert_eq!(r.value, &8);
 assert_eq!(
@@ -172,7 +182,11 @@ assert_eq!(r.params(), vec![("any", "js/main.js")]);
 let r = tree.find("/api/v1").unwrap();
 assert_eq!(r.value, &13);
 assert_eq!(r.params(), vec![("+1", "v1")]);
+
+assert_eq!(tree.url_for(*r.id, &["repos/viz-rs"]).unwrap(), "/api/repos/viz-rs");
 ```
+
+Hyper hello example can be found [here](examples/hello.rs).
 
 ## Benchmark
 
@@ -187,6 +201,7 @@ It is inspired by the:
 - [rax]
 - [httprouter]
 - [echo] router
+- [path-to-regexp]
 - [gofiber] router
 - [trekjs] router
 
@@ -214,6 +229,7 @@ be dual licensed as above, without any additional terms or conditions.
 [radix tree]: https://github.com/viz-rs/radix-tree
 [rax]: https://github.com/antirez/rax
 [httprouter]: https://github.com/julienschmidt/httprouter
+[path-to-regexp]: https://github.com/pillarjs/path-to-regexp
 [echo]: https://github.com/labstack/echo
 [gofiber]: https://github.com/gofiber/fiber
 [trekjs]: https://github.com/trekjs/router

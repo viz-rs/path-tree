@@ -216,7 +216,7 @@ impl<'a, T> PathTree<'a, T> {
     }
 
     /// Generates URL
-    pub fn url_for<'c>(&self, index: usize, params: &'c [&str]) -> Option<String> {
+    pub fn url_for(&self, index: usize, params: &[&str]) -> Option<String> {
         self.get_route(index).map(|(_, pieces)| {
             let mut bytes = Vec::new();
             let mut iter = params.iter();
