@@ -2206,4 +2206,9 @@ fn github_tree() {
         p.pattern(),
         "/:org/:repo/releases/download/:tag/:filename.:ext"
     );
+    assert_eq!(
+        tree.url_for(*p.id, &["viz-rs", "path-tree", "v0.5.0", "v0.5.0", "gz"])
+            .unwrap(),
+        "/viz-rs/path-tree/releases/download/v0.5.0/v0.5.0.gz"
+    );
 }

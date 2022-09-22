@@ -215,10 +215,26 @@ impl<'a, T> PathTree<'a, T> {
         self.routes.get(index)
     }
 
-    // Generates URL
-    // pub fn url_for(&self, index: usize, params: Vec<String>) -> Option<String> {
-    //     None
-    // }
+    /// Generates URL
+    pub fn url_for<'c>(&self, index: usize, params: &'c [&str]) -> Option<String> {
+        self.get_route(index).map(|(_, pieces)| {
+            let mut bytes = Vec::new();
+            let mut iter = params.iter();
+
+            pieces.iter().for_each(|piece| match piece {
+                Piece::String(s) => {
+                    bytes.extend_from_slice(s);
+                }
+                Piece::Parameter(_, _) => {
+                    if let Some(s) = iter.next() {
+                        bytes.extend_from_slice(s.as_bytes());
+                    }
+                }
+            });
+
+            String::from_utf8_lossy(&bytes).to_string()
+        })
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
