@@ -36,7 +36,7 @@ hyper = { version="0.14", features = ["full"] }
 tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread"] }
 
 [[bench]]
-name = "routers"
+name = "bench"
 harness = false
 
 [[example]]
