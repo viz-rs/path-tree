@@ -1,4 +1,4 @@
-use std::{iter::Peekable, str::CharIndices};
+use std::{borrow::Cow, iter::Peekable, str::CharIndices};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Kind {
@@ -21,16 +21,16 @@ pub enum Kind {
     // TODO: regexp
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Piece<'a> {
     String(&'a [u8]),
     Parameter(Position<'a>, Kind),
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Position<'a> {
-    Index(usize),
-    Named(&'a str),
+    Index(usize, Cow<'a, [u8]>),
+    Named(Cow<'a, [u8]>),
 }
 
 pub struct Parser<'a> {
@@ -82,7 +82,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.input[start..self.input.len()].as_bytes()
+        self.input[start..].as_bytes()
     }
 
     fn parameter(&mut self) -> (Position<'a>, Kind) {
@@ -91,13 +91,16 @@ impl<'a> Parser<'a> {
             match c {
                 '-' | '.' | '~' | '/' | '\\' | ':' => {
                     self.pos = i;
-                    return (Position::Named(&self.input[start..i]), Kind::Normal);
+                    return (
+                        Position::Named(Cow::Borrowed(self.input[start..i].as_bytes())),
+                        Kind::Normal,
+                    );
                 }
                 '?' | '+' | '*' => {
                     self.cursor.next();
                     self.pos = i + 1;
                     return (
-                        Position::Named(&self.input[start..i]),
+                        Position::Named(Cow::Borrowed(self.input[start..i].as_bytes())),
                         if c == '+' {
                             Kind::OneOrMore
                         } else {
@@ -135,7 +138,7 @@ impl<'a> Parser<'a> {
         }
 
         (
-            Position::Named(&self.input[start..self.input.len()]),
+            Position::Named(Cow::Borrowed(self.input[start..].as_bytes())),
             Kind::Normal,
         )
     }
@@ -158,7 +161,10 @@ impl<'a> Iterator for Parser<'a> {
                     self.count += 1;
                     self.pos = i + 1;
                     Some(Piece::Parameter(
-                        Position::Index(self.count),
+                        Position::Index(
+                            self.count,
+                            Cow::Owned(format!("{}{}", c, self.count).as_bytes().to_owned()),
+                        ),
                         if c == '+' {
                             Kind::OneOrMore
                         } else {

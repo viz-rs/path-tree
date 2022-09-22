@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use path_tree::*;
 use rand::seq::SliceRandom;
 
@@ -70,30 +72,34 @@ fn wildcards() {
 
     let valid_res = vec![
         ("/", 0, vec![]),
-        ("/cmd/test/", 2, vec!["test"]),
-        ("/cmd/test/3", 1, vec!["test", "3"]),
-        ("/src/", 4, vec![""]),
-        ("/src/some/file.png", 4, vec!["some/file.png"]),
+        ("/cmd/test/", 2, vec![("tool", "test")]),
+        ("/cmd/test/3", 1, vec![("tool", "test"), ("sub", "3")]),
+        ("/src/", 4, vec![("filepath", "")]),
+        ("/src/some/file.png", 4, vec![("filepath", "some/file.png")]),
         (
             "/search/someth!ng+in+ünìcodé",
             9,
-            vec!["someth!ng+in+ünìcodé"],
+            vec![("query", "someth!ng+in+ünìcodé")],
         ),
-        ("/user_rust", 11, vec!["rust"]),
-        ("/user_rust/about", 12, vec!["rust"]),
+        ("/user_rust", 11, vec![("name", "rust")]),
+        ("/user_rust/about", 12, vec![("name", "rust")]),
         (
             "/files/js/inc/framework.js",
             14,
-            vec!["js", "inc/framework.js"],
+            vec![("dir", "js"), ("filepath", "inc/framework.js")],
         ),
-        ("/info/gordon/public", 18, vec!["gordon"]),
-        ("/info/gordon/project/rust", 19, vec!["gordon", "rust"]),
+        ("/info/gordon/public", 18, vec![("user", "gordon")]),
+        (
+            "/info/gordon/project/rust",
+            19,
+            vec![("user", "gordon"), ("project", "rust")],
+        ),
     ];
 
     for (u, h, p) in valid_res {
         let res = tree.find(u).unwrap();
         assert_eq!(*res.value, h);
-        assert_eq!(res.params.to_vec(), p);
+        assert_eq!(res.params(), p);
     }
 }
 
@@ -147,7 +153,7 @@ fn static_and_named_parameter() {
         ("/a/b/c", true, "/a/b/c", vec![]),
         ("/a/c/d", true, "/a/c/d", vec![]),
         ("/a/c/a", true, "/a/c/a", vec![]),
-        ("/a/c/e", true, "/:id/c/e", vec!["a"]),
+        ("/a/c/e", true, "/:id/c/e", vec![("id", "a")]),
     ];
 
     for (u, b, a, p) in res {
@@ -155,7 +161,7 @@ fn static_and_named_parameter() {
         assert_eq!(r.is_some(), b);
         if let Some(res) = r {
             assert_eq!(*res.value, a);
-            assert_eq!(res.params.to_vec(), p);
+            assert_eq!(res.params(), p);
         }
     }
 }
@@ -181,8 +187,13 @@ fn multi_named_parameters() {
         ("/rust/", false, false, vec![]),
         ("/rust/let/", false, false, vec![]),
         ("/rust/let/const", false, false, vec![]),
-        ("/rust/let", true, true, vec!["rust", "let"]),
-        ("/rust", true, true, vec!["rust"]),
+        (
+            "/rust/let",
+            true,
+            true,
+            vec![("lang", "rust"), ("keyword", "let")],
+        ),
+        ("/rust", true, true, vec![("id", "rust")]),
     ];
 
     for (u, b, a, p) in res {
@@ -190,7 +201,7 @@ fn multi_named_parameters() {
         assert_eq!(r.is_some(), b);
         if let Some(res) = r {
             assert_eq!(*res.value, a);
-            assert_eq!(res.params.to_vec(), p);
+            assert_eq!(res.params(), p);
         }
     }
 }
@@ -209,9 +220,13 @@ fn catch_all_parameter() {
 
     let res = vec![
         ("/src", false, vec![]),
-        ("/src/", true, vec![""]),
-        ("/src/somefile.rs", true, vec!["somefile.rs"]),
-        ("/src/subdir/somefile.rs", true, vec!["subdir/somefile.rs"]),
+        ("/src/", true, vec![("filepath", "")]),
+        ("/src/somefile.rs", true, vec![("filepath", "somefile.rs")]),
+        (
+            "/src/subdir/somefile.rs",
+            true,
+            vec![("filepath", "subdir/somefile.rs")],
+        ),
         ("/src.rs", false, vec![]),
         ("/rust", false, vec![]),
     ];
@@ -221,7 +236,7 @@ fn catch_all_parameter() {
         assert_eq!(r.is_some(), b);
         if let Some(res) = r {
             assert_eq!(*res.value, "* files");
-            assert_eq!(res.params.to_vec(), p);
+            assert_eq!(res.params(), p);
         }
     }
 
@@ -231,7 +246,7 @@ fn catch_all_parameter() {
     assert!(r.is_some());
     if let Some(res) = r {
         assert_eq!(*res.value, "dir");
-        assert_eq!(res.params.to_vec(), vec![] as Vec<&str>);
+        assert_eq!(res.params(), vec![]);
     }
 }
 
@@ -257,32 +272,32 @@ fn catch_all_parameter_with_prefix() {
     assert!(r.is_some());
     if let Some(res) = r {
         assert_eq!(*res.value, "dir");
-        assert_eq!(res.params.to_vec(), vec![] as Vec<&str>);
+        assert_eq!(res.params(), vec![]);
     }
 
     let r = tree.find("/commit/123");
     assert!(r.is_some());
     if let Some(res) = r {
         assert_eq!(*res.value, "hex");
-        assert_eq!(res.params.to_vec(), vec!["123"]);
+        assert_eq!(res.params(), vec![("sha", "123")]);
     }
 
     let r = tree.find("/commit/123/compare/321");
     assert!(r.is_some());
     if let Some(res) = r {
         assert_eq!(*res.value, "compare");
-        assert_eq!(res.params.to_vec(), vec!["123", "321"]);
+        assert_eq!(res.params(), vec![("sha0", "123"), ("sha1", "321")]);
     }
 
     let res = vec![
         ("/commit", false, vec![]),
-        ("/commit_", true, vec![""]),
-        ("/commit_/", true, vec!["/"]),
-        ("/commit_/foo", true, vec!["/foo"]),
+        ("/commit_", true, vec![("sha", "")]),
+        ("/commit_/", true, vec![("sha", "/")]),
+        ("/commit_/foo", true, vec![("sha", "/foo")]),
         ("/commit123", false, vec![]),
-        ("/commit_123", true, vec!["123"]),
-        ("/commit_123/", true, vec!["123/"]),
-        ("/commit_123/foo", true, vec!["123/foo"]),
+        ("/commit_123", true, vec![("sha", "123")]),
+        ("/commit_123/", true, vec![("sha", "123/")]),
+        ("/commit_123/foo", true, vec![("sha", "123/foo")]),
     ];
 
     for (u, b, p) in res {
@@ -290,7 +305,7 @@ fn catch_all_parameter_with_prefix() {
         assert_eq!(r.is_some(), b);
         if let Some(res) = r {
             assert_eq!(*res.value, "* sha");
-            assert_eq!(res.params.to_vec(), p);
+            assert_eq!(res.params(), p);
         }
     }
 }
@@ -318,7 +333,7 @@ fn static_and_catch_all_parameter() {
         ("/a/b/c", true, "/a/b/c", vec![]),
         ("/a/c/d", true, "/a/c/d", vec![]),
         ("/a/c/a", true, "/a/c/a", vec![]),
-        ("/a/c/e", true, "/a/*c", vec!["c/e"]),
+        ("/a/c/e", true, "/a/*c", vec![("*1", "c/e")]),
     ];
 
     for (u, b, a, p) in res {
@@ -326,7 +341,7 @@ fn static_and_catch_all_parameter() {
         assert_eq!(r.is_some(), b);
         if let Some(res) = r {
             assert_eq!(*res.value, a);
-            assert_eq!(res.params.to_vec(), p);
+            assert_eq!(res.params(), p);
         }
     }
 }
@@ -348,8 +363,8 @@ fn root_catch_all_parameter() {
 
     let res = vec![
         ("/", true, 1, vec![]),
-        ("/download", true, 2, vec!["download"]),
-        ("/users/jordan", true, 3, vec!["jordan"]),
+        ("/download", true, 2, vec![("*1", "download")]),
+        ("/users/jordan", true, 3, vec![("*1", "jordan")]),
     ];
 
     for (u, b, a, p) in res {
@@ -357,7 +372,7 @@ fn root_catch_all_parameter() {
         assert_eq!(r.is_some(), b);
         if let Some(res) = r {
             assert_eq!((res.value)(), a);
-            assert_eq!(res.params.to_vec(), p);
+            assert_eq!(res.params(), p);
         }
     }
 }
@@ -374,9 +389,9 @@ fn root_catch_all_parameter_1() {
     tree.insert("/*", || 1);
 
     let res = vec![
-        ("/", true, 1, vec![""]),
-        ("/download", true, 1, vec!["download"]),
-        ("/users/jordan", true, 1, vec!["users/jordan"]),
+        ("/", true, 1, vec![("*1", "")]),
+        ("/download", true, 1, vec![("*1", "download")]),
+        ("/users/jordan", true, 1, vec![("*1", "users/jordan")]),
     ];
 
     for (u, b, a, p) in res {
@@ -384,7 +399,7 @@ fn root_catch_all_parameter_1() {
         assert_eq!(r.is_some(), b);
         if let Some(res) = r {
             assert_eq!((res.value)(), a);
-            assert_eq!(res.params.to_vec(), p);
+            assert_eq!(res.params(), p);
         }
     }
 
@@ -393,7 +408,7 @@ fn root_catch_all_parameter_1() {
     assert!(r.is_some());
     if let Some(res) = r {
         assert_eq!((res.value)(), 0);
-        assert_eq!(res.params.to_vec(), vec![] as Vec<&str>);
+        assert_eq!(res.params(), vec![]);
     }
 }
 
@@ -401,7 +416,7 @@ fn root_catch_all_parameter_1() {
 fn test_named_routes_with_non_ascii_paths() {
     let mut tree = PathTree::<usize>::new();
     tree.insert("/", 0);
-    tree.insert("/*any", 1);
+    tree.insert("/*", 1);
     tree.insert("/matchme/:slug/", 2);
 
     // ASCII only (single-byte characters)
@@ -409,28 +424,28 @@ fn test_named_routes_with_non_ascii_paths() {
     assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.value, 2);
-    assert_eq!(res.params.to_vec(), ["abc-s-def"]);
+    assert_eq!(res.params(), vec![("slug", "abc-s-def")]);
 
     // with multibyte character
     let node = tree.find("/matchme/abc-ß-def/");
     assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.value, 2);
-    assert_eq!(res.params.to_vec(), ["abc-ß-def"]);
+    assert_eq!(res.params(), vec![("slug", "abc-ß-def")]);
 
     // with emoji (fancy multibyte character)
     let node = tree.find("/matchme/abc-⭐-def/");
     assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.value, 2);
-    assert_eq!(res.params.to_vec(), ["abc-⭐-def"]);
+    assert_eq!(res.params(), vec![("slug", "abc-⭐-def")]);
 
     // with multibyte character right before the slash (char boundary check)
     let node = tree.find("/matchme/abc-def-ß/");
     assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.value, 2);
-    assert_eq!(res.params.to_vec(), ["abc-def-ß"]);
+    assert_eq!(res.params(), vec![("slug", "abc-def-ß")]);
 }
 
 #[test]
@@ -443,13 +458,13 @@ fn test_named_wildcard_collide() {
     assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.value, 1);
-    assert_eq!(res.params.to_vec(), ["rust-lang", "rust"]);
+    assert_eq!(res.params(), vec![("org", "rust-lang"), ("repo", "rust")]);
 
     let node = tree.find("/git/rust-lang");
     assert!(node.is_some());
     let res = node.unwrap();
     assert_eq!(*res.value, 2);
-    assert_eq!(res.params.to_vec(), ["rust-lang"]);
+    assert_eq!(res.params(), vec![("*1", "rust-lang")]);
 }
 
 #[test]
@@ -467,21 +482,24 @@ fn match_params() {
     let p = tree.find("/api/v1/entity/").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["entity", ""]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("*1", "")]);
     assert_eq!(p.pattern(), "/api/v1/:param/*");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
         ]
     );
 
     let p = tree.find("/api/v1/entity/1").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["entity", "1"]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("*1", "1")]);
 
     assert_eq!(tree.find("/api/v"), None);
     assert_eq!(tree.find("/api/v2"), None);
@@ -489,7 +507,7 @@ fn match_params() {
 
     let p = tree.find("/api/v1/entity/1/foo/bar").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["entity", "1/foo/bar"]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("*1", "1/foo/bar")]);
 
     // /
     // └── api/v1/
@@ -505,7 +523,7 @@ fn match_params() {
 
     let p = tree.find("/api/v1/entity/1").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["entity", "1"]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("+1", "1")]);
 
     assert_eq!(tree.find("/api/v"), None);
     assert_eq!(tree.find("/api/v2"), None);
@@ -513,7 +531,7 @@ fn match_params() {
 
     let p = tree.find("/api/v1/entity/1/foo/bar").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["entity", "1/foo/bar"]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("+1", "1/foo/bar")]);
 
     // /
     // └── api/v1/
@@ -525,13 +543,16 @@ fn match_params() {
     let p = tree.find("/api/v1/").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec![""]);
+    assert_eq!(p.params(), vec![("param", "")]);
     assert_eq!(p.pattern(), "/api/v1/:param?");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named("param"), Kind::OptionalSegment),
+            Piece::Parameter(
+                Position::Named(Cow::Borrowed(b"param")),
+                Kind::OptionalSegment
+            ),
         ]
     );
 
@@ -551,7 +572,7 @@ fn match_params() {
     let p = tree.find("/v1/some/resource/name:customVerb").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), Vec::<&str>::new());
+    assert_eq!(p.params(), vec![]);
     assert_eq!(p.pattern(), "/v1/some/resource/name\\:customVerb");
     assert_eq!(
         p.pieces,
@@ -575,12 +596,12 @@ fn match_params() {
     let p = tree.find("/v1/some/resource/test:customVerb").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["test"]);
+    assert_eq!(p.params(), vec![("name", "test")]);
     assert_eq!(
         p.pieces,
         vec![
             Piece::String(b"/v1/some/resource/"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
             Piece::String(b":"),
             Piece::String(b"customVerb"),
         ]
@@ -605,15 +626,15 @@ fn match_params() {
         .unwrap();
     assert_eq!(*p.value, 1);
     assert_eq!(
-        p.params.to_vec(),
-        vec!["test", "optionalWildCard/character"]
+        p.params(),
+        vec![("param", "test"), ("*1", "optionalWildCard/character")]
     );
 
     let p = tree
         .find("/v1/some/resource/name:customVerb??/test/")
         .unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["test", ""]);
+    assert_eq!(p.params(), vec![("param", "test"), ("*1", "")]);
 
     assert_eq!(tree.find("/v1/some/resource/name:customVerb??/test"), None);
 
@@ -628,19 +649,19 @@ fn match_params() {
 
     let p = tree.find("/api/v1/").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec![""]);
+    assert_eq!(p.params(), vec![("*1", "")]);
 
     let p = tree.find("/api/v1/entity").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["entity"]);
+    assert_eq!(p.params(), vec![("*1", "entity")]);
 
     let p = tree.find("/api/v1/entity/1/2").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["entity/1/2"]);
+    assert_eq!(p.params(), vec![("*1", "entity/1/2")]);
 
     let p = tree.find("/api/v1/Entity/1/2").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["Entity/1/2"]);
+    assert_eq!(p.params(), vec![("*1", "Entity/1/2")]);
 
     // /
     // └── api/v1/
@@ -654,7 +675,7 @@ fn match_params() {
 
     let p = tree.find("/api/v1/entity").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["entity"]);
+    assert_eq!(p.params(), vec![("param", "entity")]);
 
     assert_eq!(tree.find("/api/v1/entity/1/2"), None);
     assert_eq!(tree.find("/api/v1/Entity/1/2"), None);
@@ -685,34 +706,34 @@ fn match_params() {
 
     let p = tree.find("/api/v1/entity-entity2").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["entity", "entity2"]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("param2", "entity2")]);
 
     let p = tree.find("/api/v1/entity~entity2").unwrap();
     assert_eq!(*p.value, 2);
-    assert_eq!(p.params.to_vec(), vec!["entity", "entity2"]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("param2", "entity2")]);
 
     let p = tree.find("/api/v1/entity.entity2").unwrap();
     assert_eq!(*p.value, 4);
-    assert_eq!(p.params.to_vec(), vec!["entity", "entity2"]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("param2", "entity2")]);
 
     let p = tree.find("/api/v1/entity_entity2").unwrap();
     assert_eq!(*p.value, 5);
-    assert_eq!(p.params.to_vec(), vec!["entity", "entity2"]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("param2", "entity2")]);
 
     let p = tree.find("/api/v1/entity:entity2").unwrap();
     assert_eq!(*p.value, 6);
-    assert_eq!(p.params.to_vec(), vec!["entity", "entity2"]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("param2", "entity2")]);
 
     let p = tree.find("/api/v1/entity/entity2").unwrap();
     assert_eq!(*p.value, 3);
-    assert_eq!(p.params.to_vec(), vec!["entity", "entity2"]);
+    assert_eq!(p.params(), vec![("param", "entity"), ("param2", "entity2")]);
 
     assert_eq!(tree.find("/api/v1"), None);
     assert_eq!(tree.find("/api/v1/"), None);
 
     let p = tree.find("/api/v1/test.pdf").unwrap();
     assert_eq!(*p.value, 4);
-    assert_eq!(p.params.to_vec(), vec!["test", "pdf"]);
+    assert_eq!(p.params(), vec![("param", "test"), ("param2", "pdf")]);
 
     // /
     // └── api/v1/const •0
@@ -723,7 +744,7 @@ fn match_params() {
     let p = tree.find("/api/v1/const").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert!(p.params.is_empty());
+    assert!(p.params().is_empty());
     assert_eq!(p.pattern(), "/api/v1/const");
     assert_eq!(p.pieces, vec![Piece::String(b"/api/v1/const")]);
 
@@ -744,16 +765,16 @@ fn match_params() {
     let p = tree.find("/api/abc/fixedEnd").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["abc"]);
-    assert_eq!(p.pattern(), "/api/:param/fixedEnd");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
             Piece::String(b"/fixedEnd"),
         ]
     );
+    assert_eq!(p.params(), vec![("param", "abc")]);
+    assert_eq!(p.pattern(), "/api/:param/fixedEnd");
 
     assert_eq!(tree.find("/api/abc/def/fixedEnd"), None);
 
@@ -774,24 +795,27 @@ fn match_params() {
     let p = tree.find("/shop/product/:test/color:blue/size:xs").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["test", "blue", "xs"]);
-    assert_eq!(
-        p.pattern(),
-        r"/shop/product/\::filter/color\::color/size\::size"
-    );
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/shop/product/"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("filter"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"filter")), Kind::Normal),
             Piece::String(b"/color"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("color"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"color")), Kind::Normal),
             Piece::String(b"/size"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("size"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"size")), Kind::Normal),
         ]
+    );
+    assert_eq!(
+        p.pattern(),
+        r"/shop/product/\::filter/color\::color/size\::size"
+    );
+    assert_eq!(
+        p.params(),
+        vec![("filter", "test"), ("color", "blue"), ("size", "xs")]
     );
 
     assert_eq!(tree.find("/shop/product/test/color:blue/size:xs"), None);
@@ -806,20 +830,20 @@ fn match_params() {
     let p = tree.find("/:hello").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["hello"]);
+    assert_eq!(p.params(), vec![("param", "hello")]);
     assert_eq!(p.pattern(), "/\\::param?");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("param"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Optional),
         ]
     );
 
     let p = tree.find("/:").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec![""]);
+    assert_eq!(p.params(), vec![("param", "")]);
 
     assert_eq!(tree.find("/"), None);
 
@@ -834,20 +858,20 @@ fn match_params() {
     let p = tree.find("/test-abc").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["-", "abc"]);
+    assert_eq!(p.params(), vec![("sign", "-"), ("param", "abc")]);
     assert_eq!(p.pattern(), "/test:sign:param");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/test"),
-            Piece::Parameter(Position::Named("sign"), Kind::Normal),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"sign")), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
         ]
     );
 
     let p = tree.find("/test-_").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["-", "_"]);
+    assert_eq!(p.params(), vec![("sign", "-"), ("param", "_")]);
 
     assert_eq!(tree.find("/test-"), None);
     assert_eq!(tree.find("/test"), None);
@@ -863,21 +887,27 @@ fn match_params() {
     let p = tree.find("/abbbc").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["a", "b", "bbc"]);
+    assert_eq!(
+        p.params(),
+        vec![("param1", "a"), ("param2", "b"), ("param3", "bbc")]
+    );
     assert_eq!(p.pattern(), "/:param1:param2?:param3");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("param1"), Kind::Normal),
-            Piece::Parameter(Position::Named("param2"), Kind::Optional),
-            Piece::Parameter(Position::Named("param3"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param1")), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param2")), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param3")), Kind::Normal),
         ]
     );
 
     let p = tree.find("/ab").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["a", "", "b"]);
+    assert_eq!(
+        p.params(),
+        vec![("param1", "a"), ("param2", ""), ("param3", "b")]
+    );
 
     assert_eq!(tree.find("/a"), None);
 
@@ -892,20 +922,20 @@ fn match_params() {
     let p = tree.find("/testo").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["", "o"]);
+    assert_eq!(p.params(), vec![("optional", ""), ("mandatory", "o")]);
     assert_eq!(p.pattern(), "/test:optional?:mandatory");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/test"),
-            Piece::Parameter(Position::Named("optional"), Kind::Optional),
-            Piece::Parameter(Position::Named("mandatory"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"optional")), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"mandatory")), Kind::Normal),
         ]
     );
 
     let p = tree.find("/testoaaa").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["o", "aaa"]);
+    assert_eq!(p.params(), vec![("optional", "o"), ("mandatory", "aaa")]);
 
     assert_eq!(tree.find("/test"), None);
     assert_eq!(tree.find("/tes"), None);
@@ -921,24 +951,24 @@ fn match_params() {
     let p = tree.find("/testo").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["o", ""]);
+    assert_eq!(p.params(), vec![("optional", "o"), ("optional2", "")]);
     assert_eq!(p.pattern(), "/test:optional?:optional2?");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/test"),
-            Piece::Parameter(Position::Named("optional"), Kind::Optional),
-            Piece::Parameter(Position::Named("optional2"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"optional")), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"optional2")), Kind::Optional),
         ]
     );
 
     let p = tree.find("/testoaaa").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["o", "aaa"]);
+    assert_eq!(p.params(), vec![("optional", "o"), ("optional2", "aaa")]);
 
     let p = tree.find("/test").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["", ""]);
+    assert_eq!(p.params(), vec![("optional", ""), ("optional2", "")]);
 
     assert_eq!(tree.find("/tes"), None);
 
@@ -953,20 +983,20 @@ fn match_params() {
     let p = tree.find("/foofalsebar").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["false"]);
+    assert_eq!(p.params(), vec![("param", "false")]);
     assert_eq!(p.pattern(), "/foo:param?bar");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/foo"),
-            Piece::Parameter(Position::Named("param"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Optional),
             Piece::String(b"bar"),
         ]
     );
 
     let p = tree.find("/foobar").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec![""]);
+    assert_eq!(p.params(), vec![("param", "")]);
 
     assert_eq!(tree.find("/fooba"), None);
     assert_eq!(tree.find("/foo"), None);
@@ -982,28 +1012,28 @@ fn match_params() {
     let p = tree.find("/foofalsebar").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["false"]);
+    assert_eq!(p.params(), vec![("*1", "false")]);
     assert_eq!(p.pattern(), "/foo*bar");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/foo"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
             Piece::String(b"bar"),
         ]
     );
 
     let p = tree.find("/foobar").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec![""]);
+    assert_eq!(p.params(), vec![("*1", "")]);
 
     let p = tree.find("/foo/bar").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["/"]);
+    assert_eq!(p.params(), vec![("*1", "/")]);
 
     let p = tree.find("/foo/baz/bar").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["/baz/"]);
+    assert_eq!(p.params(), vec![("*1", "/baz/")]);
 
     assert_eq!(tree.find("/fooba"), None);
     assert_eq!(tree.find("/foo"), None);
@@ -1019,13 +1049,13 @@ fn match_params() {
     let p = tree.find("/foofalsebar").unwrap();
     assert_eq!(*p.id, 0);
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["false"]);
+    assert_eq!(p.params(), vec![("+1", "false")]);
     assert_eq!(p.pattern(), "/foo+bar");
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/foo"),
-            Piece::Parameter(Position::Index(1), Kind::OneOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"+1")), Kind::OneOrMore),
             Piece::String(b"bar"),
         ]
     );
@@ -1034,11 +1064,11 @@ fn match_params() {
 
     let p = tree.find("/foo/bar").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["/"]);
+    assert_eq!(p.params(), vec![("+1", "/")]);
 
     let p = tree.find("/foo/baz/bar").unwrap();
     assert_eq!(*p.value, 1);
-    assert_eq!(p.params.to_vec(), vec!["/baz/"]);
+    assert_eq!(p.params(), vec![("+1", "/baz/")]);
 
     assert_eq!(tree.find("/fooba"), None);
     assert_eq!(tree.find("/foo"), None);
@@ -1061,32 +1091,32 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/a"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
             Piece::String(b"cde"),
-            Piece::Parameter(Position::Index(2), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(2, Cow::Borrowed(b"*2")), Kind::ZeroOrMore),
             Piece::String(b"g/"),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["bbb", "fff"]);
     assert_eq!(p.pattern(), "/a*cde*g/");
+    assert_eq!(p.params(), vec![("*1", "bbb"), ("*2", "fff")]);
 
     let p = tree.find("/acdeg/").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["", ""]);
+    assert_eq!(p.params(), vec![("*1", ""), ("*2", "")]);
 
     let p = tree.find("/abcdeg/").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["b", ""]);
+    assert_eq!(p.params(), vec![("*1", "b"), ("*2", "")]);
 
     let p = tree.find("/acdefg/").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["", "f"]);
+    assert_eq!(p.params(), vec![("*1", ""), ("*2", "f")]);
 
     let p = tree.find("/abcdefg/").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["b", "f"]);
+    assert_eq!(p.params(), vec![("*1", "b"), ("*2", "f")]);
 
     let p = tree.find("/a/cde/g/").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["/", "/"]);
+    assert_eq!(p.params(), vec![("*1", "/"), ("*2", "/")]);
 
     let p = tree.find("/a/b/cde/f/g/").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["/b/", "/f/"]);
+    assert_eq!(p.params(), vec![("*1", "/b/"), ("*2", "/f/")]);
 
     // /
     // └── *
@@ -1103,17 +1133,17 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
             Piece::String(b"v1"),
-            Piece::Parameter(Position::Index(2), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(2, Cow::Borrowed(b"*2")), Kind::ZeroOrMore),
             Piece::String(b"/proxy"),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["customer/", "/cart"]);
     assert_eq!(p.pattern(), "/*v1*/proxy");
+    assert_eq!(p.params(), vec![("*1", "customer/"), ("*2", "/cart")]);
 
     let p = tree.find("/v1/proxy").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["", ""]);
+    assert_eq!(p.params(), vec![("*1", ""), ("*2", "")]);
 
     assert_eq!(tree.find("/v1/"), None);
 
@@ -1149,11 +1179,11 @@ fn match_params() {
         vec![
             Piece::String(b"/name"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["john"]);
     assert_eq!(p.pattern(), "/name\\::name");
+    assert_eq!(p.params(), vec![("name", "john")]);
 
     let p = tree.find("/@john").unwrap();
     assert_eq!(p.value, &2);
@@ -1161,11 +1191,11 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/@"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["john"]);
     assert_eq!(p.pattern(), "/@:name");
+    assert_eq!(p.params(), vec![("name", "john")]);
 
     let p = tree.find("/-john").unwrap();
     assert_eq!(p.value, &3);
@@ -1173,11 +1203,11 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/-"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["john"]);
     assert_eq!(p.pattern(), "/-:name");
+    assert_eq!(p.params(), vec![("name", "john")]);
 
     let p = tree.find("/.john").unwrap();
     assert_eq!(p.value, &4);
@@ -1185,11 +1215,11 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/."),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["john"]);
     assert_eq!(p.pattern(), "/.:name");
+    assert_eq!(p.params(), vec![("name", "john")]);
 
     let p = tree.find("/~john").unwrap();
     assert_eq!(p.value, &5);
@@ -1197,11 +1227,11 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/~"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["john"]);
     assert_eq!(p.pattern(), "/~:name");
+    assert_eq!(p.params(), vec![("name", "john")]);
 
     let p = tree.find("/_john").unwrap();
     assert_eq!(p.value, &6);
@@ -1209,11 +1239,11 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/_"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["john"]);
     assert_eq!(p.pattern(), "/_:name");
+    assert_eq!(p.params(), vec![("name", "john")]);
 
     let p = tree.find("/john").unwrap();
     assert_eq!(p.value, &7);
@@ -1221,11 +1251,11 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["john"]);
     assert_eq!(p.pattern(), "/:name");
+    assert_eq!(p.params(), vec![("name", "john")]);
 
     // /
     // └── api/v1/
@@ -1242,16 +1272,19 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
             Piece::String(b"/abc/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["well", "wildcard"]);
     assert_eq!(p.pattern(), "/api/v1/:param/abc/*");
+    assert_eq!(p.params(), vec![("param", "well"), ("*1", "wildcard")]);
 
     let p = tree.find("/api/v1/well/abc/").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["well", ""]);
+    assert_eq!(p.params(), vec![("param", "well"), ("*1", "")]);
 
     assert_eq!(tree.find("/api/v1/well/abc"), None);
     assert_eq!(tree.find("/api/v1/well/ttt"), None);
@@ -1275,32 +1308,41 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Named("day"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"day")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("month"), Kind::OptionalSegment),
+            Piece::Parameter(
+                Position::Named(Cow::Borrowed(b"month")),
+                Kind::OptionalSegment
+            ),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("year"), Kind::OptionalSegment),
+            Piece::Parameter(
+                Position::Named(Cow::Borrowed(b"year")),
+                Kind::OptionalSegment
+            ),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["1", "", ""]);
     assert_eq!(p.pattern(), "/api/:day/:month?/:year?");
+    assert_eq!(p.params(), vec![("day", "1"), ("month", ""), ("year", "")]);
 
     let p = tree.find("/api/1//").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["1", "", ""]);
+    assert_eq!(p.params(), vec![("day", "1"), ("month", ""), ("year", "")]);
 
     let p = tree.find("/api/1/-/").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["1", "-", ""]);
+    assert_eq!(p.params(), vec![("day", "1"), ("month", "-"), ("year", "")]);
 
     assert_eq!(tree.find("/api/1-"), None);
 
     let p = tree.find("/api/1-/").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["1-", "", ""]);
+    assert_eq!(p.params(), vec![("day", "1-"), ("month", ""), ("year", "")]);
 
     let p = tree.find("/api/1/2").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["1", "2", ""]);
+    assert_eq!(p.params(), vec![("day", "1"), ("month", "2"), ("year", "")]);
 
     let p = tree.find("/api/1/2/3").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["1", "2", "3"]);
+    assert_eq!(
+        p.params(),
+        vec![("day", "1"), ("month", "2"), ("year", "3")]
+    );
 
     // /
     // └── api/
@@ -1324,23 +1366,26 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Named("day"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"day")), Kind::Normal),
             Piece::String(b"."),
-            Piece::Parameter(Position::Named("month"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"month")), Kind::Optional),
             Piece::String(b"."),
-            Piece::Parameter(Position::Named("year"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"year")), Kind::Optional),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["1", "", ""]);
     assert_eq!(p.pattern(), "/api/:day.:month?.:year?");
+    assert_eq!(p.params(), vec![("day", "1"), ("month", ""), ("year", "")]);
 
     let p = tree.find("/api/1.2.").unwrap();
     assert_eq!(p.value, &1);
-    assert_eq!(p.params.to_vec(), vec!["1", "2", ""]);
+    assert_eq!(p.params(), vec![("day", "1"), ("month", "2"), ("year", "")]);
 
     let p = tree.find("/api/1.2.3").unwrap();
     assert_eq!(p.value, &1);
-    assert_eq!(p.params.to_vec(), vec!["1", "2", "3"]);
+    assert_eq!(
+        p.params(),
+        vec![("day", "1"), ("month", "2"), ("year", "3")]
+    );
 
     let p = tree.find("/api/1--").unwrap();
     assert_eq!(p.value, &2);
@@ -1348,23 +1393,26 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Named("day"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"day")), Kind::Normal),
             Piece::String(b"-"),
-            Piece::Parameter(Position::Named("month"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"month")), Kind::Optional),
             Piece::String(b"-"),
-            Piece::Parameter(Position::Named("year"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"year")), Kind::Optional),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["1", "", ""]);
     assert_eq!(p.pattern(), "/api/:day-:month?-:year?");
+    assert_eq!(p.params(), vec![("day", "1"), ("month", ""), ("year", "")]);
 
     let p = tree.find("/api/1-2-").unwrap();
     assert_eq!(p.value, &2);
-    assert_eq!(p.params.to_vec(), vec!["1", "2", ""]);
+    assert_eq!(p.params(), vec![("day", "1"), ("month", "2"), ("year", "")]);
 
     let p = tree.find("/api/1-2-3").unwrap();
     assert_eq!(p.value, &2);
-    assert_eq!(p.params.to_vec(), vec!["1", "2", "3"]);
+    assert_eq!(
+        p.params(),
+        vec![("day", "1"), ("month", "2"), ("year", "3")]
+    );
 
     assert_eq!(tree.find("/api/1.2-3"), None);
 
@@ -1384,8 +1432,8 @@ fn match_params() {
     let p = tree.find("/config/abc.json").unwrap();
     assert_eq!(p.value, &1);
     assert_eq!(p.pieces, vec![Piece::String(b"/config/abc.json")]);
-    assert!(p.params.is_empty());
     assert_eq!(p.pattern(), "/config/abc.json");
+    assert_eq!(p.params(), vec![]);
 
     let p = tree.find("/config/a.json").unwrap();
     assert_eq!(p.value, &2);
@@ -1393,24 +1441,24 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/config/"),
-            Piece::Parameter(Position::Index(1), Kind::OneOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"+1")), Kind::OneOrMore),
             Piece::String(b".json"),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["a"]);
     assert_eq!(p.pattern(), "/config/+.json");
+    assert_eq!(p.params(), vec![("+1", "a")]);
 
     let p = tree.find("/config/ab.json").unwrap();
     assert_eq!(p.value, &2);
-    assert_eq!(p.params.to_vec(), vec!["ab"]);
+    assert_eq!(p.params(), vec![("+1", "ab")]);
 
     let p = tree.find("/config/a/b.json").unwrap();
     assert_eq!(p.value, &2);
-    assert_eq!(p.params.to_vec(), vec!["a/b"]);
+    assert_eq!(p.params(), vec![("+1", "a/b")]);
 
     let p = tree.find("/config/a/b/abc.json").unwrap();
     assert_eq!(p.value, &2);
-    assert_eq!(p.params.to_vec(), vec!["a/b/abc"]);
+    assert_eq!(p.params(), vec![("+1", "a/b/abc")]);
 
     let p = tree.find("/config/.json").unwrap();
     assert_eq!(p.value, &3);
@@ -1418,12 +1466,12 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/config/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
             Piece::String(b".json"),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec![""]);
     assert_eq!(p.pattern(), "/config/*.json");
+    assert_eq!(p.params(), vec![("*1", "")]);
 
     // /
     // └── api/
@@ -1440,28 +1488,37 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("param"), Kind::OptionalSegment),
+            Piece::Parameter(
+                Position::Named(Cow::Borrowed(b"param")),
+                Kind::OptionalSegment
+            ),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["", ""]);
     assert_eq!(p.pattern(), "/api/*/:param?");
+    assert_eq!(p.params(), vec![("*1", ""), ("param", "")]);
 
     let p = tree.find("/api/joker").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["", "joker"]);
+    assert_eq!(p.params(), vec![("*1", ""), ("param", "joker")]);
 
     let p = tree.find("/api/joker/").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["joker", ""]);
+    assert_eq!(p.params(), vec![("*1", "joker"), ("param", "")]);
 
     let p = tree.find("/api/joker/batman").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["joker", "batman"]);
+    assert_eq!(p.params(), vec![("*1", "joker"), ("param", "batman")]);
 
     let p = tree.find("/api/joker/batman/robin").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["joker/batman", "robin"]);
+    assert_eq!(p.params(), vec![("*1", "joker/batman"), ("param", "robin")]);
 
     let p = tree.find("/api/joker/batman/robin/1").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["joker/batman/robin", "1"]);
+    assert_eq!(
+        p.params(),
+        vec![("*1", "joker/batman/robin"), ("param", "1")]
+    );
 
     // /
     // └── api/
@@ -1478,19 +1535,25 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["test", "abc"]);
     assert_eq!(p.pattern(), "/api/*/:param");
+    assert_eq!(p.params(), vec![("*1", "test"), ("param", "abc")]);
 
     let p = tree.find("/api/joker/batman/robin/1").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["joker/batman/robin", "1"]);
+    assert_eq!(
+        p.params(),
+        vec![("*1", "joker/batman/robin"), ("param", "1")]
+    );
 
     let p = tree.find("/api//joker").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["", "joker"]);
+    assert_eq!(p.params(), vec![("*1", ""), ("param", "joker")]);
 
     assert_eq!(tree.find("/api/joker"), None);
     assert_eq!(tree.find("/api/"), None);
@@ -1510,16 +1573,19 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Index(1), Kind::OneOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"+1")), Kind::OneOrMore),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["test", "abc"]);
     assert_eq!(p.pattern(), "/api/+/:param");
+    assert_eq!(p.params(), vec![("+1", "test"), ("param", "abc")]);
 
     let p = tree.find("/api/joker/batman/robin/1").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["joker/batman/robin", "1"]);
+    assert_eq!(
+        p.params(),
+        vec![("+1", "joker/batman/robin"), ("param", "1")]
+    );
 
     assert_eq!(tree.find("/api/joker"), None);
     assert_eq!(tree.find("/api/"), None);
@@ -1541,32 +1607,54 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("param2"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param2")), Kind::Normal),
         ]
     );
-    assert_eq!(p.params.to_vec(), vec!["test", "abc", "1"]);
     assert_eq!(p.pattern(), "/api/*/:param/:param2");
+    assert_eq!(
+        p.params(),
+        vec![("*1", "test"), ("param", "abc"), ("param2", "1")]
+    );
 
     assert_eq!(tree.find("/api/joker/batman"), None);
 
     let p = tree.find("/api/joker/batman-robin/1").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["joker", "batman-robin", "1"]);
+    assert_eq!(
+        p.params(),
+        vec![("*1", "joker"), ("param", "batman-robin"), ("param2", "1")]
+    );
 
     assert_eq!(tree.find("/api/joker-batman-robin-1"), None);
     assert_eq!(tree.find("/api/test/abc"), None);
 
     let p = tree.find("/api/joker/batman/robin").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["joker", "batman", "robin"]);
+    assert_eq!(
+        p.params(),
+        vec![("*1", "joker"), ("param", "batman"), ("param2", "robin")]
+    );
 
     let p = tree.find("/api/joker/batman/robin/1").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["joker/batman", "robin", "1"]);
+    assert_eq!(
+        p.params(),
+        vec![("*1", "joker/batman"), ("param", "robin"), ("param2", "1")]
+    );
 
     let p = tree.find("/api/joker/batman/robin/1/2").unwrap();
-    assert_eq!(p.params.to_vec(), vec!["joker/batman/robin", "1", "2"]);
+    assert_eq!(
+        p.params(),
+        vec![
+            ("*1", "joker/batman/robin"),
+            ("param", "1"),
+            ("param2", "2")
+        ]
+    );
 
     assert_eq!(tree.find("/api"), None);
     assert_eq!(tree.find("/api/:test"), None);
@@ -1620,115 +1708,133 @@ fn basic() {
 
     let p = tree.find("/").unwrap();
     assert_eq!(p.value, &0);
-    assert!(p.params.is_empty());
+    assert!(p.params().is_empty());
 
     let p = tree.find("/users").unwrap();
     assert_eq!(p.value, &1);
-    assert!(p.params.is_empty());
+    assert!(p.params().is_empty());
 
     let p = tree.find("/users/foo").unwrap();
     assert_eq!(p.value, &2);
-    assert_eq!(p.params.to_vec(), vec!["foo"]);
+    assert_eq!(p.params(), vec![("id", "foo")]);
 
     let p = tree.find("/users/foo/bar").unwrap();
     assert_eq!(p.value, &3);
-    assert_eq!(p.params.to_vec(), vec!["foo", "bar"]);
+    assert_eq!(p.params(), vec![("id", "foo"), ("org", "bar")]);
 
     let p = tree.find("/users/foo/repos").unwrap();
     assert_eq!(p.value, &4);
-    assert_eq!(p.params.to_vec(), vec!["foo"]);
+    assert_eq!(p.params(), vec![("user_id", "foo")]);
 
     let p = tree.find("/users/foo/repos/bar").unwrap();
     assert_eq!(p.value, &5);
-    assert_eq!(p.params.to_vec(), vec!["foo", "bar"]);
+    assert_eq!(p.params(), vec![("user_id", "foo"), ("id", "bar")]);
 
     let p = tree.find("/users/foo/repos/bar/").unwrap();
     assert_eq!(p.value, &6);
-    assert_eq!(p.params.to_vec(), vec!["foo", "bar", ""]);
+    assert_eq!(
+        p.params(),
+        vec![("user_id", "foo"), ("id", "bar"), ("any", "")]
+    );
 
     let p = tree.find("/users/foo/repos/bar/baz").unwrap();
     assert_eq!(p.value, &6);
-    assert_eq!(p.params.to_vec(), vec!["foo", "bar", "baz"]);
+    assert_eq!(
+        p.params(),
+        vec![("user_id", "foo"), ("id", "bar"), ("any", "baz")]
+    );
     assert_eq!(
         p.pieces,
         vec![
             Piece::String(b"/users/"),
-            Piece::Parameter(Position::Named("user_id"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"user_id")), Kind::Normal),
             Piece::String(b"/repos/"),
-            Piece::Parameter(Position::Named("id"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"id")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("any"), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Named(Cow::Borrowed(b"any")),
+                Kind::ZeroOrMoreSegment
+            ),
         ]
     );
 
     let p = tree.find("/:foo").unwrap();
     assert_eq!(p.value, &7);
-    assert_eq!(p.params.to_vec(), vec!["foo"]);
+    assert_eq!(p.params(), vec![("username", "foo")]);
     assert_eq!(
         p.pieces,
         vec![
             Piece::String(b"/"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("username"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"username")), Kind::Normal),
         ]
     );
 
     let p = tree.find("/foo/bar/baz/404").unwrap();
     assert_eq!(p.value, &8);
-    assert_eq!(p.params.to_vec(), vec!["foo/bar/baz/404"]);
+    assert_eq!(p.params(), vec![("*1", "foo/bar/baz/404")]);
     assert_eq!(
         p.pieces,
         vec![
             Piece::String(b"/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
         ]
     );
 
     let p = tree.find("/about").unwrap();
     assert_eq!(p.value, &9);
-    assert!(p.params.is_empty());
+    assert!(p.params().is_empty());
     assert_eq!(p.pieces, vec![Piece::String(b"/about"),]);
 
     let p = tree.find("/about/").unwrap();
     assert_eq!(p.value, &10);
-    assert!(p.params.is_empty());
+    assert!(p.params().is_empty());
     assert_eq!(p.pieces, vec![Piece::String(b"/about/"),]);
 
     let p = tree.find("/about/us").unwrap();
     assert_eq!(p.value, &11);
-    assert!(p.params.is_empty());
+    assert!(p.params().is_empty());
     assert_eq!(p.pieces, vec![Piece::String(b"/about/us"),]);
 
     let p = tree.find("/users/repos/foo").unwrap();
     assert_eq!(p.value, &12);
-    assert_eq!(p.params.to_vec(), vec!["foo"]);
+    assert_eq!(p.params(), vec![("*1", "foo")]);
     assert_eq!(
         p.pieces,
         vec![
             Piece::String(b"/users/repos/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
         ]
     );
 
     let p = tree.find("/users/repos/foo/bar").unwrap();
     assert_eq!(p.value, &12);
-    assert_eq!(p.params.to_vec(), vec!["foo/bar"]);
+    assert_eq!(p.params(), vec![("*1", "foo/bar")]);
     assert_eq!(
         p.pieces,
         vec![
             Piece::String(b"/users/repos/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
         ]
     );
 
     let p = tree.find("/-foo").unwrap();
     assert_eq!(p.value, &13);
-    assert_eq!(p.params.to_vec(), vec!["-foo"]);
+    assert_eq!(p.params(), vec![("action", "-foo")]);
     assert_eq!(
         p.pieces,
         vec![
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("action"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"action")), Kind::Normal),
         ]
     );
 }
@@ -2047,64 +2153,79 @@ fn github_tree() {
 
     let p = tree.find("/rust-lang/rust").unwrap();
     assert_eq!(p.value, &2400);
-    assert_eq!(p.params.to_vec(), vec!["rust-lang", "rust"]);
+    assert_eq!(p.params(), vec![("org", "rust-lang"), ("repo", "rust")]);
 
     let p = tree.find("/settings").unwrap();
     assert_eq!(p.value, &20);
-    assert!(p.params.is_empty());
+    assert!(p.params().is_empty());
 
     let p = tree.find("/rust-lang/rust/actions/runs/1").unwrap();
     assert_eq!(p.value, &2442);
-    assert_eq!(p.params.to_vec(), vec!["rust-lang", "rust", "1"]);
+    assert_eq!(
+        p.params(),
+        vec![("org", "rust-lang"), ("repo", "rust"), ("id", "1")]
+    );
 
     let p = tree.find("/rust-lang/rust/").unwrap();
     assert_eq!(p.value, &3000);
-    assert_eq!(p.params.to_vec(), vec!["rust-lang", "rust", ""]);
+    assert_eq!(
+        p.params(),
+        vec![("org", "rust-lang"), ("repo", "rust"), ("*1", "")]
+    );
 
     let p = tree.find("/rust-lang/rust/any").unwrap();
     assert_eq!(p.value, &3000);
-    assert_eq!(p.params.to_vec(), vec!["rust-lang", "rust", "any"]);
+    assert_eq!(
+        p.params(),
+        vec![("org", "rust-lang"), ("repo", "rust"), ("*1", "any")]
+    );
 
     let p = tree.find("/rust-lang/rust/releases/").unwrap();
     assert_eq!(p.value, &3001);
-    assert_eq!(p.params.to_vec(), vec!["rust-lang", "rust", ""]);
+    assert_eq!(
+        p.params(),
+        vec![("org", "rust-lang"), ("repo", "rust"), ("*1", "")]
+    );
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("org"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"org")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("repo"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"repo")), Kind::Normal),
             Piece::String(b"/releases/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
         ]
     );
 
     let p = tree.find("/rust-lang/rust-analyzer/releases/download/2022-09-12/rust-analyzer-aarch64-apple-darwin.gz").unwrap();
     assert_eq!(p.value, &3002);
     assert_eq!(
-        p.params.to_vec(),
+        p.params(),
         vec![
-            "rust-lang",
-            "rust-analyzer",
-            "2022-09-12",
-            "rust-analyzer-aarch64-apple-darwin",
-            "gz"
+            ("org", "rust-lang"),
+            ("repo", "rust-analyzer"),
+            ("tag", "2022-09-12"),
+            ("filename", "rust-analyzer-aarch64-apple-darwin"),
+            ("ext", "gz")
         ]
     );
     assert_eq!(
         p.pieces,
         &vec![
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("org"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"org")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("repo"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"repo")), Kind::Normal),
             Piece::String(b"/releases/download/"),
-            Piece::Parameter(Position::Named("tag"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"tag")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("filename"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"filename")), Kind::Normal),
             Piece::String(b"."),
-            Piece::Parameter(Position::Named("ext"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"ext")), Kind::Normal),
         ]
     );
     assert_eq!(

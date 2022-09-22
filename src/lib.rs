@@ -79,7 +79,7 @@ impl<'a, T: fmt::Debug> PathTree<'a, T> {
                     value,
                     pieces,
                     // opt!
-                    params: ranges
+                    raws: ranges
                         .chunks(2)
                         .map(|r| from_utf8(&bytes[r[0]..r[1]]).unwrap())
                         .rev()
@@ -105,7 +105,7 @@ pub struct Path<'a, 'b, T> {
     pub id: &'a usize,
     pub value: &'a T,
     pub pieces: &'a [Piece<'a>],
-    pub params: SmallVec<[&'b str; 4]>,
+    pub raws: SmallVec<[&'b str; 4]>,
 }
 
 impl<'a, 'b, T> Path<'a, 'b, T> {
@@ -121,7 +121,7 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
                     bytes.extend_from_slice(s);
                 }
                 Piece::Parameter(p, k) => match p {
-                    Position::Index(_) => {
+                    Position::Index(_, _) => {
                         if *k == Kind::OneOrMore {
                             bytes.push(b'+');
                         } else if *k == Kind::ZeroOrMore || *k == Kind::ZeroOrMoreSegment {
@@ -131,18 +131,18 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
                     Position::Named(n) => match k {
                         Kind::Normal | Kind::Optional | Kind::OptionalSegment => {
                             bytes.push(b':');
-                            bytes.extend_from_slice(n.as_bytes());
+                            bytes.extend_from_slice(n);
                             if *k == Kind::Optional || *k == Kind::OptionalSegment {
                                 bytes.push(b'?');
                             }
                         }
                         Kind::OneOrMore => {
                             bytes.push(b'+');
-                            bytes.extend_from_slice(n.as_bytes());
+                            bytes.extend_from_slice(n);
                         }
                         Kind::ZeroOrMore | Kind::ZeroOrMoreSegment => {
                             bytes.push(b'*');
-                            bytes.extend_from_slice(n.as_bytes());
+                            bytes.extend_from_slice(n);
                         }
                     },
                 },
@@ -150,5 +150,20 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
         }
 
         String::from_utf8_lossy(&bytes).to_string()
+    }
+
+    pub fn params(&self) -> Vec<(&'a str, &'b str)> {
+        self.pieces
+            .iter()
+            .filter_map(|piece| match piece {
+                Piece::String(_) => None,
+                Piece::Parameter(p, _) => from_utf8(match p {
+                    Position::Index(_, n) => n,
+                    Position::Named(n) => n,
+                })
+                .ok(),
+            })
+            .zip(self.raws.iter().map(|s| *s))
+            .collect()
     }
 }

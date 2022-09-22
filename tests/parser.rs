@@ -1,4 +1,5 @@
 use path_tree::*;
+use std::borrow::Cow;
 
 #[test]
 fn parses() {
@@ -7,13 +8,13 @@ fn parses() {
         [
             Piece::String(b"/shop/product/"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("filter"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"filter")), Kind::Normal),
             Piece::String(b"/color"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("color"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"color")), Kind::Normal),
             Piece::String(b"/size"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("size"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"size")), Kind::Normal),
         ],
     );
 
@@ -21,9 +22,12 @@ fn parses() {
         Parser::new("/api/v1/:param/abc/*").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
             Piece::String(b"/abc/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
         ],
     );
 
@@ -31,9 +35,9 @@ fn parses() {
         Parser::new("/api/v1/:param/+").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Index(1), Kind::OneOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"+1")), Kind::OneOrMore),
         ],
     );
 
@@ -41,7 +45,10 @@ fn parses() {
         Parser::new("/api/v1/:param?").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named("param"), Kind::OptionalSegment),
+            Piece::Parameter(
+                Position::Named(Cow::Borrowed(b"param")),
+                Kind::OptionalSegment
+            ),
         ],
     );
 
@@ -49,7 +56,10 @@ fn parses() {
         Parser::new("/api/v1/:param?").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named("param"), Kind::OptionalSegment),
+            Piece::Parameter(
+                Position::Named(Cow::Borrowed(b"param")),
+                Kind::OptionalSegment
+            ),
         ],
     );
 
@@ -57,7 +67,7 @@ fn parses() {
         Parser::new("/api/v1/:param").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
         ],
     );
 
@@ -65,7 +75,10 @@ fn parses() {
         Parser::new("/api/v1/*").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
         ],
     );
 
@@ -73,9 +86,9 @@ fn parses() {
         Parser::new("/api/v1/:param-:param2").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
             Piece::String(b"-"),
-            Piece::Parameter(Position::Named("param2"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param2")), Kind::Normal),
         ],
     );
 
@@ -83,9 +96,9 @@ fn parses() {
         Parser::new("/api/v1/:filename.:extension").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named("filename"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"filename")), Kind::Normal),
             Piece::String(b"."),
-            Piece::Parameter(Position::Named("extension"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"extension")), Kind::Normal),
         ],
     );
 
@@ -99,7 +112,7 @@ fn parses() {
         [
             Piece::String(b"/"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("param"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Optional),
         ],
     );
 
@@ -107,9 +120,9 @@ fn parses() {
         Parser::new("/:param1:param2?:param3").collect::<Vec<_>>(),
         [
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("param1"), Kind::Normal),
-            Piece::Parameter(Position::Named("param2"), Kind::Optional),
-            Piece::Parameter(Position::Named("param3"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param1")), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param2")), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param3")), Kind::Normal),
         ],
     );
 
@@ -117,8 +130,8 @@ fn parses() {
         Parser::new("/test:sign:param").collect::<Vec<_>>(),
         [
             Piece::String(b"/test"),
-            Piece::Parameter(Position::Named("sign"), Kind::Normal),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"sign")), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
         ],
     );
 
@@ -126,7 +139,7 @@ fn parses() {
         Parser::new("/foo:param?bar").collect::<Vec<_>>(),
         [
             Piece::String(b"/foo"),
-            Piece::Parameter(Position::Named("param"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Optional),
             Piece::String(b"bar"),
         ],
     );
@@ -135,7 +148,7 @@ fn parses() {
         Parser::new("/foo*bar").collect::<Vec<_>>(),
         [
             Piece::String(b"/foo"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
             Piece::String(b"bar"),
         ],
     );
@@ -144,7 +157,7 @@ fn parses() {
         Parser::new("/foo+bar").collect::<Vec<_>>(),
         [
             Piece::String(b"/foo"),
-            Piece::Parameter(Position::Index(1), Kind::OneOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"+1")), Kind::OneOrMore),
             Piece::String(b"bar"),
         ],
     );
@@ -153,9 +166,9 @@ fn parses() {
         Parser::new("/a*cde*g/").collect::<Vec<_>>(),
         [
             Piece::String(b"/a"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
             Piece::String(b"cde"),
-            Piece::Parameter(Position::Index(2), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(2, Cow::Borrowed(b"*2")), Kind::ZeroOrMore),
             Piece::String(b"g/"),
         ],
     );
@@ -165,7 +178,7 @@ fn parses() {
         [
             Piece::String(b"/name"),
             Piece::String(b":"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
 
@@ -173,7 +186,7 @@ fn parses() {
         Parser::new("/@:name").collect::<Vec<_>>(),
         [
             Piece::String(b"/@"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
 
@@ -181,7 +194,7 @@ fn parses() {
         Parser::new("/-:name").collect::<Vec<_>>(),
         [
             Piece::String(b"/-"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
 
@@ -189,7 +202,7 @@ fn parses() {
         Parser::new("/.:name").collect::<Vec<_>>(),
         [
             Piece::String(b"/."),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
 
@@ -197,7 +210,7 @@ fn parses() {
         Parser::new("/_:name").collect::<Vec<_>>(),
         [
             Piece::String(b"/_"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
 
@@ -205,7 +218,7 @@ fn parses() {
         Parser::new("/~:name").collect::<Vec<_>>(),
         [
             Piece::String(b"/~"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
         ]
     );
 
@@ -222,7 +235,7 @@ fn parses() {
         Parser::new("/v1/some/resource/:name\\:customVerb").collect::<Vec<_>>(),
         [
             Piece::String(b"/v1/some/resource/"),
-            Piece::Parameter(Position::Named("name"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
             Piece::String(b":"),
             Piece::String(b"customVerb"),
         ],
@@ -234,9 +247,12 @@ fn parses() {
             Piece::String(b"/v1/some/resource/name"),
             Piece::String(b":"),
             Piece::String(b"customVerb??/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment)
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            )
         ],
     );
 
@@ -244,11 +260,14 @@ fn parses() {
         Parser::new("/api/*/:param/:param2").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMoreSegment),
+            Piece::Parameter(
+                Position::Index(1, Cow::Borrowed(b"*1")),
+                Kind::ZeroOrMoreSegment
+            ),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("param"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("param2"), Kind::Normal)
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"param2")), Kind::Normal)
         ],
     );
 
@@ -256,8 +275,8 @@ fn parses() {
         Parser::new("/test:optional?:optional2?").collect::<Vec<_>>(),
         [
             Piece::String(b"/test"),
-            Piece::Parameter(Position::Named("optional"), Kind::Optional),
-            Piece::Parameter(Position::Named("optional2"), Kind::Optional)
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"optional")), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"optional2")), Kind::Optional)
         ],
     );
 
@@ -265,7 +284,7 @@ fn parses() {
         Parser::new("/config/+.json").collect::<Vec<_>>(),
         [
             Piece::String(b"/config/"),
-            Piece::Parameter(Position::Index(1), Kind::OneOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"+1")), Kind::OneOrMore),
             Piece::String(b".json")
         ]
     );
@@ -274,7 +293,7 @@ fn parses() {
         Parser::new("/config/*.json").collect::<Vec<_>>(),
         [
             Piece::String(b"/config/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
             Piece::String(b".json")
         ]
     );
@@ -283,11 +302,11 @@ fn parses() {
         Parser::new("/api/:day.:month?.:year?").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Named("day"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"day")), Kind::Normal),
             Piece::String(b"."),
-            Piece::Parameter(Position::Named("month"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"month")), Kind::Optional),
             Piece::String(b"."),
-            Piece::Parameter(Position::Named("year"), Kind::Optional),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"year")), Kind::Optional),
         ]
     );
 
@@ -295,11 +314,17 @@ fn parses() {
         Parser::new("/api/:day/:month?/:year?").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/"),
-            Piece::Parameter(Position::Named("day"), Kind::Normal),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"day")), Kind::Normal),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("month"), Kind::OptionalSegment),
+            Piece::Parameter(
+                Position::Named(Cow::Borrowed(b"month")),
+                Kind::OptionalSegment
+            ),
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("year"), Kind::OptionalSegment),
+            Piece::Parameter(
+                Position::Named(Cow::Borrowed(b"year")),
+                Kind::OptionalSegment
+            ),
         ]
     );
 
@@ -307,9 +332,9 @@ fn parses() {
         Parser::new("/*v1*/proxy").collect::<Vec<_>>(),
         [
             Piece::String(b"/"),
-            Piece::Parameter(Position::Index(1), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
             Piece::String(b"v1"),
-            Piece::Parameter(Position::Index(2), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Index(2, Cow::Borrowed(b"*2")), Kind::ZeroOrMore),
             Piece::String(b"/proxy")
         ]
     );
@@ -318,9 +343,9 @@ fn parses() {
         Parser::new("/:a*v1:b+/proxy").collect::<Vec<_>>(),
         [
             Piece::String(b"/"),
-            Piece::Parameter(Position::Named("a"), Kind::ZeroOrMore),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"a")), Kind::ZeroOrMore),
             Piece::String(b"v1"),
-            Piece::Parameter(Position::Named("b"), Kind::OneOrMore),
+            Piece::Parameter(Position::Named(Cow::Borrowed(b"b")), Kind::OneOrMore),
             Piece::String(b"/proxy")
         ]
     );
