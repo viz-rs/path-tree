@@ -15,7 +15,7 @@
 // #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 
 use smallvec::SmallVec;
-use std::{fmt, str::from_utf8};
+use std::str::from_utf8;
 
 mod node;
 mod parser;
@@ -30,13 +30,13 @@ pub struct PathTree<'a, T> {
     pub node: Node<'a, usize>,
 }
 
-impl<'a, T: fmt::Debug> Default for PathTree<'a, T> {
+impl<'a, T> Default for PathTree<'a, T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, T: fmt::Debug> PathTree<'a, T> {
+impl<'a, T> PathTree<'a, T> {
     pub fn new() -> Self {
         Self {
             id: 0,

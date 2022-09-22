@@ -20,9 +20,6 @@
   <a href="https://crates.io/crates/path-tree">
     <img src="https://img.shields.io/crates/d/path-tree.svg?style=flat-square"
       alt="Download" /></a>
-  <!-- Twitter -->
-  <a href="https://twitter.com/_fundon">
-    <img src="https://img.shields.io/badge/twitter-@__fundon-blue.svg?style=flat-square" alt="Twitter: @_fundon" /></a>
 </div>
 
 ## Features
@@ -50,7 +47,7 @@
 ```rust
 use path_tree::PathTree;
 
-let mut tree = PathTree::<usize>::new();
+let mut tree = PathTree::<'static, usize>::new();
 
 tree.insert("/", 0);
 tree.insert("/users", 1);

@@ -17,11 +17,8 @@ include = [
   "LICENSE-APACHE",
   "LICENSE-MIT",
   "README.md",
-  "src/lib.rs"
+  "src/*.rs"
 ]
-
-[lib]
-bench = false
 
 [dev-dependencies]
 actix-router = "0.5"
@@ -29,30 +26,21 @@ ntex-router = "0.5"
 path-table = "1.0"
 route-recognizer = "0.3"
 matchit = "0.6"
+gonzales = "0.0.3-beta"
 futures = "0.3"
 rand = "0.8"
 criterion = { version = "0.4", features = ["html_reports"] }
 hyper = { version="0.14", features = ["full"] }
 tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread"] }
-gonzales = "0.0.3-beta"
 
 [dependencies]
 memchr = "2.5.0"
 smallvec = "1.9.0"
-#
-# [[bench]]
-# name = "routers"
-# harness = false
-# path = "benches/routers.rs"
-#
-# [[example]]
-# name = "hello"
-# path = "examples/hello.rs"
-#
-# [[test]]
-# name = "basic"
-# path = "tests/basic.rs"
-#
-# [[test]]
-# name = "github"
-# path = "tests/github.rs"
+
+[[bench]]
+name = "routers"
+harness = false
+
+[[example]]
+name = "hello"
+path = "examples/hello.rs"
