@@ -5,39 +5,41 @@
 //! ```
 //! use path_tree::PathTree;
 //!
-//! // / •0
-//! // ├── api/
-//! // │   └── + •13
-//! // ├── login •1
-//! // ├── public/
-//! // │   └── ** •7
-//! // ├── s
-//! // │   ├── ettings •3
-//! // │   │   └── /
-//! // │   │       └── : •4
-//! // │   └── ignup •2
-//! // └── : •5
-//! //     └── /
-//! //         └── : •6
-//! //             └── /
-//! //                 ├── actions/
-//! //                 │   └── :
-//! //                 │       └── \:
-//! //                 │           └── : •10
-//! //                 ├── releases/download/
-//! //                 │   └── :
-//! //                 │       └── /
-//! //                 │           └── :
-//! //                 │               └── .
-//! //                 │                   └── : •8
-//! //                 ├── tags/
-//! //                 │   └── :
-//! //                 │       └── -
-//! //                 │           └── :
-//! //                 │               └── -
-//! //                 │                   └── : •9
-//! //                 ├── : •11
-//! //                 └── ** •12
+//! /*
+//! / •0
+//! ├── api/
+//! │   └── + •13
+//! ├── login •1
+//! ├── public/
+//! │   └── ** •7
+//! ├── s
+//! │   ├── ettings •3
+//! │   │   └── /
+//! │   │       └── : •4
+//! │   └── ignup •2
+//! └── : •5
+//!     └── /
+//!         └── : •6
+//!             └── /
+//!                 ├── actions/
+//!                 │   └── :
+//!                 │       └── \:
+//!                 │           └── : •10
+//!                 ├── releases/download/
+//!                 │   └── :
+//!                 │       └── /
+//!                 │           └── :
+//!                 │               └── .
+//!                 │                   └── : •8
+//!                 ├── tags/
+//!                 │   └── :
+//!                 │       └── -
+//!                 │           └── :
+//!                 │               └── -
+//!                 │                   └── : •9
+//!                 ├── : •11
+//!                 └── ** •12
+//! */
 //! let mut tree = PathTree::new();
 //!
 //! tree.insert("/", 0)
@@ -131,20 +133,7 @@
 //! ```
 
 #![forbid(unsafe_code)]
-// #![warn(
-//     missing_debug_implementations,
-//     missing_docs,
-//     rust_2018_idioms,
-//     unreachable_pub
-// )]
-// #![doc(test(
-//     no_crate_inject,
-//     attr(
-//         deny(warnings, rust_2018_idioms),
-//         allow(dead_code, unused_assignments, unused_variables)
-//     )
-// ))]
-// #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
+#![warn(rust_2018_idioms, unreachable_pub)]
 
 use smallvec::SmallVec;
 use std::str::from_utf8;
@@ -295,7 +284,7 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
                 })
                 .ok(),
             })
-            .zip(self.raws.iter().map(|s| *s))
+            .zip(self.raws.iter().copied())
             .collect()
     }
 }

@@ -47,74 +47,131 @@
 ```rust
 use path_tree::PathTree;
 
-let mut tree = PathTree::<'static, usize>::new();
+/*
+/ •0
+├── api/
+│   └── + •13
+├── login •1
+├── public/
+│   └── ** •7
+├── s
+│   ├── ettings •3
+│   │   └── /
+│   │       └── : •4
+│   └── ignup •2
+└── : •5
+    └── /
+        └── : •6
+            └── /
+                ├── actions/
+                │   └── :
+                │       └── \:
+                │           └── : •10
+                ├── releases/download/
+                │   └── :
+                │       └── /
+                │           └── :
+                │               └── .
+                │                   └── : •8
+                ├── tags/
+                │   └── :
+                │       └── -
+                │           └── :
+                │               └── -
+                │                   └── : •9
+                ├── : •11
+                └── ** •12
+*/
+let mut tree = PathTree::new();
 
-tree.insert("/", 0);
-tree.insert("/users", 1);
-tree.insert("/users/:id", 2);
-tree.insert("/users/:id/:org", 3);
-tree.insert("/users/:user_id/repos", 4);
-tree.insert("/users/:user_id/repos/:id", 5);
-tree.insert("/users/:user_id/repos/:id/*any", 6);
-tree.insert("/:username", 7);
-tree.insert("/*any", 8);
-tree.insert("/about", 9);
-tree.insert("/about/", 10);
-tree.insert("/about/us", 11);
-tree.insert("/users/repos/*any", 12);
+tree.insert("/", 0)
+    .insert("/login", 1)
+    .insert("/signup", 2)
+    .insert("/settings", 3)
+    .insert("/settings/:page", 4)
+    .insert("/:user", 5)
+    .insert("/:user/:repo", 6)
+    .insert("/public/:any*", 7)
+    .insert("/:org/:repo/releases/download/:tag/:filename.:ext", 8)
+    .insert("/:org/:repo/tags/:day-:month-:year", 9)
+    .insert("/:org/:repo/actions/:name\\::verb", 10)
+    .insert("/:org/:repo/:page", 11)
+    .insert("/:org/:repo/*", 12)
+    .insert("/api/+", 13);
 
-// Matched "/"
-let node = tree.find("/");
-assert_eq!(node.is_some(), true);
-let res = node.unwrap();
-assert_eq!(*res.0, 0);
-assert_eq!(res.1, []); // Params
+let r = tree.find("/").unwrap();
+assert_eq!(r.value, &0);
+assert_eq!(r.params(), vec![]);
 
-// Matched "/:username"
-let node = tree.find("/username");
-assert_eq!(node.is_some(), true);
-let res = node.unwrap();
-assert_eq!(*res.0, 7);
-assert_eq!(res.1, [("username", "username")]); // Params
+let r = tree.find("/login").unwrap();
+assert_eq!(r.value, &1);
+assert_eq!(r.params(), vec![]);
 
+let r = tree.find("/settings/admin").unwrap();
+assert_eq!(r.value, &4);
+assert_eq!(r.params(), vec![("page", "admin")]);
 
-// Matched "/*any"
-let node = tree.find("/user/s");
-let res = node.unwrap();
-assert_eq!(*res.0, 8);
-assert_eq!(res.1, [("any", "user/s")]);
+let r = tree.find("/viz-rs").unwrap();
+assert_eq!(r.value, &5);
+assert_eq!(r.params(), vec![("user", "viz-rs")]);
 
-// Matched "/users/:id"
-let node = tree.find("/users/fundon");
-let res = node.unwrap();
-assert_eq!(*res.0, 2);
-assert_eq!(res.1, [("id", "fundon")]); // Params
+let r = tree.find("/viz-rs/path-tree").unwrap();
+assert_eq!(r.value, &6);
+assert_eq!(r.params(), vec![("user", "viz-rs"), ("repo", "path-tree")]);
 
-// Matched "/users/:user_id/repos/:id"
-let node = tree.find("/users/fundon/repos/viz-rs");
-let res = node.unwrap();
-assert_eq!(*res.0, 5);
-assert_eq!(res.1, [("user_id", "fundon"), ("id", "viz-rs")]); // Params
-
-// Matched "/users/:user_id/repos/:id/*any"
-let node = tree.find("/users/fundon/repos/viz-rs/noder/issues");
-let res = node.unwrap();
-assert_eq!(*res.0, 6);
+let r = tree.find("/rust-lang/rust-analyzer/releases/download/2022-09-12/rust-analyzer-aarch64-apple-darwin.gz").unwrap();
+assert_eq!(r.value, &8);
 assert_eq!(
-    res.1,
-    [
-        ("user_id", "fundon"),
-        ("id", "viz-rs"),
-        ("any", "noder/issues"),
+    r.params(),
+    vec![
+        ("org", "rust-lang"),
+        ("repo", "rust-analyzer"),
+        ("tag", "2022-09-12"),
+        ("filename", "rust-analyzer-aarch64-apple-darwin"),
+        ("ext", "gz")
     ]
-); // Params
+);
 
+let r = tree.find("/rust-lang/rust-analyzer/tags/2022-09-12").unwrap();
+assert_eq!(r.value, &9);
+assert_eq!(
+    r.params(),
+    vec![
+        ("org", "rust-lang"),
+        ("repo", "rust-analyzer"),
+        ("day", "2022"),
+        ("month", "09"),
+        ("year", "12")
+    ]
+);
 
-// Matched "/users/repos/*any"
-let node = tree.find("/users/repos/");
-let res = node.unwrap();
-assert_eq!(*res.0, 12);
-assert_eq!(res.1, []);
+let r = tree.find("/rust-lang/rust-analyzer/actions/ci:bench").unwrap();
+assert_eq!(r.value, &10);
+assert_eq!(
+    r.params(),
+    vec![
+        ("org", "rust-lang"),
+        ("repo", "rust-analyzer"),
+        ("name", "ci"),
+        ("verb", "bench"),
+    ]
+);
+
+let r = tree.find("/rust-lang/rust-analyzer/stargazers").unwrap();
+assert_eq!(r.value, &11);
+assert_eq!(r.params(), vec![("org", "rust-lang"), ("repo", "rust-analyzer"), ("page", "stargazers")]);
+
+let r = tree.find("/rust-lang/rust-analyzer/stargazers/404").unwrap();
+assert_eq!(r.value, &12);
+assert_eq!(r.params(), vec![("org", "rust-lang"), ("repo", "rust-analyzer"), ("*1", "stargazers/404")]);
+
+let r = tree.find("/public/js/main.js").unwrap();
+assert_eq!(r.value, &7);
+assert_eq!(r.params(), vec![("any", "js/main.js")]);
+
+let r = tree.find("/api/v1").unwrap();
+assert_eq!(r.value, &13);
+assert_eq!(r.params(), vec![("+1", "v1")]);
 ```
 
 ## Benchmark
@@ -130,6 +187,7 @@ It is inspired by the:
 - [rax]
 - [httprouter]
 - [echo] router
+- [gofiber] router
 - [trekjs] router
 
 ## Other languages
@@ -157,4 +215,5 @@ be dual licensed as above, without any additional terms or conditions.
 [rax]: https://github.com/antirez/rax
 [httprouter]: https://github.com/julienschmidt/httprouter
 [echo]: https://github.com/labstack/echo
+[gofiber]: https://github.com/gofiber/fiber
 [trekjs]: https://github.com/trekjs/router
