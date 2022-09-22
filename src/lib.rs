@@ -135,8 +135,9 @@
 #![forbid(unsafe_code)]
 #![warn(rust_2018_idioms, unreachable_pub)]
 
-use smallvec::SmallVec;
 use std::str::from_utf8;
+
+use smallvec::SmallVec;
 
 mod node;
 mod parser;
@@ -145,28 +146,28 @@ pub use node::{Node, NodeKind};
 pub use parser::{Kind, Parser, Piece, Position};
 
 #[derive(Debug)]
-pub struct PathTree<'a, T> {
+pub struct PathTree<T> {
     id: usize,
-    routes: Vec<(T, Vec<Piece<'a>>)>,
-    pub node: Node<'a, usize>,
+    routes: Vec<(T, Vec<Piece>)>,
+    pub node: Node<usize>,
 }
 
-impl<'a, T> Default for PathTree<'a, T> {
+impl<T> Default for PathTree<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, T> PathTree<'a, T> {
+impl<T> PathTree<T> {
     pub fn new() -> Self {
         Self {
             id: 0,
             routes: Vec::new(),
-            node: Node::new(NodeKind::String("".as_bytes()), None),
+            node: Node::new(NodeKind::String("".as_bytes().to_vec()), None),
         }
     }
 
-    pub fn insert(&mut self, path: &'a str, value: T) -> &mut Self {
+    pub fn insert(&mut self, path: &str, value: T) -> &mut Self {
         if path.is_empty() {
             return self;
         }
@@ -174,10 +175,10 @@ impl<'a, T> PathTree<'a, T> {
         let mut node = &mut self.node;
         let pieces = Parser::new(path).collect::<Vec<_>>();
 
-        for piece in &pieces {
+        for piece in pieces.iter() {
             match piece {
                 Piece::String(s) => {
-                    node = node.insert_bytes(s);
+                    node = node.insert_bytes(&s[..]);
                 }
                 Piece::Parameter(_, k) => {
                     node = node.insert_parameter(*k);
@@ -191,7 +192,7 @@ impl<'a, T> PathTree<'a, T> {
         self
     }
 
-    pub fn find<'b>(&'a self, path: &'b str) -> Option<Path<'a, 'b, T>> {
+    pub fn find<'a, 'b>(&'a self, path: &'b str) -> Option<Path<'a, 'b, T>> {
         let bytes = path.as_bytes();
         self.node.find(bytes).and_then(|(id, ranges)| {
             self.get_route(*id).map(|(value, pieces)| {
@@ -211,7 +212,7 @@ impl<'a, T> PathTree<'a, T> {
     }
 
     #[inline]
-    pub fn get_route(&self, index: usize) -> Option<&(T, Vec<Piece<'a>>)> {
+    pub fn get_route(&self, index: usize) -> Option<&(T, Vec<Piece>)> {
         self.routes.get(index)
     }
 
@@ -241,7 +242,7 @@ impl<'a, T> PathTree<'a, T> {
 pub struct Path<'a, 'b, T> {
     pub id: &'a usize,
     pub value: &'a T,
-    pub pieces: &'a [Piece<'a>],
+    pub pieces: &'a [Piece],
     pub raws: SmallVec<[&'b str; 4]>,
 }
 

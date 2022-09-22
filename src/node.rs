@@ -1,28 +1,29 @@
-use smallvec::SmallVec;
 use std::{
     cmp::Ordering,
     fmt::{self, Write},
 };
 
+use smallvec::SmallVec;
+
 use crate::Kind;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum NodeKind<'a> {
-    String(&'a [u8]),
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum NodeKind {
+    String(Vec<u8>),
     Parameter(Kind),
 }
 
-pub struct Node<'a, T> {
+pub struct Node<T> {
     pub value: Option<T>,
-    pub kind: NodeKind<'a>,
+    pub kind: NodeKind,
     /// Stores string node
     pub nodes0: Option<Vec<Self>>,
     /// Stores parameter node
     pub nodes1: Option<Vec<Self>>,
 }
 
-impl<'a, T: fmt::Debug> Node<'a, T> {
-    pub fn new(kind: NodeKind<'a>, value: Option<T>) -> Self {
+impl<T: fmt::Debug> Node<T> {
+    pub fn new(kind: NodeKind, value: Option<T>) -> Self {
         Self {
             kind,
             value,
@@ -31,11 +32,11 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
         }
     }
 
-    pub fn insert_bytes(&mut self, mut bytes: &'a [u8]) -> &mut Self {
+    pub fn insert_bytes(&mut self, mut bytes: &[u8]) -> &mut Self {
         let (cursor, diff) = match &mut self.kind {
             NodeKind::String(p) => {
                 if p.is_empty() {
-                    *p = bytes;
+                    *p = bytes.to_vec();
                     return self;
                 }
 
@@ -53,8 +54,8 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                         // split node
                         if cursor < p.len() {
                             let (prefix, suffix) = p.split_at(cursor);
-                            let mut node = Node::new(NodeKind::String(prefix), None);
-                            *p = suffix;
+                            let mut node = Node::new(NodeKind::String(prefix.to_vec()), None);
+                            *p = suffix.to_vec();
                             ::std::mem::swap(self, &mut node);
                             self.nodes0.get_or_insert_with(Vec::new).push(node);
                         }
@@ -69,7 +70,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
         if diff {
             bytes = &bytes[cursor..];
             let nodes = self.nodes0.get_or_insert_with(Vec::new);
-            return match nodes.binary_search_by(|node| match node.kind {
+            return match nodes.binary_search_by(|node| match &node.kind {
                 NodeKind::String(s) => {
                     // s[0].cmp(&bytes[0])
                     // opt!
@@ -80,7 +81,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
             }) {
                 Ok(i) => nodes[i].insert_bytes(bytes),
                 Err(i) => {
-                    nodes.insert(i, Node::new(NodeKind::String(bytes), None));
+                    nodes.insert(i, Node::new(NodeKind::String(bytes.to_vec()), None));
                     &mut nodes[i]
                 }
             };
@@ -111,7 +112,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
         ranges: &mut SmallVec<[usize; 8]>,
     ) -> Option<&T> {
         let mut m = bytes.len();
-        match self.kind {
+        match &self.kind {
             NodeKind::String(s) => {
                 let n = s.len();
                 let mut flag = m >= n;
@@ -139,7 +140,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                         // static
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes
-                                .binary_search_by(|node| match node.kind {
+                                .binary_search_by(|node| match &node.kind {
                                     NodeKind::String(s) => {
                                         // s[0].cmp(&bytes[0])
                                         // opt!
@@ -262,7 +263,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                 // }
                 Kind::Normal | Kind::Optional | Kind::OptionalSegment => {
                     if m == 0 {
-                        if k == Kind::Normal {
+                        if k == &Kind::Normal {
                             return None;
                         } else {
                             // last
@@ -277,7 +278,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                     } else {
                         // static
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
-                            nodes.iter().find_map(|node| match node.kind {
+                            nodes.iter().find_map(|node| match &node.kind {
                                 NodeKind::String(s) => {
                                     bytes.iter().position(|b| s[0] == *b).and_then(|n| {
                                         node._find(start + n, &bytes[n..], ranges).map(|id| {
@@ -315,14 +316,14 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                     }
 
                     // parameter => `:a:b?:c?`
-                    if k == Kind::Optional || k == Kind::OptionalSegment {
+                    if k == &Kind::Optional || k == &Kind::OptionalSegment {
                         if let Some(id) = self.nodes1.as_ref().and_then(|nodes| {
                             let b = m > 0;
                             nodes
                                 .iter()
-                                .filter(|node| match node.kind {
+                                .filter(|node| match &node.kind {
                                     NodeKind::Parameter(pk)
-                                        if pk == Kind::Normal || pk == Kind::OneOrMore =>
+                                        if pk == &Kind::Normal || pk == &Kind::OneOrMore =>
                                     {
                                         b
                                     }
@@ -348,11 +349,11 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                         bytes = &bytes[m..];
                     }
 
-                    if k == Kind::OptionalSegment {
+                    if k == &Kind::OptionalSegment {
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes
                                 .last()
-                                .filter(|node| match node.kind {
+                                .filter(|node| match &node.kind {
                                     NodeKind::String(s) => s[0] == b'/',
                                     _ => unreachable!(),
                                 })
@@ -365,7 +366,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                     }
                 }
                 Kind::OneOrMore | Kind::ZeroOrMore | Kind::ZeroOrMoreSegment => {
-                    let is_one_or_more = k == Kind::OneOrMore;
+                    let is_one_or_more = k == &Kind::OneOrMore;
                     if m == 0 {
                         if is_one_or_more {
                             return None;
@@ -391,7 +392,7 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                         // static
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes.iter().find_map(|node| {
-                                if let NodeKind::String(s) = node.kind {
+                                if let NodeKind::String(s) = &node.kind {
                                     let right_length = if is_one_or_more {
                                         m > s.len()
                                     } else {
@@ -422,11 +423,11 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                         }
                     }
 
-                    if k == Kind::ZeroOrMoreSegment {
+                    if k == &Kind::ZeroOrMoreSegment {
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes
                                 .last()
-                                .filter(|node| match node.kind {
+                                .filter(|node| match &node.kind {
                                     NodeKind::String(s) => s[0] == b'/',
                                     _ => unreachable!(),
                                 })
@@ -450,16 +451,16 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
     }
 }
 
-impl<'a, T: fmt::Debug> fmt::Debug for Node<'a, T> {
+impl<T: fmt::Debug> fmt::Debug for Node<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         const EDGE: &str = "├──";
         const LINE: &str = "│  ";
         const CORNER: &str = "└──";
         const BLANK: &str = "   ";
 
-        fn print_nodes<'a, T: fmt::Debug>(
+        fn print_nodes<T: fmt::Debug>(
             f: &mut fmt::Formatter<'_>,
-            nodes: &Vec<Node<'a, T>>,
+            nodes: &Vec<Node<T>>,
             check: bool,
             pad: &str,
             space: &str,
@@ -478,9 +479,9 @@ impl<'a, T: fmt::Debug> fmt::Debug for Node<'a, T> {
             Ok(())
         }
 
-        fn print_tree<'a, T: fmt::Debug>(
+        fn print_tree<T: fmt::Debug>(
             f: &mut fmt::Formatter<'_>,
-            node: &Node<'a, T>,
+            node: &Node<T>,
             root: bool,
             pad: &str,
         ) -> fmt::Result {
