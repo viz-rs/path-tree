@@ -1664,179 +1664,153 @@ fn match_params() {
 fn basic() {
     let mut tree = PathTree::<'static, usize>::new();
 
-    tree.insert("/", 0);
-    tree.insert("/users", 1);
-    tree.insert("/users/:id", 2);
-    tree.insert("/users/:id/:org", 3);
-    tree.insert("/users/:user_id/repos", 4);
-    tree.insert("/users/:user_id/repos/:id", 5);
-    tree.insert("/users/:user_id/repos/:id/:any*", 6);
-    tree.insert(r"/\\::username", 7);
-    tree.insert("/*", 8);
-    tree.insert("/about", 9);
-    tree.insert("/about/", 10);
-    tree.insert("/about/us", 11);
-    tree.insert("/users/repos/*", 12);
-    tree.insert("/:action", 13);
-    tree.insert("", 14);
+    tree.insert("/", 0)
+        .insert("/login", 1)
+        .insert("/signup", 2)
+        .insert("/settings", 3)
+        .insert("/settings/:page", 4)
+        .insert("/:user", 5)
+        .insert("/:user/:repo", 6)
+        .insert("/public/:any*", 7)
+        .insert("/:org/:repo/releases/download/:tag/:filename.:ext", 8)
+        .insert("/:org/:repo/tags/:day-:month-:year", 9)
+        .insert("/:org/:repo/actions/:name\\::verb", 10)
+        .insert("/:org/:repo/:page", 11)
+        .insert("/:org/:repo/*", 12)
+        .insert("/api/+", 13);
 
     assert_eq!(
         format!("{:?}", &tree.node),
         r#"
 / •0
-├── \:
-│   └── : •7
-├── about •9
-│   └── / •10
-│       └── us •11
-├── users •1
-│   └── /
-│       ├── repos/
-│       │   └── ** •12
-│       └── : •2
-│           └── /
-│               ├── repos •4
-│               │   └── /
-│               │       └── : •5
-│               │           └── /
-│               │               └── ** •6
-│               └── : •3
-├── : •13
-└── ** •8
+├── api/
+│   └── + •13
+├── login •1
+├── public/
+│   └── ** •7
+├── s
+│   ├── ettings •3
+│   │   └── /
+│   │       └── : •4
+│   └── ignup •2
+└── : •5
+    └── /
+        └── : •6
+            └── /
+                ├── actions/
+                │   └── :
+                │       └── \:
+                │           └── : •10
+                ├── releases/download/
+                │   └── :
+                │       └── /
+                │           └── :
+                │               └── .
+                │                   └── : •8
+                ├── tags/
+                │   └── :
+                │       └── -
+                │           └── :
+                │               └── -
+                │                   └── : •9
+                ├── : •11
+                └── ** •12
 "#
     );
 
-    let p = tree.find("/").unwrap();
-    assert_eq!(p.value, &0);
-    assert!(p.params().is_empty());
+    let r = tree.find("/").unwrap();
+    assert_eq!(r.value, &0);
+    assert_eq!(r.params(), vec![]);
 
-    let p = tree.find("/users").unwrap();
-    assert_eq!(p.value, &1);
-    assert!(p.params().is_empty());
+    let r = tree.find("/login").unwrap();
+    assert_eq!(r.value, &1);
+    assert_eq!(r.params(), vec![]);
 
-    let p = tree.find("/users/foo").unwrap();
-    assert_eq!(p.value, &2);
-    assert_eq!(p.params(), vec![("id", "foo")]);
+    let r = tree.find("/settings/admin").unwrap();
+    assert_eq!(r.value, &4);
+    assert_eq!(r.params(), vec![("page", "admin")]);
 
-    let p = tree.find("/users/foo/bar").unwrap();
-    assert_eq!(p.value, &3);
-    assert_eq!(p.params(), vec![("id", "foo"), ("org", "bar")]);
+    let r = tree.find("/viz-rs").unwrap();
+    assert_eq!(r.value, &5);
+    assert_eq!(r.params(), vec![("user", "viz-rs")]);
 
-    let p = tree.find("/users/foo/repos").unwrap();
-    assert_eq!(p.value, &4);
-    assert_eq!(p.params(), vec![("user_id", "foo")]);
+    let r = tree.find("/viz-rs/path-tree").unwrap();
+    assert_eq!(r.value, &6);
+    assert_eq!(r.params(), vec![("user", "viz-rs"), ("repo", "path-tree")]);
 
-    let p = tree.find("/users/foo/repos/bar").unwrap();
-    assert_eq!(p.value, &5);
-    assert_eq!(p.params(), vec![("user_id", "foo"), ("id", "bar")]);
-
-    let p = tree.find("/users/foo/repos/bar/").unwrap();
-    assert_eq!(p.value, &6);
+    let r = tree.find("/rust-lang/rust-analyzer/releases/download/2022-09-12/rust-analyzer-aarch64-apple-darwin.gz").unwrap();
+    assert_eq!(r.value, &8);
     assert_eq!(
-        p.params(),
-        vec![("user_id", "foo"), ("id", "bar"), ("any", "")]
-    );
-
-    let p = tree.find("/users/foo/repos/bar/baz").unwrap();
-    assert_eq!(p.value, &6);
-    assert_eq!(
-        p.params(),
-        vec![("user_id", "foo"), ("id", "bar"), ("any", "baz")]
-    );
-    assert_eq!(
-        p.pieces,
+        r.params(),
         vec![
-            Piece::String(b"/users/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"user_id")), Kind::Normal),
-            Piece::String(b"/repos/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"id")), Kind::Normal),
-            Piece::String(b"/"),
-            Piece::Parameter(
-                Position::Named(Cow::Borrowed(b"any")),
-                Kind::ZeroOrMoreSegment
-            ),
+            ("org", "rust-lang"),
+            ("repo", "rust-analyzer"),
+            ("tag", "2022-09-12"),
+            ("filename", "rust-analyzer-aarch64-apple-darwin"),
+            ("ext", "gz")
         ]
     );
 
-    let p = tree.find("/:foo").unwrap();
-    assert_eq!(p.value, &7);
-    assert_eq!(p.params(), vec![("username", "foo")]);
+    let r = tree
+        .find("/rust-lang/rust-analyzer/tags/2022-09-12")
+        .unwrap();
+    assert_eq!(r.value, &9);
     assert_eq!(
-        p.pieces,
+        r.params(),
         vec![
-            Piece::String(b"/"),
-            Piece::String(b":"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"username")), Kind::Normal),
+            ("org", "rust-lang"),
+            ("repo", "rust-analyzer"),
+            ("day", "2022"),
+            ("month", "09"),
+            ("year", "12")
         ]
     );
 
-    let p = tree.find("/foo/bar/baz/404").unwrap();
-    assert_eq!(p.value, &8);
-    assert_eq!(p.params(), vec![("*1", "foo/bar/baz/404")]);
+    let r = tree
+        .find("/rust-lang/rust-analyzer/actions/ci:bench")
+        .unwrap();
+    assert_eq!(r.value, &10);
     assert_eq!(
-        p.pieces,
+        r.params(),
         vec![
-            Piece::String(b"/"),
-            Piece::Parameter(
-                Position::Index(1, Cow::Borrowed(b"*1")),
-                Kind::ZeroOrMoreSegment
-            ),
+            ("org", "rust-lang"),
+            ("repo", "rust-analyzer"),
+            ("name", "ci"),
+            ("verb", "bench"),
         ]
     );
 
-    let p = tree.find("/about").unwrap();
-    assert_eq!(p.value, &9);
-    assert!(p.params().is_empty());
-    assert_eq!(p.pieces, vec![Piece::String(b"/about"),]);
-
-    let p = tree.find("/about/").unwrap();
-    assert_eq!(p.value, &10);
-    assert!(p.params().is_empty());
-    assert_eq!(p.pieces, vec![Piece::String(b"/about/"),]);
-
-    let p = tree.find("/about/us").unwrap();
-    assert_eq!(p.value, &11);
-    assert!(p.params().is_empty());
-    assert_eq!(p.pieces, vec![Piece::String(b"/about/us"),]);
-
-    let p = tree.find("/users/repos/foo").unwrap();
-    assert_eq!(p.value, &12);
-    assert_eq!(p.params(), vec![("*1", "foo")]);
+    let r = tree.find("/rust-lang/rust-analyzer/stargazers").unwrap();
+    assert_eq!(r.value, &11);
     assert_eq!(
-        p.pieces,
+        r.params(),
         vec![
-            Piece::String(b"/users/repos/"),
-            Piece::Parameter(
-                Position::Index(1, Cow::Borrowed(b"*1")),
-                Kind::ZeroOrMoreSegment
-            ),
+            ("org", "rust-lang"),
+            ("repo", "rust-analyzer"),
+            ("page", "stargazers")
         ]
     );
 
-    let p = tree.find("/users/repos/foo/bar").unwrap();
-    assert_eq!(p.value, &12);
-    assert_eq!(p.params(), vec![("*1", "foo/bar")]);
+    let r = tree
+        .find("/rust-lang/rust-analyzer/stargazers/404")
+        .unwrap();
+    assert_eq!(r.value, &12);
     assert_eq!(
-        p.pieces,
+        r.params(),
         vec![
-            Piece::String(b"/users/repos/"),
-            Piece::Parameter(
-                Position::Index(1, Cow::Borrowed(b"*1")),
-                Kind::ZeroOrMoreSegment
-            ),
+            ("org", "rust-lang"),
+            ("repo", "rust-analyzer"),
+            ("*1", "stargazers/404")
         ]
     );
 
-    let p = tree.find("/-foo").unwrap();
-    assert_eq!(p.value, &13);
-    assert_eq!(p.params(), vec![("action", "-foo")]);
-    assert_eq!(
-        p.pieces,
-        vec![
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"action")), Kind::Normal),
-        ]
-    );
+    let r = tree.find("/public/js/main.js").unwrap();
+    assert_eq!(r.value, &7);
+    assert_eq!(r.params(), vec![("any", "js/main.js")]);
+
+    let r = tree.find("/api/v1").unwrap();
+    assert_eq!(r.value, &13);
+    assert_eq!(r.params(), vec![("+1", "v1")]);
 }
 
 #[test]
