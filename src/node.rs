@@ -398,8 +398,12 @@ impl<'a, T: fmt::Debug> Node<'a, T> {
                                         m >= s.len()
                                     };
                                     if right_length {
-                                        return memchr::memmem::find_iter(bytes, s)
-                                            .into_iter()
+                                        return bytes
+                                            .iter()
+                                            .enumerate()
+                                            .filter_map(
+                                                |(n, b)| if s[0] == *b { Some(n) } else { None },
+                                            )
                                             .find_map(|n| {
                                                 node._find(start + n, &bytes[n..], ranges).map(
                                                     |id| {

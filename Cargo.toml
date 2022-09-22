@@ -20,6 +20,9 @@ include = [
   "src/*.rs"
 ]
 
+[dependencies]
+smallvec = "1.9.0"
+
 [dev-dependencies]
 actix-router = "0.5"
 ntex-router = "0.5"
@@ -32,10 +35,6 @@ rand = "0.8"
 criterion = { version = "0.4", features = ["html_reports"] }
 hyper = { version="0.14", features = ["full"] }
 tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread"] }
-
-[dependencies]
-memchr = "2.5.0"
-smallvec = "1.9.0"
 
 [[bench]]
 name = "routers"
