@@ -167,7 +167,7 @@ impl<T> PathTree<T> {
         }
     }
 
-    pub fn insert(&mut self, path: &'a str, value: T) -> usize {
+    pub fn insert(&mut self, path: &str, value: T) -> usize {
         if path.is_empty() {
             return self.id;
         }
