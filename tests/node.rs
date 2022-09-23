@@ -2,7 +2,7 @@ use path_tree::*;
 
 #[test]
 fn github_nodes() {
-    let mut node = Node::<'static, usize>::new(NodeKind::String(b"/"), None);
+    let mut node = Node::<usize>::new(NodeKind::String(b"/".to_vec()), None);
 
     let mut n = node.insert_bytes(b"/");
     n = n.insert_parameter(Kind::Normal);

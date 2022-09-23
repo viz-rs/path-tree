@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // │   ├── rust •3
     // │   └── ** •1
     // └── POST/login •4
-    let mut tree = PathTree::<'static, Box<dyn Handler>>::new();
+    let mut tree = PathTree::<Box<dyn Handler>>::new();
     tree.insert("/GET/", Box::new(index));
     tree.insert("/GET/*", Box::new(hello_world));
     tree.insert("/GET/hello/:name", Box::new(hello_user));
