@@ -34,7 +34,7 @@ impl<T: fmt::Debug> Node<T> {
     }
 
     pub fn insert_bytes(&mut self, mut bytes: &[u8]) -> &mut Self {
-        let (cursor, diff) = match &mut self.kind {
+        let diff = match &mut self.kind {
             NodeKind::String(p) => {
                 if p.is_empty() {
                     *p = bytes.to_vec();
@@ -47,29 +47,30 @@ impl<T: fmt::Debug> Node<T> {
                     .take_while(|(a, b)| a == b)
                     .count();
 
-                (
-                    cursor,
-                    if cursor == 0 {
+                if cursor == 0 {
+                    true
+                } else {
+                    // split node
+                    if cursor < p.len() {
+                        let (prefix, suffix) = p.split_at(cursor);
+                        let mut node = Node::new(NodeKind::String(prefix.to_vec()), None);
+                        *p = suffix.to_vec();
+                        ::std::mem::swap(self, &mut node);
+                        self.nodes0.get_or_insert_with(Vec::new).push(node);
+                    }
+                    if cursor != bytes.len() {
+                        bytes = &bytes[cursor..];
                         true
                     } else {
-                        // split node
-                        if cursor < p.len() {
-                            let (prefix, suffix) = p.split_at(cursor);
-                            let mut node = Node::new(NodeKind::String(prefix.to_vec()), None);
-                            *p = suffix.to_vec();
-                            ::std::mem::swap(self, &mut node);
-                            self.nodes0.get_or_insert_with(Vec::new).push(node);
-                        }
-                        cursor != bytes.len()
-                    },
-                )
+                        false
+                    }
+                }
             }
-            NodeKind::Parameter(_) => (0, true),
+            NodeKind::Parameter(_) => true,
         };
 
         // insert node
         if diff {
-            bytes = &bytes[cursor..];
             let nodes = self.nodes0.get_or_insert_with(Vec::new);
             return match nodes.binary_search_by(|node| match &node.kind {
                 NodeKind::String(s) => {
