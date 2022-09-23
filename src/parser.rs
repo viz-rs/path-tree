@@ -162,10 +162,7 @@ impl<'a> Iterator for Parser<'a> {
                     self.count += 1;
                     self.pos = i + 1;
                     Some(Piece::Parameter(
-                        Position::Index(
-                            self.count,
-                            format!("{}{}", c, self.count).into_bytes(),
-                        ),
+                        Position::Index(self.count, format!("{}{}", c, self.count).into_bytes()),
                         if c == '+' {
                             Kind::OneOrMore
                         } else {
