@@ -132,10 +132,17 @@
 //! assert_eq!(r.params(), vec![("+1", "v1")]);
 //! ```
 
+#![no_std]
 #![forbid(unsafe_code)]
 #![warn(rust_2018_idioms, unreachable_pub)]
 
-use std::str::from_utf8;
+extern crate alloc;
+
+use alloc::{
+    string::{String, ToString as _},
+    vec::Vec,
+};
+use core::str::from_utf8;
 
 use smallvec::SmallVec;
 

@@ -1,4 +1,5 @@
-use std::{iter::Peekable, str::CharIndices};
+use alloc::{format, vec::Vec};
+use core::{iter::Peekable, str::CharIndices};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Kind {
@@ -163,7 +164,7 @@ impl<'a> Iterator for Parser<'a> {
                     Some(Piece::Parameter(
                         Position::Index(
                             self.count,
-                            format!("{}{}", c, self.count).as_bytes().to_owned(),
+                            format!("{}{}", c, self.count).into_bytes(),
                         ),
                         if c == '+' {
                             Kind::OneOrMore

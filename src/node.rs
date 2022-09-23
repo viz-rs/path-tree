@@ -1,4 +1,5 @@
-use std::{
+use alloc::{format, string::String, vec::Vec};
+use core::{
     cmp::Ordering,
     fmt::{self, Write},
     ops::Range,
@@ -55,7 +56,7 @@ impl<T: fmt::Debug> Node<T> {
                         let (prefix, suffix) = p.split_at(cursor);
                         let mut node = Node::new(NodeKind::String(prefix.to_vec()), None);
                         *p = suffix.to_vec();
-                        ::std::mem::swap(self, &mut node);
+                        ::core::mem::swap(self, &mut node);
                         self.nodes0.get_or_insert_with(Vec::new).push(node);
                     }
                     if cursor != bytes.len() {
