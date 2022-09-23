@@ -1635,20 +1635,20 @@ fn match_params() {
 fn basic() {
     let mut tree = PathTree::<usize>::new();
 
-    tree.insert("/", 0)
-        .insert("/login", 1)
-        .insert("/signup", 2)
-        .insert("/settings", 3)
-        .insert("/settings/:page", 4)
-        .insert("/:user", 5)
-        .insert("/:user/:repo", 6)
-        .insert("/public/:any*", 7)
-        .insert("/:org/:repo/releases/download/:tag/:filename.:ext", 8)
-        .insert("/:org/:repo/tags/:day-:month-:year", 9)
-        .insert("/:org/:repo/actions/:name\\::verb", 10)
-        .insert("/:org/:repo/:page", 11)
-        .insert("/:org/:repo/*", 12)
-        .insert("/api/+", 13);
+    tree.insert("/", 0);
+    tree.insert("/login", 1);
+    tree.insert("/signup", 2);
+    tree.insert("/settings", 3);
+    tree.insert("/settings/:page", 4);
+    tree.insert("/:user", 5);
+    tree.insert("/:user/:repo", 6);
+    tree.insert("/public/:any*", 7);
+    tree.insert("/:org/:repo/releases/download/:tag/:filename.:ext", 8);
+    tree.insert("/:org/:repo/tags/:day-:month-:year", 9);
+    tree.insert("/:org/:repo/actions/:name\\::verb", 10);
+    tree.insert("/:org/:repo/:page", 11);
+    tree.insert("/:org/:repo/*", 12);
+    tree.insert("/api/+", 13);
 
     assert_eq!(
         format!("{:?}", &tree.node),
@@ -1916,7 +1916,12 @@ fn github_tree() {
 
     tree.insert("/:org/:repo/*", 3000);
     tree.insert("/:org/:repo/releases/*", 3001);
-    tree.insert("/:org/:repo/releases/download/:tag/:filename.:ext", 3002);
+    let id = tree.insert("/:org/:repo/releases/download/:tag/:filename.:ext", 3002);
+    assert_eq!(
+        tree.url_for(id, &["viz-rs", "path-tree", "v0.5.0", "v0.5.0", "gz"])
+            .unwrap(),
+        "/viz-rs/path-tree/releases/download/v0.5.0/v0.5.0.gz"
+    );
 
     assert_eq!(
         format!("{:?}", &tree.node),

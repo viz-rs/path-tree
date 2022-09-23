@@ -42,20 +42,20 @@
 //! */
 //! let mut tree = PathTree::new();
 //!
-//! tree.insert("/", 0)
-//!     .insert("/login", 1)
-//!     .insert("/signup", 2)
-//!     .insert("/settings", 3)
-//!     .insert("/settings/:page", 4)
-//!     .insert("/:user", 5)
-//!     .insert("/:user/:repo", 6)
-//!     .insert("/public/:any*", 7)
-//!     .insert("/:org/:repo/releases/download/:tag/:filename.:ext", 8)
-//!     .insert("/:org/:repo/tags/:day-:month-:year", 9)
-//!     .insert("/:org/:repo/actions/:name\\::verb", 10)
-//!     .insert("/:org/:repo/:page", 11)
-//!     .insert("/:org/:repo/*", 12)
-//!     .insert("/api/+", 13);
+//! tree.insert("/", 0);
+//! tree.insert("/login", 1);
+//! tree.insert("/signup", 2);
+//! tree.insert("/settings", 3);
+//! tree.insert("/settings/:page", 4);
+//! tree.insert("/:user", 5);
+//! tree.insert("/:user/:repo", 6);
+//! tree.insert("/public/:any*", 7);
+//! tree.insert("/:org/:repo/releases/download/:tag/:filename.:ext", 8);
+//! tree.insert("/:org/:repo/tags/:day-:month-:year", 9);
+//! tree.insert("/:org/:repo/actions/:name\\::verb", 10);
+//! tree.insert("/:org/:repo/:page", 11);
+//! tree.insert("/:org/:repo/*", 12);
+//! tree.insert("/api/+", 13);
 //!
 //! let r = tree.find("/").unwrap();
 //! assert_eq!(r.value, &0);
@@ -167,9 +167,9 @@ impl<T> PathTree<T> {
         }
     }
 
-    pub fn insert(&mut self, path: &str, value: T) -> &mut Self {
+    pub fn insert(&mut self, path: &'a str, value: T) -> usize {
         if path.is_empty() {
-            return self;
+            return self.id;
         }
 
         let mut node = &mut self.node;
@@ -186,10 +186,15 @@ impl<T> PathTree<T> {
             }
         }
 
-        node.value = Some(self.id);
         self.routes.push((value, pieces));
-        self.id += 1;
-        self
+        if let Some(id) = node.value {
+            id
+        } else {
+            let id = self.id;
+            node.value = Some(id);
+            self.id += 1;
+            id
+        }
     }
 
     pub fn find<'b>(&self, path: &'b str) -> Option<Path<'_, 'b, T>> {
