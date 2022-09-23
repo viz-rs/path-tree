@@ -1,4 +1,4 @@
-use std::{borrow::Cow, iter::Peekable, str::CharIndices};
+use std::{iter::Peekable, str::CharIndices};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Kind {
@@ -22,15 +22,15 @@ pub enum Kind {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Piece<'a> {
-    String(&'a [u8]),
-    Parameter(Position<'a>, Kind),
+pub enum Piece {
+    String(Vec<u8>),
+    Parameter(Position, Kind),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Position<'a> {
-    Index(usize, Cow<'a, [u8]>),
-    Named(Cow<'a, [u8]>),
+pub enum Position {
+    Index(usize, Vec<u8>),
+    Named(Vec<u8>),
 }
 
 pub struct Parser<'a> {
@@ -85,14 +85,14 @@ impl<'a> Parser<'a> {
         self.input[start..].as_bytes()
     }
 
-    fn parameter(&mut self) -> (Position<'a>, Kind) {
+    fn parameter(&mut self) -> (Position, Kind) {
         let start = self.pos;
         while let Some(&(i, c)) = self.cursor.peek() {
             match c {
                 '-' | '.' | '~' | '/' | '\\' | ':' => {
                     self.pos = i;
                     return (
-                        Position::Named(Cow::Borrowed(self.input[start..i].as_bytes())),
+                        Position::Named(self.input[start..i].as_bytes().to_vec()),
                         Kind::Normal,
                     );
                 }
@@ -100,7 +100,7 @@ impl<'a> Parser<'a> {
                     self.cursor.next();
                     self.pos = i + 1;
                     return (
-                        Position::Named(Cow::Borrowed(self.input[start..i].as_bytes())),
+                        Position::Named(self.input[start..i].as_bytes().to_vec()),
                         if c == '+' {
                             Kind::OneOrMore
                         } else {
@@ -138,14 +138,14 @@ impl<'a> Parser<'a> {
         }
 
         (
-            Position::Named(Cow::Borrowed(self.input[start..].as_bytes())),
+            Position::Named(self.input[start..].as_bytes().to_vec()),
             Kind::Normal,
         )
     }
 }
 
 impl<'a> Iterator for Parser<'a> {
-    type Item = Piece<'a>;
+    type Item = Piece;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.cursor.peek() {
@@ -163,7 +163,7 @@ impl<'a> Iterator for Parser<'a> {
                     Some(Piece::Parameter(
                         Position::Index(
                             self.count,
-                            Cow::Owned(format!("{}{}", c, self.count).as_bytes().to_owned()),
+                            format!("{}{}", c, self.count).as_bytes().to_owned(),
                         ),
                         if c == '+' {
                             Kind::OneOrMore
@@ -186,7 +186,7 @@ impl<'a> Iterator for Parser<'a> {
                         },
                     ))
                 }
-                _ => Some(Piece::String(self.string())),
+                _ => Some(Piece::String(self.string().to_vec())),
             },
             None => None,
         }

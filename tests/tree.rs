@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use path_tree::*;
 use rand::seq::SliceRandom;
 
@@ -23,7 +21,7 @@ fn statics() {
 
     routes.shuffle(&mut rand::thread_rng());
 
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     for (i, u) in routes.iter().enumerate() {
         tree.insert(u, i);
@@ -474,7 +472,7 @@ fn match_params() {
     //     └── :
     //         └── /
     //             └── ** •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/v1/:param/*", 1);
 
@@ -487,13 +485,10 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
-            Piece::String(b"/"),
-            Piece::Parameter(
-                Position::Index(1, Cow::Borrowed(b"*1")),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::String(b"/api/v1/".to_vec()),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
         ]
     );
 
@@ -514,7 +509,7 @@ fn match_params() {
     //     └── :
     //         └── /
     //             └── + •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/v1/:param/+", 1);
 
@@ -536,7 +531,7 @@ fn match_params() {
     // /
     // └── api/v1/
     //     └── ?? •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/v1/:param?", 1);
 
@@ -548,11 +543,8 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/api/v1/"),
-            Piece::Parameter(
-                Position::Named(Cow::Borrowed(b"param")),
-                Kind::OptionalSegment
-            ),
+            Piece::String(b"/api/v1/".to_vec()),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::OptionalSegment),
         ]
     );
 
@@ -565,7 +557,7 @@ fn match_params() {
     // └── v1/some/resource/name
     //     └── \:
     //         └── customVerb •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/v1/some/resource/name\\:customVerb", 1);
 
@@ -577,9 +569,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/v1/some/resource/name"),
-            Piece::String(b":"),
-            Piece::String(b"customVerb"),
+            Piece::String(b"/v1/some/resource/name".to_vec()),
+            Piece::String(b":".to_vec()),
+            Piece::String(b"customVerb".to_vec()),
         ]
     );
     assert_eq!(tree.find("/v1/some/resource/name:test"), None);
@@ -589,7 +581,7 @@ fn match_params() {
     //     └── :
     //         └── \:
     //             └── customVerb •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert(r"/v1/some/resource/:name\:customVerb", 1);
 
@@ -600,10 +592,10 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/v1/some/resource/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
-            Piece::String(b":"),
-            Piece::String(b"customVerb"),
+            Piece::String(b"/v1/some/resource/".to_vec()),
+            Piece::Parameter(Position::Named(b"name".to_vec()), Kind::Normal),
+            Piece::String(b":".to_vec()),
+            Piece::String(b"customVerb".to_vec()),
         ]
     );
     assert_eq!(tree.find("/v1/some/resource/test:test"), None);
@@ -617,7 +609,7 @@ fn match_params() {
     //                     └── :
     //                         └── /
     //                             └── ** •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert(r"/v1/some/resource/name\\\\:customVerb?\?/:param/*", 1);
 
@@ -641,7 +633,7 @@ fn match_params() {
     // /
     // └── api/v1/
     //     └── ** •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/v1/*", 1);
 
@@ -666,7 +658,7 @@ fn match_params() {
     // /
     // └── api/v1/
     //     └── : •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/v1/:param", 1);
 
@@ -695,7 +687,7 @@ fn match_params() {
     //         │   └── : •2
     //         └── /
     //             └── : •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/v1/:param/:param2", 3);
     tree.insert("/api/v1/:param-:param2", 1);
@@ -737,7 +729,7 @@ fn match_params() {
 
     // /
     // └── api/v1/const •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/v1/const", 1);
 
@@ -746,7 +738,7 @@ fn match_params() {
     assert_eq!(*p.value, 1);
     assert!(p.params().is_empty());
     assert_eq!(p.pattern(), "/api/v1/const");
-    assert_eq!(p.pieces, vec![Piece::String(b"/api/v1/const")]);
+    assert_eq!(p.pieces, vec![Piece::String(b"/api/v1/const".to_vec())]);
 
     assert_eq!(tree.find("/api/v1/cons"), None);
     assert_eq!(tree.find("/api/v1/conststatic"), None);
@@ -758,7 +750,7 @@ fn match_params() {
     // └── api/
     //     └── :
     //         └── /fixedEnd •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/:param/fixedEnd", 1);
 
@@ -768,9 +760,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/api/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
-            Piece::String(b"/fixedEnd"),
+            Piece::String(b"/api/".to_vec()),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
+            Piece::String(b"/fixedEnd".to_vec()),
         ]
     );
     assert_eq!(p.params(), vec![("param", "abc")]);
@@ -788,7 +780,7 @@ fn match_params() {
     //                         └── /size
     //                             └── \:
     //                                 └── : •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert(r"/shop/product/\::filter/color\::color/size\::size", 1);
 
@@ -798,15 +790,15 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/shop/product/"),
-            Piece::String(b":"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"filter")), Kind::Normal),
-            Piece::String(b"/color"),
-            Piece::String(b":"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"color")), Kind::Normal),
-            Piece::String(b"/size"),
-            Piece::String(b":"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"size")), Kind::Normal),
+            Piece::String(b"/shop/product/".to_vec()),
+            Piece::String(b":".to_vec()),
+            Piece::Parameter(Position::Named(b"filter".to_vec()), Kind::Normal),
+            Piece::String(b"/color".to_vec()),
+            Piece::String(b":".to_vec()),
+            Piece::Parameter(Position::Named(b"color".to_vec()), Kind::Normal),
+            Piece::String(b"/size".to_vec()),
+            Piece::String(b":".to_vec()),
+            Piece::Parameter(Position::Named(b"size".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(
@@ -823,7 +815,7 @@ fn match_params() {
     // /
     // └── \:
     //     └── ? •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/\\::param?", 1);
 
@@ -835,9 +827,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/"),
-            Piece::String(b":"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Optional),
+            Piece::String(b"/".to_vec()),
+            Piece::String(b":".to_vec()),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Optional),
         ]
     );
 
@@ -851,7 +843,7 @@ fn match_params() {
     // └── test
     //     └── :
     //         └── : •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/test:sign:param", 1);
 
@@ -863,9 +855,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/test"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"sign")), Kind::Normal),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
+            Piece::String(b"/test".to_vec()),
+            Piece::Parameter(Position::Named(b"sign".to_vec()), Kind::Normal),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
         ]
     );
 
@@ -880,7 +872,7 @@ fn match_params() {
     // └── :
     //     └── ?
     //         └── : •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/:param1:param2?:param3", 1);
 
@@ -895,10 +887,10 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param1")), Kind::Normal),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param2")), Kind::Optional),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param3")), Kind::Normal),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"param1".to_vec()), Kind::Normal),
+            Piece::Parameter(Position::Named(b"param2".to_vec()), Kind::Optional),
+            Piece::Parameter(Position::Named(b"param3".to_vec()), Kind::Normal),
         ]
     );
 
@@ -915,7 +907,7 @@ fn match_params() {
     // └── test
     //     └── ?
     //         └── : •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/test:optional?:mandatory", 1);
 
@@ -927,9 +919,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/test"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"optional")), Kind::Optional),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"mandatory")), Kind::Normal),
+            Piece::String(b"/test".to_vec()),
+            Piece::Parameter(Position::Named(b"optional".to_vec()), Kind::Optional),
+            Piece::Parameter(Position::Named(b"mandatory".to_vec()), Kind::Normal),
         ]
     );
 
@@ -944,7 +936,7 @@ fn match_params() {
     // └── test
     //     └── ?
     //         └── ? •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/test:optional?:optional2?", 1);
 
@@ -956,9 +948,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/test"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"optional")), Kind::Optional),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"optional2")), Kind::Optional),
+            Piece::String(b"/test".to_vec()),
+            Piece::Parameter(Position::Named(b"optional".to_vec()), Kind::Optional),
+            Piece::Parameter(Position::Named(b"optional2".to_vec()), Kind::Optional),
         ]
     );
 
@@ -976,7 +968,7 @@ fn match_params() {
     // └── foo
     //     └── ?
     //         └── bar •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/foo:param?bar", 1);
 
@@ -988,9 +980,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/foo"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Optional),
-            Piece::String(b"bar"),
+            Piece::String(b"/foo".to_vec()),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Optional),
+            Piece::String(b"bar".to_vec()),
         ]
     );
 
@@ -1005,7 +997,7 @@ fn match_params() {
     // └── foo
     //     └── *
     //         └── bar •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/foo*bar", 1);
 
@@ -1017,9 +1009,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/foo"),
-            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
-            Piece::String(b"bar"),
+            Piece::String(b"/foo".to_vec()),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMore),
+            Piece::String(b"bar".to_vec()),
         ]
     );
 
@@ -1042,7 +1034,7 @@ fn match_params() {
     // └── foo
     //     └── +
     //         └── bar •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/foo+bar", 1);
 
@@ -1054,9 +1046,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/foo"),
-            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"+1")), Kind::OneOrMore),
-            Piece::String(b"bar"),
+            Piece::String(b"/foo".to_vec()),
+            Piece::Parameter(Position::Index(1, b"+1".to_vec()), Kind::OneOrMore),
+            Piece::String(b"bar".to_vec()),
         ]
     );
 
@@ -1079,7 +1071,7 @@ fn match_params() {
     //         └── cde
     //             └── *
     //                 └── g/ •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/a*cde*g/", 1);
 
@@ -1090,11 +1082,11 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/a"),
-            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
-            Piece::String(b"cde"),
-            Piece::Parameter(Position::Index(2, Cow::Borrowed(b"*2")), Kind::ZeroOrMore),
-            Piece::String(b"g/"),
+            Piece::String(b"/a".to_vec()),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMore),
+            Piece::String(b"cde".to_vec()),
+            Piece::Parameter(Position::Index(2, b"*2".to_vec()), Kind::ZeroOrMore),
+            Piece::String(b"g/".to_vec()),
         ]
     );
     assert_eq!(p.pattern(), "/a*cde*g/");
@@ -1123,7 +1115,7 @@ fn match_params() {
     //     └── v1
     //         └── *
     //             └── proxy/ •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/*v1*/proxy", 1);
 
@@ -1132,11 +1124,11 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
-            Piece::String(b"v1"),
-            Piece::Parameter(Position::Index(2, Cow::Borrowed(b"*2")), Kind::ZeroOrMore),
-            Piece::String(b"/proxy"),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMore),
+            Piece::String(b"v1".to_vec()),
+            Piece::Parameter(Position::Index(2, b"*2".to_vec()), Kind::ZeroOrMore),
+            Piece::String(b"/proxy".to_vec()),
         ]
     );
     assert_eq!(p.pattern(), "/*v1*/proxy");
@@ -1162,7 +1154,7 @@ fn match_params() {
     // ├── ~
     // │   └── : •4
     // └── : •6
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/name\\::name", 1);
     tree.insert("/@:name", 2);
@@ -1177,9 +1169,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/name"),
-            Piece::String(b":"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
+            Piece::String(b"/name".to_vec()),
+            Piece::String(b":".to_vec()),
+            Piece::Parameter(Position::Named(b"name".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(p.pattern(), "/name\\::name");
@@ -1190,8 +1182,8 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/@"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
+            Piece::String(b"/@".to_vec()),
+            Piece::Parameter(Position::Named(b"name".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(p.pattern(), "/@:name");
@@ -1202,8 +1194,8 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/-"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
+            Piece::String(b"/-".to_vec()),
+            Piece::Parameter(Position::Named(b"name".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(p.pattern(), "/-:name");
@@ -1214,8 +1206,8 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/."),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
+            Piece::String(b"/.".to_vec()),
+            Piece::Parameter(Position::Named(b"name".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(p.pattern(), "/.:name");
@@ -1226,8 +1218,8 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/~"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
+            Piece::String(b"/~".to_vec()),
+            Piece::Parameter(Position::Named(b"name".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(p.pattern(), "/~:name");
@@ -1238,8 +1230,8 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/_"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
+            Piece::String(b"/_".to_vec()),
+            Piece::Parameter(Position::Named(b"name".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(p.pattern(), "/_:name");
@@ -1250,8 +1242,8 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"name")), Kind::Normal),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"name".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(p.pattern(), "/:name");
@@ -1262,7 +1254,7 @@ fn match_params() {
     //     └── :
     //         └── /abc/
     //             └── ** •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/v1/:param/abc/*", 1);
 
@@ -1271,13 +1263,10 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/api/v1/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
-            Piece::String(b"/abc/"),
-            Piece::Parameter(
-                Position::Index(1, Cow::Borrowed(b"*1")),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::String(b"/api/v1/".to_vec()),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
+            Piece::String(b"/abc/".to_vec()),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
         ]
     );
     assert_eq!(p.pattern(), "/api/v1/:param/abc/*");
@@ -1296,7 +1285,7 @@ fn match_params() {
     //             └── ??
     //                 └── /
     //                     └── ?? •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/:day/:month?/:year?", 1);
 
@@ -1307,18 +1296,12 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/api/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"day")), Kind::Normal),
-            Piece::String(b"/"),
-            Piece::Parameter(
-                Position::Named(Cow::Borrowed(b"month")),
-                Kind::OptionalSegment
-            ),
-            Piece::String(b"/"),
-            Piece::Parameter(
-                Position::Named(Cow::Borrowed(b"year")),
-                Kind::OptionalSegment
-            ),
+            Piece::String(b"/api/".to_vec()),
+            Piece::Parameter(Position::Named(b"day".to_vec()), Kind::Normal),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"month".to_vec()), Kind::OptionalSegment),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"year".to_vec()), Kind::OptionalSegment),
         ]
     );
     assert_eq!(p.pattern(), "/api/:day/:month?/:year?");
@@ -1351,7 +1334,7 @@ fn match_params() {
     //             └── ?
     //                 └── .
     //                     └── ? •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/:day.:month?.:year?", 1);
     tree.insert("/api/:day-:month?-:year?", 2);
@@ -1365,12 +1348,12 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/api/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"day")), Kind::Normal),
-            Piece::String(b"."),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"month")), Kind::Optional),
-            Piece::String(b"."),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"year")), Kind::Optional),
+            Piece::String(b"/api/".to_vec()),
+            Piece::Parameter(Position::Named(b"day".to_vec()), Kind::Normal),
+            Piece::String(b".".to_vec()),
+            Piece::Parameter(Position::Named(b"month".to_vec()), Kind::Optional),
+            Piece::String(b".".to_vec()),
+            Piece::Parameter(Position::Named(b"year".to_vec()), Kind::Optional),
         ]
     );
     assert_eq!(p.pattern(), "/api/:day.:month?.:year?");
@@ -1392,12 +1375,12 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/api/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"day")), Kind::Normal),
-            Piece::String(b"-"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"month")), Kind::Optional),
-            Piece::String(b"-"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"year")), Kind::Optional),
+            Piece::String(b"/api/".to_vec()),
+            Piece::Parameter(Position::Named(b"day".to_vec()), Kind::Normal),
+            Piece::String(b"-".to_vec()),
+            Piece::Parameter(Position::Named(b"month".to_vec()), Kind::Optional),
+            Piece::String(b"-".to_vec()),
+            Piece::Parameter(Position::Named(b"year".to_vec()), Kind::Optional),
         ]
     );
     assert_eq!(p.pattern(), "/api/:day-:month?-:year?");
@@ -1423,7 +1406,7 @@ fn match_params() {
     //     │   └── .json •1
     //     └── *
     //         └── .json •2
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/config/abc.json", 1);
     tree.insert("/config/+.json", 2);
@@ -1431,7 +1414,7 @@ fn match_params() {
 
     let p = tree.find("/config/abc.json").unwrap();
     assert_eq!(p.value, &1);
-    assert_eq!(p.pieces, vec![Piece::String(b"/config/abc.json")]);
+    assert_eq!(p.pieces, vec![Piece::String(b"/config/abc.json".to_vec())]);
     assert_eq!(p.pattern(), "/config/abc.json");
     assert_eq!(p.params(), vec![]);
 
@@ -1440,9 +1423,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/config/"),
-            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"+1")), Kind::OneOrMore),
-            Piece::String(b".json"),
+            Piece::String(b"/config/".to_vec()),
+            Piece::Parameter(Position::Index(1, b"+1".to_vec()), Kind::OneOrMore),
+            Piece::String(b".json".to_vec()),
         ]
     );
     assert_eq!(p.pattern(), "/config/+.json");
@@ -1465,9 +1448,9 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/config/"),
-            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"*1")), Kind::ZeroOrMore),
-            Piece::String(b".json"),
+            Piece::String(b"/config/".to_vec()),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMore),
+            Piece::String(b".json".to_vec()),
         ]
     );
     assert_eq!(p.pattern(), "/config/*.json");
@@ -1478,7 +1461,7 @@ fn match_params() {
     //     └── **
     //         └── /
     //             └── ?? •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/*/:param?", 1);
 
@@ -1487,16 +1470,10 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/api/"),
-            Piece::Parameter(
-                Position::Index(1, Cow::Borrowed(b"*1")),
-                Kind::ZeroOrMoreSegment
-            ),
-            Piece::String(b"/"),
-            Piece::Parameter(
-                Position::Named(Cow::Borrowed(b"param")),
-                Kind::OptionalSegment
-            ),
+            Piece::String(b"/api/".to_vec()),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::OptionalSegment),
         ]
     );
     assert_eq!(p.pattern(), "/api/*/:param?");
@@ -1525,7 +1502,7 @@ fn match_params() {
     //     └── **
     //         └── /
     //             └── : •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/*/:param", 1);
 
@@ -1534,13 +1511,10 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/api/"),
-            Piece::Parameter(
-                Position::Index(1, Cow::Borrowed(b"*1")),
-                Kind::ZeroOrMoreSegment
-            ),
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
+            Piece::String(b"/api/".to_vec()),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(p.pattern(), "/api/*/:param");
@@ -1563,7 +1537,7 @@ fn match_params() {
     //     └── +
     //         └── /
     //             └── : •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/+/:param", 1);
 
@@ -1572,10 +1546,10 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/api/"),
-            Piece::Parameter(Position::Index(1, Cow::Borrowed(b"+1")), Kind::OneOrMore),
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
+            Piece::String(b"/api/".to_vec()),
+            Piece::Parameter(Position::Index(1, b"+1".to_vec()), Kind::OneOrMore),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(p.pattern(), "/api/+/:param");
@@ -1597,7 +1571,7 @@ fn match_params() {
     //             └── :
     //                 └── /
     //                     └── : •0
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/api/*/:param/:param2", 1);
 
@@ -1606,15 +1580,12 @@ fn match_params() {
     assert_eq!(
         p.pieces,
         vec![
-            Piece::String(b"/api/"),
-            Piece::Parameter(
-                Position::Index(1, Cow::Borrowed(b"*1")),
-                Kind::ZeroOrMoreSegment
-            ),
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param")), Kind::Normal),
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"param2")), Kind::Normal),
+            Piece::String(b"/api/".to_vec()),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"param2".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(p.pattern(), "/api/*/:param/:param2");
@@ -1662,7 +1633,7 @@ fn match_params() {
 
 #[test]
 fn basic() {
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/", 0);
     tree.insert("/login", 1);
@@ -1815,7 +1786,7 @@ fn basic() {
 
 #[test]
 fn github_tree() {
-    let mut tree = PathTree::<'static, usize>::new();
+    let mut tree = PathTree::<usize>::new();
 
     tree.insert("/", 0);
     tree.insert("/api", 1);
@@ -2168,15 +2139,12 @@ fn github_tree() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"org")), Kind::Normal),
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"repo")), Kind::Normal),
-            Piece::String(b"/releases/"),
-            Piece::Parameter(
-                Position::Index(1, Cow::Borrowed(b"*1")),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"org".to_vec()), Kind::Normal),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"repo".to_vec()), Kind::Normal),
+            Piece::String(b"/releases/".to_vec()),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
         ]
     );
 
@@ -2195,16 +2163,16 @@ fn github_tree() {
     assert_eq!(
         p.pieces,
         &vec![
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"org")), Kind::Normal),
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"repo")), Kind::Normal),
-            Piece::String(b"/releases/download/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"tag")), Kind::Normal),
-            Piece::String(b"/"),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"filename")), Kind::Normal),
-            Piece::String(b"."),
-            Piece::Parameter(Position::Named(Cow::Borrowed(b"ext")), Kind::Normal),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"org".to_vec()), Kind::Normal),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"repo".to_vec()), Kind::Normal),
+            Piece::String(b"/releases/download/".to_vec()),
+            Piece::Parameter(Position::Named(b"tag".to_vec()), Kind::Normal),
+            Piece::String(b"/".to_vec()),
+            Piece::Parameter(Position::Named(b"filename".to_vec()), Kind::Normal),
+            Piece::String(b".".to_vec()),
+            Piece::Parameter(Position::Named(b"ext".to_vec()), Kind::Normal),
         ]
     );
     assert_eq!(
