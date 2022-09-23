@@ -1,6 +1,7 @@
 use std::{
     cmp::Ordering,
     fmt::{self, Write},
+    ops::Range,
 };
 
 use smallvec::SmallVec;
@@ -109,7 +110,7 @@ impl<T: fmt::Debug> Node<T> {
         &self,
         mut start: usize,
         mut bytes: &[u8],
-        ranges: &mut SmallVec<[usize; 8]>,
+        ranges: &mut SmallVec<[Range<usize>; 8]>,
     ) -> Option<&T> {
         let mut m = bytes.len();
         match &self.kind {
@@ -269,8 +270,7 @@ impl<T: fmt::Debug> Node<T> {
                             // last
                             if self.nodes0.is_none() && self.nodes1.is_none() {
                                 return self.value.as_ref().map(|id| {
-                                    ranges.push(start);
-                                    ranges.push(start);
+                                    ranges.push(start..start);
                                     id
                                 });
                             }
@@ -282,8 +282,7 @@ impl<T: fmt::Debug> Node<T> {
                                 NodeKind::String(s) => {
                                     bytes.iter().position(|b| s[0] == *b).and_then(|n| {
                                         node._find(start + n, &bytes[n..], ranges).map(|id| {
-                                            ranges.push(start);
-                                            ranges.push(start + n);
+                                            ranges.push(start..start + n);
                                             id
                                         })
                                     })
@@ -309,8 +308,7 @@ impl<T: fmt::Debug> Node<T> {
                                 })
                                 .find_map(|node| node._find(start + 1, &bytes[1..], ranges))
                         }) {
-                            ranges.push(start);
-                            ranges.push(start + 1);
+                            ranges.push(start..start + 1);
                             return Some(id);
                         }
                     }
@@ -332,8 +330,7 @@ impl<T: fmt::Debug> Node<T> {
                                 .find_map(|node| node._find(start, bytes, ranges))
                         }) {
                             // param should be empty
-                            ranges.push(start + m);
-                            ranges.push(start + m);
+                            ranges.push(start + m..start + m);
                             return Some(id);
                         }
                     }
@@ -342,8 +339,7 @@ impl<T: fmt::Debug> Node<T> {
                         bytes = &bytes[n..];
                     } else {
                         if let Some(id) = &self.value {
-                            ranges.push(start);
-                            ranges.push(start + m);
+                            ranges.push(start..start + m);
                             return Some(id);
                         }
                         bytes = &bytes[m..];
@@ -359,8 +355,7 @@ impl<T: fmt::Debug> Node<T> {
                                 })
                                 .and_then(|node| node._find(start, bytes, ranges))
                         }) {
-                            ranges.push(start);
-                            ranges.push(start + m);
+                            ranges.push(start..start + m);
                             return Some(id);
                         }
                     }
@@ -374,8 +369,7 @@ impl<T: fmt::Debug> Node<T> {
                             // last
                             if self.nodes0.is_none() && self.nodes1.is_none() {
                                 return self.value.as_ref().map(|id| {
-                                    ranges.push(start);
-                                    ranges.push(start);
+                                    ranges.push(start..start);
                                     id
                                 });
                             }
@@ -383,8 +377,7 @@ impl<T: fmt::Debug> Node<T> {
                     } else {
                         if self.nodes0.is_none() && self.nodes1.is_none() {
                             if let Some(id) = &self.value {
-                                ranges.push(start);
-                                ranges.push(start + m);
+                                ranges.push(start..start + m);
                                 return Some(id);
                             }
                         }
@@ -408,8 +401,7 @@ impl<T: fmt::Debug> Node<T> {
                                             .find_map(|n| {
                                                 node._find(start + n, &bytes[n..], ranges).map(
                                                     |id| {
-                                                        ranges.push(start);
-                                                        ranges.push(start + n);
+                                                        ranges.push(start..start + n);
                                                         id
                                                     },
                                                 )
@@ -434,8 +426,7 @@ impl<T: fmt::Debug> Node<T> {
                                 .and_then(|node| node._find(start, bytes, ranges))
                         }) {
                             // param should be empty
-                            ranges.push(start + m);
-                            ranges.push(start + m);
+                            ranges.push(start + m..start + m);
                             return Some(id);
                         }
                     }
@@ -445,8 +436,8 @@ impl<T: fmt::Debug> Node<T> {
         None
     }
 
-    pub fn find<'b>(&self, bytes: &'b [u8]) -> Option<(&T, SmallVec<[usize; 8]>)> {
-        let mut ranges = SmallVec::<[usize; 8]>::new(); // opt!
+    pub fn find<'b>(&self, bytes: &'b [u8]) -> Option<(&T, SmallVec<[Range<usize>; 8]>)> {
+        let mut ranges = SmallVec::<[Range<usize>; 8]>::new(); // opt!
         return self._find(0, bytes, &mut ranges).map(|t| (t, ranges));
     }
 }

@@ -202,8 +202,8 @@ impl<T> PathTree<T> {
                     pieces,
                     // opt!
                     raws: ranges
-                        .chunks(2)
-                        .map(|r| from_utf8(&bytes[r[0]..r[1]]).unwrap())
+                        .into_iter()
+                        .map(|r| from_utf8(&bytes[r]).unwrap())
                         .rev()
                         .collect(),
                 }
