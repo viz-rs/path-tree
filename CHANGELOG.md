@@ -7,17 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [0.5.1] - 2022-09-23
+
+### Refactor
+
+- Remove lifetime
+
+- Inserts then returing node id
 
 ## [0.5.0]
 
-- Refactor it, supports move cases and improve performance.
+### Changed
+
+- Refactor it, supports more cases and improve performance.
 
 ## [0.4.0]
 
+### Changed
+
 - [#20] - Support wildcards that are not preceded by a "/" (`"/foo_*rest"` matches `"foo_bar/baz"`).
 
-### Changed
 
 [#20]: https://github.com/viz-rs/path-tree/pull/20
 
