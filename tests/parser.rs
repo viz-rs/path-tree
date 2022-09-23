@@ -23,10 +23,7 @@ fn parses() {
             Piece::String(b"/api/v1/".to_vec()),
             Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
             Piece::String(b"/abc/".to_vec()),
-            Piece::Parameter(
-                Position::Index(1, b"*1".to_vec()),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
         ],
     );
 
@@ -44,10 +41,7 @@ fn parses() {
         Parser::new("/api/v1/:param?").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/".to_vec()),
-            Piece::Parameter(
-                Position::Named(b"param".to_vec()),
-                Kind::OptionalSegment
-            ),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::OptionalSegment),
         ],
     );
 
@@ -55,10 +49,7 @@ fn parses() {
         Parser::new("/api/v1/:param?").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/".to_vec()),
-            Piece::Parameter(
-                Position::Named(b"param".to_vec()),
-                Kind::OptionalSegment
-            ),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::OptionalSegment),
         ],
     );
 
@@ -74,10 +65,7 @@ fn parses() {
         Parser::new("/api/v1/*").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/v1/".to_vec()),
-            Piece::Parameter(
-                Position::Index(1, b"*1".to_vec()),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
         ],
     );
 
@@ -248,10 +236,7 @@ fn parses() {
             Piece::String(b"customVerb??/".to_vec()),
             Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
             Piece::String(b"/".to_vec()),
-            Piece::Parameter(
-                Position::Index(1, b"*1".to_vec()),
-                Kind::ZeroOrMoreSegment
-            )
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment)
         ],
     );
 
@@ -259,10 +244,7 @@ fn parses() {
         Parser::new("/api/*/:param/:param2").collect::<Vec<_>>(),
         [
             Piece::String(b"/api/".to_vec()),
-            Piece::Parameter(
-                Position::Index(1, b"*1".to_vec()),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
             Piece::String(b"/".to_vec()),
             Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
             Piece::String(b"/".to_vec()),
@@ -315,15 +297,9 @@ fn parses() {
             Piece::String(b"/api/".to_vec()),
             Piece::Parameter(Position::Named(b"day".to_vec()), Kind::Normal),
             Piece::String(b"/".to_vec()),
-            Piece::Parameter(
-                Position::Named(b"month".to_vec()),
-                Kind::OptionalSegment
-            ),
+            Piece::Parameter(Position::Named(b"month".to_vec()), Kind::OptionalSegment),
             Piece::String(b"/".to_vec()),
-            Piece::Parameter(
-                Position::Named(b"year".to_vec()),
-                Kind::OptionalSegment
-            ),
+            Piece::Parameter(Position::Named(b"year".to_vec()), Kind::OptionalSegment),
         ]
     );
 

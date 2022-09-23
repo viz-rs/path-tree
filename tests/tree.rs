@@ -488,10 +488,7 @@ fn match_params() {
             Piece::String(b"/api/v1/".to_vec()),
             Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
             Piece::String(b"/".to_vec()),
-            Piece::Parameter(
-                Position::Index(1, b"*1".to_vec()),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
         ]
     );
 
@@ -547,10 +544,7 @@ fn match_params() {
         p.pieces,
         &vec![
             Piece::String(b"/api/v1/".to_vec()),
-            Piece::Parameter(
-                Position::Named(b"param".to_vec()),
-                Kind::OptionalSegment
-            ),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::OptionalSegment),
         ]
     );
 
@@ -1272,10 +1266,7 @@ fn match_params() {
             Piece::String(b"/api/v1/".to_vec()),
             Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
             Piece::String(b"/abc/".to_vec()),
-            Piece::Parameter(
-                Position::Index(1, b"*1".to_vec()),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
         ]
     );
     assert_eq!(p.pattern(), "/api/v1/:param/abc/*");
@@ -1308,15 +1299,9 @@ fn match_params() {
             Piece::String(b"/api/".to_vec()),
             Piece::Parameter(Position::Named(b"day".to_vec()), Kind::Normal),
             Piece::String(b"/".to_vec()),
-            Piece::Parameter(
-                Position::Named(b"month".to_vec()),
-                Kind::OptionalSegment
-            ),
+            Piece::Parameter(Position::Named(b"month".to_vec()), Kind::OptionalSegment),
             Piece::String(b"/".to_vec()),
-            Piece::Parameter(
-                Position::Named(b"year".to_vec()),
-                Kind::OptionalSegment
-            ),
+            Piece::Parameter(Position::Named(b"year".to_vec()), Kind::OptionalSegment),
         ]
     );
     assert_eq!(p.pattern(), "/api/:day/:month?/:year?");
@@ -1486,15 +1471,9 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/".to_vec()),
-            Piece::Parameter(
-                Position::Index(1, b"*1".to_vec()),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
             Piece::String(b"/".to_vec()),
-            Piece::Parameter(
-                Position::Named(b"param".to_vec()),
-                Kind::OptionalSegment
-            ),
+            Piece::Parameter(Position::Named(b"param".to_vec()), Kind::OptionalSegment),
         ]
     );
     assert_eq!(p.pattern(), "/api/*/:param?");
@@ -1533,10 +1512,7 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/".to_vec()),
-            Piece::Parameter(
-                Position::Index(1, b"*1".to_vec()),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
             Piece::String(b"/".to_vec()),
             Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
         ]
@@ -1605,10 +1581,7 @@ fn match_params() {
         p.pieces,
         vec![
             Piece::String(b"/api/".to_vec()),
-            Piece::Parameter(
-                Position::Index(1, b"*1".to_vec()),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
             Piece::String(b"/".to_vec()),
             Piece::Parameter(Position::Named(b"param".to_vec()), Kind::Normal),
             Piece::String(b"/".to_vec()),
@@ -2166,10 +2139,7 @@ fn github_tree() {
             Piece::String(b"/".to_vec()),
             Piece::Parameter(Position::Named(b"repo".to_vec()), Kind::Normal),
             Piece::String(b"/releases/".to_vec()),
-            Piece::Parameter(
-                Position::Index(1, b"*1".to_vec()),
-                Kind::ZeroOrMoreSegment
-            ),
+            Piece::Parameter(Position::Index(1, b"*1".to_vec()), Kind::ZeroOrMoreSegment),
         ]
     );
 
