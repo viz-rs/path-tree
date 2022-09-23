@@ -92,20 +92,20 @@ use path_tree::PathTree;
 */
 let mut tree = PathTree::new();
 
-tree.insert("/", 0)
-    .insert("/login", 1)
-    .insert("/signup", 2)
-    .insert("/settings", 3)
-    .insert("/settings/:page", 4)
-    .insert("/:user", 5)
-    .insert("/:user/:repo", 6)
-    .insert("/public/:any*", 7)
-    .insert("/:org/:repo/releases/download/:tag/:filename.:ext", 8)
-    .insert("/:org/:repo/tags/:day-:month-:year", 9)
-    .insert("/:org/:repo/actions/:name\\::verb", 10)
-    .insert("/:org/:repo/:page", 11)
-    .insert("/:org/:repo/*", 12)
-    .insert("/api/+", 13);
+tree.insert("/", 0);
+tree.insert("/login", 1);
+tree.insert("/signup", 2);
+tree.insert("/settings", 3);
+tree.insert("/settings/:page", 4);
+tree.insert("/:user", 5);
+tree.insert("/:user/:repo", 6);
+tree.insert("/public/:any*", 7);
+tree.insert("/:org/:repo/releases/download/:tag/:filename.:ext", 8);
+tree.insert("/:org/:repo/tags/:day-:month-:year", 9);
+tree.insert("/:org/:repo/actions/:name\\::verb", 10);
+tree.insert("/:org/:repo/:page", 11);
+tree.insert("/:org/:repo/*", 12);
+tree.insert("/api/+", 13);
 
 let r = tree.find("/").unwrap();
 assert_eq!(r.value, &0);
