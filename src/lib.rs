@@ -135,7 +135,7 @@
 #![forbid(unsafe_code)]
 #![warn(rust_2018_idioms, unreachable_pub)]
 
-use std::str::from_utf8;
+use std::{iter, marker::PhantomData, slice, str::from_utf8};
 
 use smallvec::SmallVec;
 
@@ -296,17 +296,46 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
     }
 
     pub fn params(&self) -> Vec<(&'a str, &'b str)> {
-        self.pieces
-            .iter()
-            .filter_map(|piece| match piece {
+        self.params_iter().collect()
+    }
+
+    pub fn params_iter<'p>(&'p self) -> ParamsIter<'p, 'a, 'b, T> {
+        #[inline]
+        fn piece_filter(piece: &Piece) -> Option<&'_ str> {
+            match piece {
                 Piece::String(_) => None,
                 Piece::Parameter(p, _) => from_utf8(match p {
                     Position::Index(_, n) => n,
                     Position::Named(n) => n,
                 })
                 .ok(),
-            })
-            .zip(self.raws.iter().copied())
-            .collect()
+            }
+        }
+
+        ParamsIter {
+            iter: self
+                .pieces
+                .iter()
+                .filter_map(piece_filter as fn(piece: &'a Piece) -> Option<&'a str>)
+                .zip(self.raws.iter().copied()),
+            _t: PhantomData,
+        }
+    }
+}
+
+type FilterIter<'a> =
+    iter::FilterMap<slice::Iter<'a, Piece>, fn(piece: &'a Piece) -> Option<&'a str>>;
+
+pub struct ParamsIter<'p, 'a, 'b, T> {
+    iter: iter::Zip<FilterIter<'a>, std::iter::Copied<slice::Iter<'p, &'b str>>>,
+    _t: PhantomData<T>,
+}
+
+impl<'p, 'a, 'b, T> Iterator for ParamsIter<'p, 'a, 'b, T> {
+    type Item = (&'a str, &'b str);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
     }
 }
