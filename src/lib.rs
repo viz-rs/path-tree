@@ -175,7 +175,7 @@ impl<T> PathTree<T> {
         let mut node = &mut self.node;
         let pieces = Parser::new(path).collect::<Vec<_>>();
 
-        for piece in pieces.iter() {
+        for piece in &pieces {
             match piece {
                 Piece::String(s) => {
                     node = node.insert_bytes(&s[..]);
@@ -192,7 +192,7 @@ impl<T> PathTree<T> {
         self
     }
 
-    pub fn find<'a, 'b>(&'a self, path: &'b str) -> Option<Path<'a, 'b, T>> {
+    pub fn find<'b>(&self, path: &'b str) -> Option<Path<'_, 'b, T>> {
         let bytes = path.as_bytes();
         self.node.find(bytes).and_then(|(id, ranges)| {
             self.get_route(*id).map(|(value, pieces)| {
