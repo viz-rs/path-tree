@@ -130,7 +130,6 @@ fn single_named_parameter() {
     }
 }
 
-
 #[test]
 fn repeated_single_named_param() {
     //  Pattern: /users/:id
@@ -149,14 +148,13 @@ fn repeated_single_named_param() {
     match (path.value, path.params()) {
         (0, params) => {
             assert_eq!(params, vec![("id", "gordon")])
-        },
+        }
         (1, params) => {
             assert_eq!(params, vec![("user_id", "gordon")])
-        },
-        _ => panic!()
+        }
+        _ => panic!(),
     };
 }
-
 
 #[test]
 fn static_and_named_parameter() {
