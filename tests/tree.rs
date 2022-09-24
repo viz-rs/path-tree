@@ -132,12 +132,6 @@ fn single_named_parameter() {
 
 #[test]
 fn repeated_single_named_param() {
-    //  Pattern: /users/:id
-    //
-    //      /users/gordon              match
-    //      /users/you                 match
-    //      /users/gordon/profile      no match
-    //      /users/                    no match
     let mut tree = PathTree::new();
 
     tree.insert("/users/:id", 0);
@@ -145,15 +139,8 @@ fn repeated_single_named_param() {
 
     let r = tree.find("/users/gordon");
     let path = r.unwrap();
-    match (path.value, path.params()) {
-        (0, params) => {
-            assert_eq!(params, vec![("id", "gordon")])
-        }
-        (1, params) => {
-            assert_eq!(params, vec![("user_id", "gordon")])
-        }
-        _ => panic!(),
-    };
+    assert_eq!(*path.value, 1);
+    assert_eq!(path.params(), vec![("user_id", "gordon")]);
 }
 
 #[test]
