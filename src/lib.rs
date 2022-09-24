@@ -168,11 +168,21 @@ impl<T> PathTree<T> {
     }
 
     pub fn insert(&mut self, path: &str, value: T) -> usize {
+        let mut node = &mut self.node;
+
         if path.is_empty() {
-            return self.id;
+            return if let Some(id) = node.value {
+                self.routes[id].0 = value;
+                id
+            } else {
+                self.routes.push((value, Vec::new()));
+                let id = self.id;
+                node.value = Some(id);
+                self.id += 1;
+                id
+            };
         }
 
-        let mut node = &mut self.node;
         let pieces = Parser::new(path).collect::<Vec<_>>();
 
         for piece in &pieces {
@@ -186,10 +196,11 @@ impl<T> PathTree<T> {
             }
         }
 
-        self.routes.push((value, pieces));
         if let Some(id) = node.value {
+            self.routes[id] = (value, pieces);
             id
         } else {
+            self.routes.push((value, pieces));
             let id = self.id;
             node.value = Some(id);
             self.id += 1;
