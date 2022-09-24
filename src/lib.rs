@@ -197,7 +197,7 @@ impl<T> PathTree<T> {
         }
 
         if let Some(id) = node.value {
-            self.routes[id] = (value, pieces);
+            self.routes[id].0 = value;
             id
         } else {
             self.routes.push((value, pieces));
