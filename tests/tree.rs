@@ -1693,6 +1693,16 @@ fn basic() {
     assert_eq!(r.value, &0);
     assert_eq!(r.params(), vec![]);
 
+    tree.insert("", 14);
+    let r = tree.find("/").unwrap();
+    assert_eq!(r.value, &14);
+    assert_eq!(r.params(), vec![]);
+
+    tree.insert("/", 15);
+    let r = tree.find("/").unwrap();
+    assert_eq!(r.value, &15);
+    assert_eq!(r.params(), vec![]);
+
     let r = tree.find("/login").unwrap();
     assert_eq!(r.value, &1);
     assert_eq!(r.params(), vec![]);
