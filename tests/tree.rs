@@ -3,7 +3,9 @@ use rand::seq::SliceRandom;
 
 #[test]
 fn statics() {
-    const ROUTES: [&str; 11] = [
+    const ROUTES: [&str; 13] = [
+        "",
+        "/",
         "/hi",
         "/contact",
         "/co",
@@ -127,6 +129,34 @@ fn single_named_parameter() {
         assert_eq!(r.is_some(), b);
     }
 }
+
+
+#[test]
+fn repeated_single_named_param() {
+    //  Pattern: /users/:id
+    //
+    //      /users/gordon              match
+    //      /users/you                 match
+    //      /users/gordon/profile      no match
+    //      /users/                    no match
+    let mut tree = PathTree::new();
+
+    tree.insert("/users/:id", 0);
+    tree.insert("/users/:user_id", 1);
+
+    let r = tree.find("/users/gordon");
+    let path = r.unwrap();
+    match (path.value, path.params()) {
+        (0, params) => {
+            assert_eq!(params, vec![("id", "gordon")])
+        },
+        (1, params) => {
+            assert_eq!(params, vec![("user_id", "gordon")])
+        },
+        _ => panic!()
+    };
+}
+
 
 #[test]
 fn static_and_named_parameter() {
