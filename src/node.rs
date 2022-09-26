@@ -35,13 +35,13 @@ impl<T: fmt::Debug> Node<T> {
 
     pub fn insert_bytes(&mut self, mut bytes: &[u8]) -> &mut Self {
         let diff = match &mut self.kind {
-            NodeKind::String(p) => {
-                if p.is_empty() {
-                    *p = bytes.to_vec();
+            NodeKind::String(s) => {
+                if s.is_empty() {
+                    *s = bytes.to_vec();
                     return self;
                 }
 
-                let cursor = p
+                let cursor = s
                     .iter()
                     .zip(bytes.iter())
                     .take_while(|(a, b)| a == b)
@@ -51,10 +51,10 @@ impl<T: fmt::Debug> Node<T> {
                     true
                 } else {
                     // split node
-                    if cursor < p.len() {
-                        let (prefix, suffix) = p.split_at(cursor);
+                    if cursor < s.len() {
+                        let (prefix, suffix) = s.split_at(cursor);
                         let mut node = Node::new(NodeKind::String(prefix.to_vec()), None);
-                        *p = suffix.to_vec();
+                        *s = suffix.to_vec();
                         ::std::mem::swap(self, &mut node);
                         self.nodes0.get_or_insert_with(Vec::new).push(node);
                     }
