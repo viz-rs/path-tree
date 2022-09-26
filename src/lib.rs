@@ -175,28 +175,33 @@ impl<T> PathTree<T> {
     }
 
     pub fn insert(&mut self, path: &str, value: T) -> usize {
-        if path.is_empty() {
-            return self.id;
-        }
-
         let mut node = &mut self.node;
-        let pieces = Parser::new(path).collect::<Vec<_>>();
 
-        for piece in &pieces {
-            match piece {
-                Piece::String(s) => {
-                    node = node.insert_bytes(&s[..]);
-                }
-                Piece::Parameter(_, k) => {
-                    node = node.insert_parameter(*k);
+        let (overwritten, pieces) = if path.is_empty() {
+            (false, Vec::new())
+        } else {
+            let pieces = Parser::new(path).collect::<Vec<_>>();
+            for piece in &pieces {
+                match piece {
+                    Piece::String(s) => {
+                        node = node.insert_bytes(&s[..]);
+                    }
+                    Piece::Parameter(_, k) => {
+                        node = node.insert_parameter(*k);
+                    }
                 }
             }
-        }
+            (true, pieces)
+        };
 
-        self.routes.push((value, pieces));
         if let Some(id) = node.value {
+            self.routes[id].0 = value;
+            if overwritten {
+                self.routes[id].1 = pieces;
+            }
             id
         } else {
+            self.routes.push((value, pieces));
             let id = self.id;
             node.value = Some(id);
             self.id += 1;
@@ -303,17 +308,46 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
     }
 
     pub fn params(&self) -> Vec<(&'a str, &'b str)> {
-        self.pieces
-            .iter()
-            .filter_map(|piece| match piece {
+        self.params_iter().collect()
+    }
+
+    pub fn params_iter<'p>(&'p self) -> ParamsIter<'p, 'a, 'b, T> {
+        #[inline]
+        fn piece_filter(piece: &Piece) -> Option<&'_ str> {
+            match piece {
                 Piece::String(_) => None,
                 Piece::Parameter(p, _) => from_utf8(match p {
                     Position::Index(_, n) => n,
                     Position::Named(n) => n,
                 })
                 .ok(),
-            })
-            .zip(self.raws.iter().copied())
-            .collect()
+            }
+        }
+
+        ParamsIter {
+            iter: self
+                .pieces
+                .iter()
+                .filter_map(piece_filter as fn(piece: &'a Piece) -> Option<&'a str>)
+                .zip(self.raws.iter().copied()),
+            _t: PhantomData,
+        }
+    }
+}
+
+type FilterIter<'a> =
+    iter::FilterMap<slice::Iter<'a, Piece>, fn(piece: &'a Piece) -> Option<&'a str>>;
+
+pub struct ParamsIter<'p, 'a, 'b, T> {
+    iter: iter::Zip<FilterIter<'a>, std::iter::Copied<slice::Iter<'p, &'b str>>>,
+    _t: PhantomData<T>,
+}
+
+impl<'p, 'a, 'b, T> Iterator for ParamsIter<'p, 'a, 'b, T> {
+    type Item = (&'a str, &'b str);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
     }
 }
