@@ -3,8 +3,7 @@ use rand::seq::SliceRandom;
 
 #[test]
 fn statics() {
-    const ROUTES: [&str; 13] = [
-        "",
+    const ROUTES: [&str; 12] = [
         "/",
         "/hi",
         "/contact",
