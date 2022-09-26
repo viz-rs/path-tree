@@ -142,7 +142,12 @@ use alloc::{
     string::{String, ToString as _},
     vec::Vec,
 };
-use core::{iter, marker::PhantomData, slice, str::from_utf8};
+use core::{
+    iter::{Copied, FilterMap, Zip},
+    marker::PhantomData,
+    slice::Iter,
+    str::from_utf8,
+};
 
 use smallvec::SmallVec;
 
@@ -345,7 +350,7 @@ type FilterIter<'a> = FilterMap<Iter<'a, Piece>, fn(piece: &'a Piece) -> Option<
 
 /// A Parameters Iterator.
 pub struct ParamsIter<'p, 'a, 'b, T> {
-    iter: iter::Zip<FilterIter<'a>, iter::Copied<slice::Iter<'p, &'b str>>>,
+    iter: Zip<FilterIter<'a>, Copied<Iter<'p, &'b str>>>,
     _t: PhantomData<T>,
 }
 
