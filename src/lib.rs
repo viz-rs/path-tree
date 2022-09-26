@@ -142,7 +142,7 @@ use alloc::{
     string::{String, ToString as _},
     vec::Vec,
 };
-use core::{marker::PhantomData, str::from_utf8, iter, slice};
+use core::{iter, marker::PhantomData, slice, str::from_utf8};
 
 use smallvec::SmallVec;
 
