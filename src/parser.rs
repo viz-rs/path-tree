@@ -109,13 +109,11 @@ impl<'a> Parser<'a> {
                                 let prefix = if start >= 2 {
                                     self.input
                                         .get(start - 2..start - 1)
-                                        .map(|s| s == "/")
-                                        .unwrap_or(false)
+                                        .map_or(false, |s| s == "/")
                                 } else {
                                     false
                                 };
-                                let suffix =
-                                    self.cursor.peek().map(|(_, c)| *c == '/').unwrap_or(true);
+                                let suffix = self.cursor.peek().map_or(true, |(_, c)| *c == '/');
                                 prefix && suffix
                             };
                             if c == '?' {
@@ -168,12 +166,11 @@ impl<'a> Iterator for Parser<'a> {
                         } else {
                             let f = {
                                 let prefix = if i >= 1 {
-                                    self.input.get(i - 1..i).map(|s| s == "/").unwrap_or(false)
+                                    self.input.get(i - 1..i).map_or(false, |s| s == "/")
                                 } else {
                                     false
                                 };
-                                let suffix =
-                                    self.cursor.peek().map(|(_, c)| *c == '/').unwrap_or(true);
+                                let suffix = self.cursor.peek().map_or(true, |(_, c)| *c == '/');
                                 prefix && suffix
                             };
                             if f {

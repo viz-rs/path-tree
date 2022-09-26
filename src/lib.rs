@@ -317,8 +317,7 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
             match piece {
                 Piece::String(_) => None,
                 Piece::Parameter(p, _) => from_utf8(match p {
-                    Position::Index(_, n) => n,
-                    Position::Named(n) => n,
+                    Position::Index(_, n) | Position::Named(n) => n,
                 })
                 .ok(),
             }
