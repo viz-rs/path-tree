@@ -135,7 +135,12 @@
 #![forbid(unsafe_code)]
 #![warn(rust_2018_idioms, unreachable_pub)]
 
-use std::{iter, marker::PhantomData, slice, str::from_utf8};
+use std::{
+    iter::{Copied, FilterMap, Zip},
+    marker::PhantomData,
+    slice::Iter,
+    str::from_utf8,
+};
 
 use smallvec::SmallVec;
 
@@ -145,6 +150,7 @@ mod parser;
 pub use node::{Node, NodeKind};
 pub use parser::{Kind, Parser, Piece, Position};
 
+/// A path tree.
 #[derive(Debug)]
 pub struct PathTree<T> {
     id: usize,
@@ -159,6 +165,7 @@ impl<T> Default for PathTree<T> {
 }
 
 impl<T> PathTree<T> {
+    /// Creates a new [PathTree].
     pub fn new() -> Self {
         Self {
             id: 0,
@@ -167,6 +174,7 @@ impl<T> PathTree<T> {
         }
     }
 
+    /// Inserts a part path-value to the tree and returns the id.
     pub fn insert(&mut self, path: &str, value: T) -> usize {
         let mut node = &mut self.node;
 
@@ -202,6 +210,7 @@ impl<T> PathTree<T> {
         }
     }
 
+    /// Returns the [Path] by the given path.
     pub fn find<'b>(&self, path: &'b str) -> Option<Path<'_, 'b, T>> {
         let bytes = path.as_bytes();
         self.node.find(bytes).and_then(|(id, ranges)| {
@@ -221,12 +230,13 @@ impl<T> PathTree<T> {
         })
     }
 
+    /// Gets the route by id.
     #[inline]
     pub fn get_route(&self, index: usize) -> Option<&(T, Vec<Piece>)> {
         self.routes.get(index)
     }
 
-    /// Generates URL
+    /// Generates URL with the params.
     pub fn url_for(&self, index: usize, params: &[&str]) -> Option<String> {
         self.get_route(index).map(|(_, pieces)| {
             let mut bytes = Vec::new();
@@ -248,6 +258,7 @@ impl<T> PathTree<T> {
     }
 }
 
+/// Matched route path infomation.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Path<'a, 'b, T> {
     pub id: &'a usize,
@@ -257,53 +268,54 @@ pub struct Path<'a, 'b, T> {
 }
 
 impl<'a, 'b, T> Path<'a, 'b, T> {
+    /// Gets current path pattern.
     pub fn pattern(&self) -> String {
         let mut bytes = Vec::new();
 
-        for piece in self.pieces {
-            match piece {
-                Piece::String(s) => {
-                    if s == b":" || s == b"+" || s == b"?" {
-                        bytes.push(b'\\');
-                    }
-                    bytes.extend_from_slice(s);
+        self.pieces.iter().for_each(|piece| match piece {
+            Piece::String(s) => {
+                if s == b":" || s == b"+" || s == b"?" {
+                    bytes.push(b'\\');
                 }
-                Piece::Parameter(p, k) => match p {
-                    Position::Index(_, _) => {
-                        if *k == Kind::OneOrMore {
-                            bytes.push(b'+');
-                        } else if *k == Kind::ZeroOrMore || *k == Kind::ZeroOrMoreSegment {
-                            bytes.push(b'*');
+                bytes.extend_from_slice(s);
+            }
+            Piece::Parameter(p, k) => match p {
+                Position::Index(_, _) => {
+                    if *k == Kind::OneOrMore {
+                        bytes.push(b'+');
+                    } else if *k == Kind::ZeroOrMore || *k == Kind::ZeroOrMoreSegment {
+                        bytes.push(b'*');
+                    }
+                }
+                Position::Named(n) => match k {
+                    Kind::Normal | Kind::Optional | Kind::OptionalSegment => {
+                        bytes.push(b':');
+                        bytes.extend_from_slice(n);
+                        if *k == Kind::Optional || *k == Kind::OptionalSegment {
+                            bytes.push(b'?');
                         }
                     }
-                    Position::Named(n) => match k {
-                        Kind::Normal | Kind::Optional | Kind::OptionalSegment => {
-                            bytes.push(b':');
-                            bytes.extend_from_slice(n);
-                            if *k == Kind::Optional || *k == Kind::OptionalSegment {
-                                bytes.push(b'?');
-                            }
-                        }
-                        Kind::OneOrMore => {
-                            bytes.push(b'+');
-                            bytes.extend_from_slice(n);
-                        }
-                        Kind::ZeroOrMore | Kind::ZeroOrMoreSegment => {
-                            bytes.push(b'*');
-                            bytes.extend_from_slice(n);
-                        }
-                    },
+                    Kind::OneOrMore => {
+                        bytes.push(b'+');
+                        bytes.extend_from_slice(n);
+                    }
+                    Kind::ZeroOrMore | Kind::ZeroOrMoreSegment => {
+                        bytes.push(b'*');
+                        bytes.extend_from_slice(n);
+                    }
                 },
-            }
-        }
+            },
+        });
 
         String::from_utf8_lossy(&bytes).to_string()
     }
 
+    /// Returns the parameters of the current path.
     pub fn params(&self) -> Vec<(&'a str, &'b str)> {
         self.params_iter().collect()
     }
 
+    /// Returns the parameters iterator of the current path.
     pub fn params_iter<'p>(&'p self) -> ParamsIter<'p, 'a, 'b, T> {
         #[inline]
         fn piece_filter(piece: &Piece) -> Option<&'_ str> {
@@ -328,11 +340,11 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
     }
 }
 
-type FilterIter<'a> =
-    iter::FilterMap<slice::Iter<'a, Piece>, fn(piece: &'a Piece) -> Option<&'a str>>;
+type FilterIter<'a> = FilterMap<Iter<'a, Piece>, fn(piece: &'a Piece) -> Option<&'a str>>;
 
+/// A Parameters Iterator.
 pub struct ParamsIter<'p, 'a, 'b, T> {
-    iter: iter::Zip<FilterIter<'a>, std::iter::Copied<slice::Iter<'p, &'b str>>>,
+    iter: Zip<FilterIter<'a>, Copied<Iter<'p, &'b str>>>,
     _t: PhantomData<T>,
 }
 
