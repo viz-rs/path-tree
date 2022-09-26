@@ -142,7 +142,7 @@ use alloc::{
     string::{String, ToString as _},
     vec::Vec,
 };
-use core::str::from_utf8;
+use core::{marker::PhantomData, str::from_utf8, iter, slice};
 
 use smallvec::SmallVec;
 
@@ -339,7 +339,7 @@ type FilterIter<'a> =
     iter::FilterMap<slice::Iter<'a, Piece>, fn(piece: &'a Piece) -> Option<&'a str>>;
 
 pub struct ParamsIter<'p, 'a, 'b, T> {
-    iter: iter::Zip<FilterIter<'a>, std::iter::Copied<slice::Iter<'p, &'b str>>>,
+    iter: iter::Zip<FilterIter<'a>, iter::Copied<slice::Iter<'p, &'b str>>>,
     _t: PhantomData<T>,
 }
 

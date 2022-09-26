@@ -55,7 +55,7 @@ impl<T: fmt::Debug> Node<T> {
                     if cursor < s.len() {
                         let (prefix, suffix) = s.split_at(cursor);
                         let mut node = Node::new(NodeKind::String(prefix.to_vec()), None);
-                        *p = suffix.to_vec();
+                        *s = suffix.to_vec();
                         ::core::mem::swap(self, &mut node);
                         self.nodes0.get_or_insert_with(Vec::new).push(node);
                     }
