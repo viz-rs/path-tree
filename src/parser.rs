@@ -1,4 +1,4 @@
-use alloc::{format, vec::Vec};
+use alloc::{string::ToString, vec::Vec};
 use core::{iter::Peekable, str::CharIndices};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -160,7 +160,12 @@ impl<'a> Iterator for Parser<'a> {
                     self.count += 1;
                     self.pos = i + 1;
                     Some(Piece::Parameter(
-                        Position::Index(self.count, format!("{}{}", c, self.count).into_bytes()),
+                        Position::Index(self.count, {
+                            let mut s = Vec::new();
+                            s.push(c as u8);
+                            s.extend_from_slice(self.count.to_string().as_bytes());
+                            s
+                        }),
                         if c == '+' {
                             Kind::OneOrMore
                         } else {
