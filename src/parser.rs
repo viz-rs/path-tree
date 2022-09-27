@@ -1,4 +1,5 @@
-use std::{iter::Peekable, str::CharIndices};
+use alloc::{format, vec::Vec};
+use core::{iter::Peekable, str::CharIndices};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Kind {
@@ -108,13 +109,11 @@ impl<'a> Parser<'a> {
                                 let prefix = if start >= 2 {
                                     self.input
                                         .get(start - 2..start - 1)
-                                        .map(|s| s == "/")
-                                        .unwrap_or(false)
+                                        .map_or(false, |s| s == "/")
                                 } else {
                                     false
                                 };
-                                let suffix =
-                                    self.cursor.peek().map(|(_, c)| *c == '/').unwrap_or(true);
+                                let suffix = self.cursor.peek().map_or(true, |(_, c)| *c == '/');
                                 prefix && suffix
                             };
                             if c == '?' {
@@ -161,21 +160,17 @@ impl<'a> Iterator for Parser<'a> {
                     self.count += 1;
                     self.pos = i + 1;
                     Some(Piece::Parameter(
-                        Position::Index(
-                            self.count,
-                            format!("{}{}", c, self.count).as_bytes().to_owned(),
-                        ),
+                        Position::Index(self.count, format!("{}{}", c, self.count).into_bytes()),
                         if c == '+' {
                             Kind::OneOrMore
                         } else {
                             let f = {
                                 let prefix = if i >= 1 {
-                                    self.input.get(i - 1..i).map(|s| s == "/").unwrap_or(false)
+                                    self.input.get(i - 1..i).map_or(false, |s| s == "/")
                                 } else {
                                     false
                                 };
-                                let suffix =
-                                    self.cursor.peek().map(|(_, c)| *c == '/').unwrap_or(true);
+                                let suffix = self.cursor.peek().map_or(true, |(_, c)| *c == '/');
                                 prefix && suffix
                             };
                             if f {

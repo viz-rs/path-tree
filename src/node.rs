@@ -1,4 +1,5 @@
-use std::{
+use alloc::{format, string::String, vec::Vec};
+use core::{
     cmp::Ordering,
     fmt::{self, Write},
     ops::Range,
@@ -55,7 +56,7 @@ impl<T: fmt::Debug> Node<T> {
                         let (prefix, suffix) = s.split_at(cursor);
                         let mut node = Node::new(NodeKind::String(prefix.to_vec()), None);
                         *s = suffix.to_vec();
-                        ::std::mem::swap(self, &mut node);
+                        ::core::mem::swap(self, &mut node);
                         self.nodes0.get_or_insert_with(Vec::new).push(node);
                     }
                     if cursor != bytes.len() {
@@ -79,7 +80,7 @@ impl<T: fmt::Debug> Node<T> {
                     // lets `/` at end
                     compare(s[0], bytes[0])
                 }
-                _ => unreachable!(),
+                NodeKind::Parameter(_) => unreachable!(),
             }) {
                 Ok(i) => nodes[i].insert_bytes(bytes),
                 Err(i) => {
@@ -97,7 +98,7 @@ impl<T: fmt::Debug> Node<T> {
         let i = nodes
             .binary_search_by(|node| match node.kind {
                 NodeKind::Parameter(pk) => pk.cmp(&kind),
-                _ => unreachable!(),
+                NodeKind::String(_) => unreachable!(),
             })
             .unwrap_or_else(|i| {
                 nodes.insert(i, Node::new(NodeKind::Parameter(kind), None));
@@ -149,7 +150,7 @@ impl<T: fmt::Debug> Node<T> {
                                         // lets `/` at end
                                         compare(s[0], bytes[0])
                                     }
-                                    _ => unreachable!(),
+                                    NodeKind::Parameter(_) => unreachable!(),
                                 })
                                 .ok()
                                 .and_then(|i| nodes[i]._find(start, bytes, ranges))
@@ -267,14 +268,14 @@ impl<T: fmt::Debug> Node<T> {
                     if m == 0 {
                         if k == &Kind::Normal {
                             return None;
-                        } else {
-                            // last
-                            if self.nodes0.is_none() && self.nodes1.is_none() {
-                                return self.value.as_ref().map(|id| {
-                                    ranges.push(start..start);
-                                    id
-                                });
-                            }
+                        }
+
+                        // last
+                        if self.nodes0.is_none() && self.nodes1.is_none() {
+                            return self.value.as_ref().map(|id| {
+                                ranges.push(start..start);
+                                id
+                            });
                         }
                     } else {
                         // static
@@ -288,7 +289,7 @@ impl<T: fmt::Debug> Node<T> {
                                         })
                                     })
                                 }
-                                _ => unreachable!(),
+                                NodeKind::Parameter(_) => unreachable!(),
                             })
                         }) {
                             return Some(id);
@@ -352,7 +353,7 @@ impl<T: fmt::Debug> Node<T> {
                                 .last()
                                 .filter(|node| match &node.kind {
                                     NodeKind::String(s) => s[0] == b'/',
-                                    _ => unreachable!(),
+                                    NodeKind::Parameter(_) => unreachable!(),
                                 })
                                 .and_then(|node| node._find(start, bytes, ranges))
                         }) {
@@ -366,14 +367,13 @@ impl<T: fmt::Debug> Node<T> {
                     if m == 0 {
                         if is_one_or_more {
                             return None;
-                        } else {
-                            // last
-                            if self.nodes0.is_none() && self.nodes1.is_none() {
-                                return self.value.as_ref().map(|id| {
-                                    ranges.push(start..start);
-                                    id
-                                });
-                            }
+                        }
+
+                        if self.nodes0.is_none() && self.nodes1.is_none() {
+                            return self.value.as_ref().map(|id| {
+                                ranges.push(start..start);
+                                id
+                            });
                         }
                     } else {
                         if self.nodes0.is_none() && self.nodes1.is_none() {
@@ -422,7 +422,7 @@ impl<T: fmt::Debug> Node<T> {
                                 .last()
                                 .filter(|node| match &node.kind {
                                     NodeKind::String(s) => s[0] == b'/',
-                                    _ => unreachable!(),
+                                    NodeKind::Parameter(_) => unreachable!(),
                                 })
                                 .and_then(|node| node._find(start, bytes, ranges))
                         }) {

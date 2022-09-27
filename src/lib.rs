@@ -132,10 +132,17 @@
 //! assert_eq!(r.params(), vec![("+1", "v1")]);
 //! ```
 
+#![no_std]
 #![forbid(unsafe_code)]
 #![warn(rust_2018_idioms, unreachable_pub)]
 
-use std::{
+extern crate alloc;
+
+use alloc::{
+    string::{String, ToString as _},
+    vec::Vec,
+};
+use core::{
     iter::{Copied, FilterMap, Zip},
     marker::PhantomData,
     slice::Iter,
@@ -322,8 +329,7 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
             match piece {
                 Piece::String(_) => None,
                 Piece::Parameter(p, _) => from_utf8(match p {
-                    Position::Index(_, n) => n,
-                    Position::Named(n) => n,
+                    Position::Index(_, n) | Position::Named(n) => n,
                 })
                 .ok(),
             }
