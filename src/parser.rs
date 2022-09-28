@@ -106,13 +106,11 @@ impl<'a> Parser<'a> {
                             Kind::OneOrMore
                         } else {
                             let f = {
-                                let prefix = if start >= 2 {
-                                    self.input
+                                let prefix = start >= 2
+                                    && self
+                                        .input
                                         .get(start - 2..start - 1)
-                                        .map_or(false, |s| s == "/")
-                                } else {
-                                    false
-                                };
+                                        .map_or(false, |s| s == "/");
                                 let suffix = self.cursor.peek().map_or(true, |(_, c)| *c == '/');
                                 prefix && suffix
                             };
@@ -170,11 +168,8 @@ impl<'a> Iterator for Parser<'a> {
                             Kind::OneOrMore
                         } else {
                             let f = {
-                                let prefix = if i >= 1 {
-                                    self.input.get(i - 1..i).map_or(false, |s| s == "/")
-                                } else {
-                                    false
-                                };
+                                let prefix =
+                                    i >= 1 && self.input.get(i - 1..i).map_or(false, |s| s == "/");
                                 let suffix = self.cursor.peek().map_or(true, |(_, c)| *c == '/');
                                 prefix && suffix
                             };
