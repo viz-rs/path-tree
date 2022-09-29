@@ -43,3 +43,6 @@ path = "benches/bench.rs"
 [[example]]
 name = "hello"
 path = "examples/hello.rs"
+
+[profile.bench]
+lto = true
