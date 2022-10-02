@@ -189,16 +189,10 @@ impl<T> PathTree<T> {
             (false, Vec::new())
         } else {
             let pieces = Parser::new(path).collect::<Vec<_>>();
-            for piece in &pieces {
-                match piece {
-                    Piece::String(s) => {
-                        node = node.insert_bytes(&s[..]);
-                    }
-                    Piece::Parameter(_, k) => {
-                        node = node.insert_parameter(*k);
-                    }
-                }
-            }
+            node = pieces.iter().fold(node, |node, piece| match piece {
+                Piece::String(s) => node.insert_bytes(&s[..]),
+                Piece::Parameter(_, k) => node.insert_parameter(*k),
+            });
             (true, pieces)
         };
 
