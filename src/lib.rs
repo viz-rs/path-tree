@@ -139,7 +139,7 @@
 extern crate alloc;
 
 use alloc::{
-    string::{String, ToString as _},
+    string::{String, ToString},
     vec::Vec,
 };
 use core::{
@@ -223,7 +223,7 @@ impl<T> PathTree<T> {
                     // opt!
                     raws: ranges
                         .into_iter()
-                        .map(|r| from_utf8(&bytes[r]).unwrap())
+                        .filter_map(|r| from_utf8(&bytes[r]).ok())
                         .rev()
                         .collect(),
                 }
@@ -239,7 +239,7 @@ impl<T> PathTree<T> {
 
     /// Generates URL with the params.
     pub fn url_for(&self, index: usize, params: &[&str]) -> Option<String> {
-        self.get_route(index).map(|(_, pieces)| {
+        self.get_route(index).and_then(|(_, pieces)| {
             let mut bytes = Vec::new();
             let mut iter = params.iter();
 
@@ -254,7 +254,7 @@ impl<T> PathTree<T> {
                 }
             });
 
-            String::from_utf8_lossy(&bytes).to_string()
+            from_utf8(&bytes).map(ToString::to_string).ok()
         })
     }
 }
@@ -308,7 +308,7 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
             },
         });
 
-        String::from_utf8_lossy(&bytes).to_string()
+        from_utf8(&bytes).map(ToString::to_string).unwrap()
     }
 
     /// Returns the parameters of the current path.
