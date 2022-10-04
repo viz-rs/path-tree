@@ -108,32 +108,30 @@ tree.insert("/:org/:repo/:page", 11);
 tree.insert("/:org/:repo/*", 12);
 tree.insert("/api/+", 13);
 
-let r = tree.find("/").unwrap();
-assert_eq!(r.value, &0);
-assert_eq!(r.params(), vec![]);
+let (h, p) = tree.find("/").unwrap();
+assert_eq!(h, &0);
+assert_eq!(p.params(), vec![]);
 
-let r = tree.find("/login").unwrap();
-assert_eq!(r.value, &1);
-assert_eq!(r.params(), vec![]);
+let (h, p) = tree.find("/login").unwrap();
+assert_eq!(h, &1);
+assert_eq!(p.params(), vec![]);
 
-let r = tree.find("/settings/admin").unwrap();
-assert_eq!(r.value, &4);
-assert_eq!(r.params(), vec![("page", "admin")]);
+let (h, p) = tree.find("/settings/admin").unwrap();
+assert_eq!(h, &4);
+assert_eq!(p.params(), vec![("page", "admin")]);
 
-let r = tree.find("/viz-rs").unwrap();
-assert_eq!(r.value, &5);
-assert_eq!(r.params(), vec![("user", "viz-rs")]);
+let (h, p) = tree.find("/viz-rs").unwrap();
+assert_eq!(h, &5);
+assert_eq!(p.params(), vec![("user", "viz-rs")]);
 
-let r = tree.find("/viz-rs/path-tree").unwrap();
-assert_eq!(r.value, &6);
-assert_eq!(r.params(), vec![("user", "viz-rs"), ("repo", "path-tree")]);
+let (h, p) = tree.find("/viz-rs/path-tree").unwrap();
+assert_eq!(h, &6);
+assert_eq!(p.params(), vec![("user", "viz-rs"), ("repo", "path-tree")]);
 
-assert_eq!(tree.url_for(*r.id, &["viz-rs", "viz"]).unwrap(), "/viz-rs/viz");
-
-let r = tree.find("/rust-lang/rust-analyzer/releases/download/2022-09-12/rust-analyzer-aarch64-apple-darwin.gz").unwrap();
-assert_eq!(r.value, &8);
+let (h, p) = tree.find("/rust-lang/rust-analyzer/releases/download/2022-09-12/rust-analyzer-aarch64-apple-darwin.gz").unwrap();
+assert_eq!(h, &8);
 assert_eq!(
-    r.params(),
+    p.params(),
     vec![
         ("org", "rust-lang"),
         ("repo", "rust-analyzer"),
@@ -143,10 +141,10 @@ assert_eq!(
     ]
 );
 
-let r = tree.find("/rust-lang/rust-analyzer/tags/2022-09-12").unwrap();
-assert_eq!(r.value, &9);
+let (h, p) = tree.find("/rust-lang/rust-analyzer/tags/2022-09-12").unwrap();
+assert_eq!(h, &9);
 assert_eq!(
-    r.params(),
+    p.params(),
     vec![
         ("org", "rust-lang"),
         ("repo", "rust-analyzer"),
@@ -156,10 +154,10 @@ assert_eq!(
     ]
 );
 
-let r = tree.find("/rust-lang/rust-analyzer/actions/ci:bench").unwrap();
-assert_eq!(r.value, &10);
+let (h, p) = tree.find("/rust-lang/rust-analyzer/actions/ci:bench").unwrap();
+assert_eq!(h, &10);
 assert_eq!(
-    r.params(),
+    p.params(),
     vec![
         ("org", "rust-lang"),
         ("repo", "rust-analyzer"),
@@ -168,23 +166,21 @@ assert_eq!(
     ]
 );
 
-let r = tree.find("/rust-lang/rust-analyzer/stargazers").unwrap();
-assert_eq!(r.value, &11);
-assert_eq!(r.params(), vec![("org", "rust-lang"), ("repo", "rust-analyzer"), ("page", "stargazers")]);
+let (h, p) = tree.find("/rust-lang/rust-analyzer/stargazers").unwrap();
+assert_eq!(h, &11);
+assert_eq!(p.params(), vec![("org", "rust-lang"), ("repo", "rust-analyzer"), ("page", "stargazers")]);
 
-let r = tree.find("/rust-lang/rust-analyzer/stargazers/404").unwrap();
-assert_eq!(r.value, &12);
-assert_eq!(r.params(), vec![("org", "rust-lang"), ("repo", "rust-analyzer"), ("*1", "stargazers/404")]);
+let (h, p) = tree.find("/rust-lang/rust-analyzer/stargazers/404").unwrap();
+assert_eq!(h, &12);
+assert_eq!(p.params(), vec![("org", "rust-lang"), ("repo", "rust-analyzer"), ("*1", "stargazers/404")]);
 
-let r = tree.find("/public/js/main.js").unwrap();
-assert_eq!(r.value, &7);
-assert_eq!(r.params(), vec![("any", "js/main.js")]);
+let (h, p) = tree.find("/public/js/main.js").unwrap();
+assert_eq!(h, &7);
+assert_eq!(p.params(), vec![("any", "js/main.js")]);
 
-let r = tree.find("/api/v1").unwrap();
-assert_eq!(r.value, &13);
-assert_eq!(r.params(), vec![("+1", "v1")]);
-
-assert_eq!(tree.url_for(*r.id, &["repos/viz-rs"]).unwrap(), "/api/repos/viz-rs");
+let (h, p) = tree.find("/api/v1").unwrap();
+assert_eq!(h, &13);
+assert_eq!(p.params(), vec![("+1", "v1")]);
 ```
 
 Hyper hello example can be found [here](examples/hello.rs).

@@ -57,30 +57,30 @@
 //! tree.insert("/:org/:repo/*", 12);
 //! tree.insert("/api/+", 13);
 //!
-//! let r = tree.find("/").unwrap();
-//! assert_eq!(r.value, &0);
-//! assert_eq!(r.params(), vec![]);
+//! let (h, p) = tree.find("/").unwrap();
+//! assert_eq!(h, &0);
+//! assert_eq!(p.params(), vec![]);
 //!
-//! let r = tree.find("/login").unwrap();
-//! assert_eq!(r.value, &1);
-//! assert_eq!(r.params(), vec![]);
+//! let (h, p) = tree.find("/login").unwrap();
+//! assert_eq!(h, &1);
+//! assert_eq!(p.params(), vec![]);
 //!
-//! let r = tree.find("/settings/admin").unwrap();
-//! assert_eq!(r.value, &4);
-//! assert_eq!(r.params(), vec![("page", "admin")]);
+//! let (h, p) = tree.find("/settings/admin").unwrap();
+//! assert_eq!(h, &4);
+//! assert_eq!(p.params(), vec![("page", "admin")]);
 //!
-//! let r = tree.find("/viz-rs").unwrap();
-//! assert_eq!(r.value, &5);
-//! assert_eq!(r.params(), vec![("user", "viz-rs")]);
+//! let (h, p) = tree.find("/viz-rs").unwrap();
+//! assert_eq!(h, &5);
+//! assert_eq!(p.params(), vec![("user", "viz-rs")]);
 //!
-//! let r = tree.find("/viz-rs/path-tree").unwrap();
-//! assert_eq!(r.value, &6);
-//! assert_eq!(r.params(), vec![("user", "viz-rs"), ("repo", "path-tree")]);
+//! let (h, p) = tree.find("/viz-rs/path-tree").unwrap();
+//! assert_eq!(h, &6);
+//! assert_eq!(p.params(), vec![("user", "viz-rs"), ("repo", "path-tree")]);
 //!
-//! let r = tree.find("/rust-lang/rust-analyzer/releases/download/2022-09-12/rust-analyzer-aarch64-apple-darwin.gz").unwrap();
-//! assert_eq!(r.value, &8);
+//! let (h, p) = tree.find("/rust-lang/rust-analyzer/releases/download/2022-09-12/rust-analyzer-aarch64-apple-darwin.gz").unwrap();
+//! assert_eq!(h, &8);
 //! assert_eq!(
-//!     r.params(),
+//!     p.params(),
 //!     vec![
 //!         ("org", "rust-lang"),
 //!         ("repo", "rust-analyzer"),
@@ -90,10 +90,10 @@
 //!     ]
 //! );
 //!
-//! let r = tree.find("/rust-lang/rust-analyzer/tags/2022-09-12").unwrap();
-//! assert_eq!(r.value, &9);
+//! let (h, p) = tree.find("/rust-lang/rust-analyzer/tags/2022-09-12").unwrap();
+//! assert_eq!(h, &9);
 //! assert_eq!(
-//!     r.params(),
+//!     p.params(),
 //!     vec![
 //!         ("org", "rust-lang"),
 //!         ("repo", "rust-analyzer"),
@@ -103,10 +103,10 @@
 //!     ]
 //! );
 //!
-//! let r = tree.find("/rust-lang/rust-analyzer/actions/ci:bench").unwrap();
-//! assert_eq!(r.value, &10);
+//! let (h, p) = tree.find("/rust-lang/rust-analyzer/actions/ci:bench").unwrap();
+//! assert_eq!(h, &10);
 //! assert_eq!(
-//!     r.params(),
+//!     p.params(),
 //!     vec![
 //!         ("org", "rust-lang"),
 //!         ("repo", "rust-analyzer"),
@@ -115,21 +115,21 @@
 //!     ]
 //! );
 //!
-//! let r = tree.find("/rust-lang/rust-analyzer/stargazers").unwrap();
-//! assert_eq!(r.value, &11);
-//! assert_eq!(r.params(), vec![("org", "rust-lang"), ("repo", "rust-analyzer"), ("page", "stargazers")]);
+//! let (h, p) = tree.find("/rust-lang/rust-analyzer/stargazers").unwrap();
+//! assert_eq!(h, &11);
+//! assert_eq!(p.params(), vec![("org", "rust-lang"), ("repo", "rust-analyzer"), ("page", "stargazers")]);
 //!
-//! let r = tree.find("/rust-lang/rust-analyzer/stargazers/404").unwrap();
-//! assert_eq!(r.value, &12);
-//! assert_eq!(r.params(), vec![("org", "rust-lang"), ("repo", "rust-analyzer"), ("*1", "stargazers/404")]);
+//! let (h, p) = tree.find("/rust-lang/rust-analyzer/stargazers/404").unwrap();
+//! assert_eq!(h, &12);
+//! assert_eq!(p.params(), vec![("org", "rust-lang"), ("repo", "rust-analyzer"), ("*1", "stargazers/404")]);
 //!
-//! let r = tree.find("/public/js/main.js").unwrap();
-//! assert_eq!(r.value, &7);
-//! assert_eq!(r.params(), vec![("any", "js/main.js")]);
+//! let (h, p) = tree.find("/public/js/main.js").unwrap();
+//! assert_eq!(h, &7);
+//! assert_eq!(p.params(), vec![("any", "js/main.js")]);
 //!
-//! let r = tree.find("/api/v1").unwrap();
-//! assert_eq!(r.value, &13);
-//! assert_eq!(r.params(), vec![("+1", "v1")]);
+//! let (h, p) = tree.find("/api/v1").unwrap();
+//! assert_eq!(h, &13);
+//! assert_eq!(p.params(), vec![("+1", "v1")]);
 //! ```
 
 #![no_std]
@@ -142,12 +142,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::{
-    iter::{Copied, FilterMap, Zip},
-    marker::PhantomData,
-    slice::Iter,
-    str::from_utf8,
-};
+use core::str::from_utf8;
 
 use smallvec::SmallVec;
 
@@ -212,21 +207,23 @@ impl<T> PathTree<T> {
     }
 
     /// Returns the [Path] by the given path.
-    pub fn find<'b>(&self, path: &'b str) -> Option<Path<'_, 'b, T>> {
+    pub fn find<'a, 'b>(&'a self, path: &'b str) -> Option<(&T, Path<'a, 'b>)> {
         let bytes = path.as_bytes();
         self.node.find(bytes).and_then(|(id, ranges)| {
             self.get_route(*id).map(|(value, pieces)| {
-                Path {
-                    id,
+                (
                     value,
-                    pieces,
-                    // opt!
-                    raws: ranges
-                        .into_iter()
-                        .filter_map(|r| from_utf8(&bytes[r]).ok())
-                        .rev()
-                        .collect(),
-                }
+                    Path {
+                        id,
+                        pieces,
+                        // opt!
+                        raws: ranges
+                            .into_iter()
+                            .filter_map(|r| from_utf8(&bytes[r]).ok())
+                            .rev()
+                            .collect(),
+                    },
+                )
             })
         })
     }
@@ -260,15 +257,14 @@ impl<T> PathTree<T> {
 }
 
 /// Matched route path infomation.
-#[derive(Debug, PartialEq, Eq)]
-pub struct Path<'a, 'b, T> {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Path<'a, 'b> {
     pub id: &'a usize,
-    pub value: &'a T,
     pub pieces: &'a [Piece],
     pub raws: SmallVec<[&'b str; 4]>,
 }
 
-impl<'a, 'b, T> Path<'a, 'b, T> {
+impl<'a, 'b> Path<'a, 'b> {
     /// Gets current path pattern.
     pub fn pattern(&self) -> String {
         let mut bytes = Vec::new();
@@ -312,14 +308,14 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
     }
 
     /// Returns the parameters of the current path.
-    pub fn params(&self) -> Vec<(&'a str, &'b str)> {
+    pub fn params(&self) -> Vec<(&str, &str)> {
         self.params_iter().collect()
     }
 
     /// Returns the parameters iterator of the current path.
-    pub fn params_iter<'p>(&'p self) -> ParamsIter<'p, 'a, 'b, T> {
+    pub fn params_iter(&self) -> impl Iterator<Item = (&str, &str)> {
         #[inline]
-        fn piece_filter(piece: &Piece) -> Option<&'_ str> {
+        fn piece_filter(piece: &Piece) -> Option<&str> {
             match piece {
                 Piece::String(_) => None,
                 Piece::Parameter(p, _) => from_utf8(match p {
@@ -329,30 +325,9 @@ impl<'a, 'b, T> Path<'a, 'b, T> {
             }
         }
 
-        ParamsIter {
-            iter: self
-                .pieces
-                .iter()
-                .filter_map(piece_filter as fn(piece: &'a Piece) -> Option<&'a str>)
-                .zip(self.raws.iter().copied()),
-            _t: PhantomData,
-        }
-    }
-}
-
-type FilterIter<'a> = FilterMap<Iter<'a, Piece>, fn(piece: &'a Piece) -> Option<&'a str>>;
-
-/// A Parameters Iterator.
-pub struct ParamsIter<'p, 'a, 'b, T> {
-    iter: Zip<FilterIter<'a>, Copied<Iter<'p, &'b str>>>,
-    _t: PhantomData<T>,
-}
-
-impl<'p, 'a, 'b, T> Iterator for ParamsIter<'p, 'a, 'b, T> {
-    type Item = (&'a str, &'b str);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.pieces
+            .iter()
+            .filter_map(piece_filter)
+            .zip(self.raws.iter().copied())
     }
 }

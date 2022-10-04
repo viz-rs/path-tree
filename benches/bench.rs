@@ -131,7 +131,7 @@ fn bench_path_find(c: &mut Criterion) {
             b.iter(|| {
                 for (i, r) in ROUTES_URLS.iter().enumerate() {
                     let n = tree.find(r).unwrap();
-                    assert_eq!(*n.value, i);
+                    assert_eq!(*n.0, i);
                 }
             })
         })

@@ -95,14 +95,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
                 async move {
                     Ok::<_, Infallible>(match router.find(&path) {
-                        Some(route) => {
+                        Some((handler, route)) => {
                             let p = route
                                 .params()
                                 .iter()
                                 .map(|p| (p.0.to_string(), p.1.to_string()))
                                 .collect::<Params>();
                             req.extensions_mut().insert(p);
-                            route.value.call(req).await
+                            handler.call(req).await
                         }
                         None => Response::builder()
                             .status(StatusCode::NOT_FOUND)
