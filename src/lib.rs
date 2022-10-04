@@ -177,7 +177,7 @@ impl<T> PathTree<T> {
         Self {
             id: 0,
             routes: Vec::new(),
-            node: Node::new(NodeKind::String("".as_bytes().to_vec()), None),
+            node: Node::new(NodeKind::String(Vec::new()), None),
         }
     }
 
