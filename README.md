@@ -24,14 +24,14 @@
 
 ## Parameters Syntax
 
-| Pattern                    | Kind                | Description                                                                    |
-| -------------------------- | ------------------- | ------------------------------------------------------------------------------ |
-| `:name`                    | `Normal`            | Matches a path piece, excludes `/`                                             |
-| `:name?`                   | `Optional`          | Matches an optional path piece, excludes `/`                                   |
-| `/:name?/` `/:name?`       | `OptionalSegment`   | Matches an optional path segment, excludes `/`, prefix or suffix should be `/` |
-| `+` `:name+`               | `OneOrMore`         | Matches a path piece, includes `/`                                             |
-| `*` `:name*`               | `ZeroOrMore`        | Matches an optional path piece, includes `/`                                   |
-| `/*/` `/:name*/` `/:name*` | `ZeroOrMoreSegment` | Matches zero or more path segments, prefix or suffix should be `/`             |
+| Pattern                         | Kind                | Description                                                                    |
+| ------------------------------- | ------------------- | ------------------------------------------------------------------------------ |
+| `:name`                         | `Normal`            | Matches a path piece, excludes `/`                                             |
+| `:name?`                        | `Optional`          | Matches an optional path piece, excludes `/`                                   |
+| `/:name?/` `/:name?`            | `OptionalSegment`   | Matches an optional path segment, excludes `/`, prefix or suffix should be `/` |
+| `+` `:name+`                    | `OneOrMore`         | Matches a path piece, includes `/`                                             |
+| `*` `:name*`                    | `ZeroOrMore`        | Matches an optional path piece, includes `/`                                   |
+| `/*/` `/*` `/:name*/` `/:name*` | `ZeroOrMoreSegment` | Matches zero or more path segments, prefix or suffix should be `/`             |
 
 ## Supports
 
