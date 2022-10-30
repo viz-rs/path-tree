@@ -466,7 +466,11 @@ impl<T: fmt::Debug> fmt::Debug for Node<T> {
                 f.write_str(pad)?;
                 f.write_str(space)?;
                 f.write_str(right)?;
-                print_tree(f, node, false, &format!("{}{}{}", pad, space, left))?;
+                let mut s = String::new();
+                s.push_str(pad);
+                s.push_str(space);
+                s.push_str(left);
+                print_tree(f, node, false, &s)?;
             }
             Ok(())
         }
