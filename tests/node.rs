@@ -88,7 +88,7 @@ fn github_nodes() {
     node.insert_bytes(b"/503");
 
     assert_eq!(
-        format!("{:?}", node),
+        format!("{node:?}"),
         r#"
 /
 ├── 404
