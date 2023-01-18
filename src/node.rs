@@ -437,7 +437,7 @@ impl<T: fmt::Debug> Node<T> {
         None
     }
 
-    pub fn find<'b>(&self, bytes: &'b [u8]) -> Option<(&T, SmallVec<[Range<usize>; 8]>)> {
+    pub fn find(&self, bytes: &[u8]) -> Option<(&T, SmallVec<[Range<usize>; 8]>)> {
         let mut ranges = SmallVec::<[Range<usize>; 8]>::new(); // opt!
         return self._find(0, bytes, &mut ranges).map(|t| (t, ranges));
     }
