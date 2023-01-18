@@ -41,7 +41,7 @@ async fn hello_world(req: Request<Body>) -> Response<Body> {
     let mut s = String::new();
     s.push_str("Hello, World!\n");
     for (_, v) in params {
-        s.push_str(&format!("param = {}", v));
+        s.push_str(&format!("param = {v}"));
     }
     Response::new(Body::from(s))
 }
@@ -51,7 +51,7 @@ async fn hello_user(req: Request<Body>) -> Response<Body> {
     let mut s = String::new();
     s.push_str("Hello, ");
     for (k, v) in params {
-        s.push_str(&format!("{} = {}", k, v));
+        s.push_str(&format!("{k} = {v}"));
     }
     s.push('!');
     Response::new(Body::from(s))
@@ -116,7 +116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let server = Server::bind(&addr).serve(make_service);
 
-    println!("Listening on http://{}", addr);
+    println!("Listening on http://{addr}");
 
     server.await?;
 
