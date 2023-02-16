@@ -153,7 +153,7 @@ pub use node::{Node, NodeKind};
 pub use parser::{Kind, Parser, Piece, Position};
 
 /// A path tree.
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct PathTree<T> {
     id: usize,
     routes: Vec<(T, Vec<Piece>)>,
