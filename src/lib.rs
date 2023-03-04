@@ -149,7 +149,7 @@ use smallvec::SmallVec;
 mod node;
 mod parser;
 
-pub use node::{Node, Key};
+pub use node::{Key, Node};
 pub use parser::{Kind, Parser, Piece, Position};
 
 /// A path tree.
