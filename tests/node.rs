@@ -1,8 +1,10 @@
-use path_tree::*;
+#![allow(clippy::too_many_lines)]
+
+use path_tree::{Key, Kind, Node};
 
 #[test]
 fn github_nodes() {
-    let mut node = Node::<usize>::new(NodeKind::String(b"/".to_vec()), None);
+    let mut node = Node::<usize>::new(Key::String(b"/".to_vec()), None);
 
     let mut n = node.insert_bytes(b"/");
     n = n.insert_parameter(Kind::Normal);

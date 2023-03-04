@@ -149,7 +149,7 @@ use smallvec::SmallVec;
 mod node;
 mod parser;
 
-pub use node::{Node, NodeKind};
+pub use node::{Node, Key};
 pub use parser::{Kind, Parser, Piece, Position};
 
 /// A path tree.
@@ -167,16 +167,18 @@ impl<T> Default for PathTree<T> {
 }
 
 impl<T> PathTree<T> {
-    /// Creates a new [PathTree].
+    /// Creates a new [`PathTree`].
+    #[must_use]
     pub fn new() -> Self {
         Self {
             id: 0,
             routes: Vec::new(),
-            node: Node::new(NodeKind::String(Vec::new()), None),
+            node: Node::new(Key::String(Vec::new()), None),
         }
     }
 
     /// Inserts a part path-value to the tree and returns the id.
+    #[must_use]
     pub fn insert(&mut self, path: &str, value: T) -> usize {
         let mut node = &mut self.node;
 
@@ -207,6 +209,7 @@ impl<T> PathTree<T> {
     }
 
     /// Returns the [Path] by the given path.
+    #[must_use]
     pub fn find<'a, 'b>(&'a self, path: &'b str) -> Option<(&T, Path<'a, 'b>)> {
         let bytes = path.as_bytes();
         self.node.find(bytes).and_then(|(id, ranges)| {
@@ -230,11 +233,13 @@ impl<T> PathTree<T> {
 
     /// Gets the route by id.
     #[inline]
+    #[allow(clippy::must_use_candidate)]
     pub fn get_route(&self, index: usize) -> Option<&(T, Vec<Piece>)> {
         self.routes.get(index)
     }
 
     /// Generates URL with the params.
+    #[allow(clippy::must_use_candidate)]
     pub fn url_for(&self, index: usize, params: &[&str]) -> Option<String> {
         self.get_route(index).and_then(|(_, pieces)| {
             let mut bytes = Vec::new();
@@ -304,10 +309,13 @@ impl<'a, 'b> Path<'a, 'b> {
             },
         });
 
-        from_utf8(&bytes).map(ToString::to_string).unwrap()
+        from_utf8(&bytes)
+            .map(ToString::to_string)
+            .expect("pattern generated failure")
     }
 
     /// Returns the parameters of the current path.
+    #[must_use]
     pub fn params(&self) -> Vec<(&str, &str)> {
         self.params_iter().collect()
     }

@@ -1,4 +1,7 @@
-use path_tree::*;
+#![allow(unused_must_use)]
+#![allow(clippy::too_many_lines)]
+
+use path_tree::{Kind, PathTree, Piece, Position};
 use rand::seq::SliceRandom;
 
 #[test]
@@ -65,7 +68,7 @@ fn wildcards() {
 
     let mut tree = PathTree::<usize>::new();
 
-    for (i, u) in routes.iter() {
+    for (i, u) in &routes {
         tree.insert(u, *i);
     }
 

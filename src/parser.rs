@@ -42,6 +42,7 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
+    #[must_use]
     pub fn new(input: &'a str) -> Self {
         Self {
             input,

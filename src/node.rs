@@ -10,14 +10,14 @@ use smallvec::SmallVec;
 use crate::Kind;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum NodeKind {
+pub enum Key {
     String(Vec<u8>),
     Parameter(Kind),
 }
 
 pub struct Node<T> {
+    pub key: Key,
     pub value: Option<T>,
-    pub kind: NodeKind,
     /// Stores string node
     pub nodes0: Option<Vec<Self>>,
     /// Stores parameter node
@@ -25,9 +25,9 @@ pub struct Node<T> {
 }
 
 impl<T: fmt::Debug> Node<T> {
-    pub fn new(kind: NodeKind, value: Option<T>) -> Self {
+    pub fn new(key: Key, value: Option<T>) -> Self {
         Self {
-            kind,
+            key,
             value,
             nodes0: None,
             nodes1: None,
@@ -35,8 +35,8 @@ impl<T: fmt::Debug> Node<T> {
     }
 
     pub fn insert_bytes(&mut self, mut bytes: &[u8]) -> &mut Self {
-        let diff = match &mut self.kind {
-            NodeKind::String(s) => {
+        let diff = match &mut self.key {
+            Key::String(s) => {
                 if s.is_empty() {
                     *s = bytes.to_vec();
                     return self;
@@ -54,37 +54,37 @@ impl<T: fmt::Debug> Node<T> {
                     // split node
                     if cursor < s.len() {
                         let (prefix, suffix) = s.split_at(cursor);
-                        let mut node = Node::new(NodeKind::String(prefix.to_vec()), None);
+                        let mut node = Node::new(Key::String(prefix.to_vec()), None);
                         *s = suffix.to_vec();
                         ::core::mem::swap(self, &mut node);
                         self.nodes0.get_or_insert_with(Vec::new).push(node);
                     }
-                    if cursor != bytes.len() {
+                    if cursor == bytes.len() {
+                        false
+                    } else {
                         bytes = &bytes[cursor..];
                         true
-                    } else {
-                        false
                     }
                 }
             }
-            NodeKind::Parameter(_) => true,
+            Key::Parameter(_) => true,
         };
 
         // insert node
         if diff {
             let nodes = self.nodes0.get_or_insert_with(Vec::new);
-            return match nodes.binary_search_by(|node| match &node.kind {
-                NodeKind::String(s) => {
+            return match nodes.binary_search_by(|node| match &node.key {
+                Key::String(s) => {
                     // s[0].cmp(&bytes[0])
                     // opt!
                     // lets `/` at end
                     compare(s[0], bytes[0])
                 }
-                NodeKind::Parameter(_) => unreachable!(),
+                Key::Parameter(_) => unreachable!(),
             }) {
                 Ok(i) => nodes[i].insert_bytes(bytes),
                 Err(i) => {
-                    nodes.insert(i, Node::new(NodeKind::String(bytes.to_vec()), None));
+                    nodes.insert(i, Node::new(Key::String(bytes.to_vec()), None));
                     &mut nodes[i]
                 }
             };
@@ -96,17 +96,19 @@ impl<T: fmt::Debug> Node<T> {
     pub fn insert_parameter(&mut self, kind: Kind) -> &mut Self {
         let nodes = self.nodes1.get_or_insert_with(Vec::new);
         let i = nodes
-            .binary_search_by(|node| match node.kind {
-                NodeKind::Parameter(pk) => pk.cmp(&kind),
-                NodeKind::String(_) => unreachable!(),
+            .binary_search_by(|node| match node.key {
+                Key::Parameter(pk) => pk.cmp(&kind),
+                Key::String(_) => unreachable!(),
             })
             .unwrap_or_else(|i| {
-                nodes.insert(i, Node::new(NodeKind::Parameter(kind), None));
+                nodes.insert(i, Node::new(Key::Parameter(kind), None));
                 i
             });
         &mut nodes[i]
     }
 
+    #[allow(clippy::range_plus_one)]
+    #[allow(clippy::too_many_lines)]
     #[inline]
     fn _find(
         &self,
@@ -115,8 +117,8 @@ impl<T: fmt::Debug> Node<T> {
         ranges: &mut SmallVec<[Range<usize>; 8]>,
     ) -> Option<&T> {
         let mut m = bytes.len();
-        match &self.kind {
-            NodeKind::String(s) => {
+        match &self.key {
+            Key::String(s) => {
                 let n = s.len();
                 let mut flag = m >= n;
 
@@ -143,14 +145,14 @@ impl<T: fmt::Debug> Node<T> {
                         // static
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes
-                                .binary_search_by(|node| match &node.kind {
-                                    NodeKind::String(s) => {
+                                .binary_search_by(|node| match &node.key {
+                                    Key::String(s) => {
                                         // s[0].cmp(&bytes[0])
                                         // opt!
                                         // lets `/` at end
                                         compare(s[0], bytes[0])
                                     }
-                                    NodeKind::Parameter(_) => unreachable!(),
+                                    Key::Parameter(_) => unreachable!(),
                                 })
                                 .ok()
                                 .and_then(|i| nodes[i]._find(start, bytes, ranges))
@@ -164,8 +166,8 @@ impl<T: fmt::Debug> Node<T> {
                         let b = m > 0;
                         nodes
                             .iter()
-                            .filter(|node| match node.kind {
-                                NodeKind::Parameter(pk)
+                            .filter(|node| match node.key {
+                                Key::Parameter(pk)
                                     if pk == Kind::Normal || pk == Kind::OneOrMore =>
                                 {
                                     b
@@ -181,8 +183,8 @@ impl<T: fmt::Debug> Node<T> {
                         nodes
                             .iter()
                             .filter(|node| {
-                                matches!(node.kind,
-                                    NodeKind::Parameter(pk)
+                                matches!(node.key,
+                                    Key::Parameter(pk)
                                         if pk == Kind::OptionalSegment
                                             || pk == Kind::ZeroOrMoreSegment
                                 )
@@ -193,7 +195,7 @@ impl<T: fmt::Debug> Node<T> {
                     }
                 }
             }
-            NodeKind::Parameter(k) => match k {
+            Key::Parameter(k) => match k {
                 // Kind::Normal => {
                 //     if m == 0 {
                 //         return None;
@@ -207,8 +209,8 @@ impl<T: fmt::Debug> Node<T> {
                 //     // static
                 //     if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                 //         let tmp = &bytes[0..sp.unwrap_or(m)];
-                //         nodes.iter().find_map(|node| match node.kind {
-                //             NodeKind::String(s) => {
+                //         nodes.iter().find_map(|node| match node.key {
+                //             Key::String(s) => {
                 //                 if s[0] == b'/' {
                 //                     slash.replace(node);
                 //                     return None;
@@ -233,8 +235,8 @@ impl<T: fmt::Debug> Node<T> {
                 //         let b = m - 1 > 0;
                 //         nodes
                 //             .iter()
-                //             .filter(|node| match node.kind {
-                //                 NodeKind::Parameter(pk)
+                //             .filter(|node| match node.key {
+                //                 Key::Parameter(pk)
                 //                     if pk == Kind::Normal || pk == Kind::OneOrMore =>
                 //                 {
                 //                     b
@@ -280,8 +282,8 @@ impl<T: fmt::Debug> Node<T> {
                     } else {
                         // static
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
-                            nodes.iter().find_map(|node| match &node.kind {
-                                NodeKind::String(s) => {
+                            nodes.iter().find_map(|node| match &node.key {
+                                Key::String(s) => {
                                     bytes.iter().position(|b| s[0] == *b).and_then(|n| {
                                         node._find(start + n, &bytes[n..], ranges).map(|id| {
                                             ranges.push(start..start + n);
@@ -289,7 +291,7 @@ impl<T: fmt::Debug> Node<T> {
                                         })
                                     })
                                 }
-                                NodeKind::Parameter(_) => unreachable!(),
+                                Key::Parameter(_) => unreachable!(),
                             })
                         }) {
                             return Some(id);
@@ -300,8 +302,8 @@ impl<T: fmt::Debug> Node<T> {
                             let b = m - 1 > 0;
                             nodes
                                 .iter()
-                                .filter(|node| match node.kind {
-                                    NodeKind::Parameter(pk)
+                                .filter(|node| match node.key {
+                                    Key::Parameter(pk)
                                         if pk == Kind::Normal || pk == Kind::OneOrMore =>
                                     {
                                         b
@@ -321,8 +323,8 @@ impl<T: fmt::Debug> Node<T> {
                             let b = m > 0;
                             nodes
                                 .iter()
-                                .filter(|node| match &node.kind {
-                                    NodeKind::Parameter(pk)
+                                .filter(|node| match &node.key {
+                                    Key::Parameter(pk)
                                         if pk == &Kind::Normal || pk == &Kind::OneOrMore =>
                                     {
                                         b
@@ -351,9 +353,9 @@ impl<T: fmt::Debug> Node<T> {
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes
                                 .last()
-                                .filter(|node| match &node.kind {
-                                    NodeKind::String(s) => s[0] == b'/',
-                                    NodeKind::Parameter(_) => unreachable!(),
+                                .filter(|node| match &node.key {
+                                    Key::String(s) => s[0] == b'/',
+                                    Key::Parameter(_) => unreachable!(),
                                 })
                                 .and_then(|node| node._find(start, bytes, ranges))
                         }) {
@@ -386,7 +388,7 @@ impl<T: fmt::Debug> Node<T> {
                         // static
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes.iter().find_map(|node| {
-                                if let NodeKind::String(s) = &node.kind {
+                                if let Key::String(s) = &node.key {
                                     let right_length = if is_one_or_more {
                                         m > s.len()
                                     } else {
@@ -420,9 +422,9 @@ impl<T: fmt::Debug> Node<T> {
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes
                                 .last()
-                                .filter(|node| match &node.kind {
-                                    NodeKind::String(s) => s[0] == b'/',
-                                    NodeKind::Parameter(_) => unreachable!(),
+                                .filter(|node| match &node.key {
+                                    Key::String(s) => s[0] == b'/',
+                                    Key::Parameter(_) => unreachable!(),
                                 })
                                 .and_then(|node| node._find(start, bytes, ranges))
                         }) {
@@ -488,8 +490,8 @@ impl<T: fmt::Debug> fmt::Debug for Node<T> {
                 f.write_char(' ')?;
                 " "
             };
-            match &node.kind {
-                NodeKind::String(path) => {
+            match &node.key {
+                Key::String(path) => {
                     f.write_str(
                         &String::from_utf8_lossy(path)
                             .replace(':', "\\:")
@@ -497,7 +499,7 @@ impl<T: fmt::Debug> fmt::Debug for Node<T> {
                             .replace('+', "\\+"),
                     )?;
                 }
-                NodeKind::Parameter(kind) => {
+                Key::Parameter(kind) => {
                     let c = match kind {
                         Kind::Normal => ':',
                         Kind::Optional => '?',

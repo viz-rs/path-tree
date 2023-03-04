@@ -1,4 +1,4 @@
-use path_tree::*;
+use path_tree::{Kind, Parser, Piece, Position};
 
 #[test]
 fn parses() {
