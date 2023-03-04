@@ -1,3 +1,5 @@
+#![allow(unused_must_use)]
+
 #[path = "../tests/fixtures/github.rs"]
 mod github;
 use github::*;
