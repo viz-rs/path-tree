@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@rustfmt
+      - uses: dtolnay/rust-toolchain@stable
       - run: cargo fmt --all -- --check
 
   docs:
