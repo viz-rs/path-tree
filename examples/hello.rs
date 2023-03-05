@@ -1,3 +1,5 @@
+#![allow(unused_must_use)]
+
 use std::{convert::Infallible, future::Future, pin::Pin, sync::Arc};
 
 use hyper::{
