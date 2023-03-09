@@ -232,8 +232,8 @@ impl<T> PathTree<T> {
     }
 
     /// Gets the route by id.
-    #[inline]
     #[allow(clippy::must_use_candidate)]
+    #[inline]
     pub fn get_route(&self, index: usize) -> Option<&(T, Vec<Piece>)> {
         self.routes.get(index)
     }
