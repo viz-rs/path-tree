@@ -38,7 +38,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@clippy
       - run: cargo clippy --tests -- -Dclippy::all -Dclippy::pedantic
 
-
   fmt:
     name: Fmt
     runs-on: ubuntu-latest
