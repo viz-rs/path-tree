@@ -271,6 +271,10 @@ pub struct Path<'a, 'b> {
 
 impl<'a, 'b> Path<'a, 'b> {
     /// Gets current path pattern.
+    ///
+    /// # Panics
+    ///
+    /// Will panic if bytes to string conversion fails.
     pub fn pattern(&self) -> String {
         let mut bytes = Vec::new();
 
