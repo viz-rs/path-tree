@@ -1668,7 +1668,7 @@ fn basic() {
 
     assert_eq!(
         format!("{:?}", &tree.node),
-        r#"
+        r"
 / •0
 ├── api/
 │   └── + •13
@@ -1702,7 +1702,7 @@ fn basic() {
                 │                   └── : •9
                 ├── : •11
                 └── ** •12
-"#
+"
     );
 
     let (h, p) = tree.find("/").unwrap();
