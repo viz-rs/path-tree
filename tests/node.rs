@@ -91,7 +91,7 @@ fn github_nodes() {
 
     assert_eq!(
         format!("{node:?}"),
-        r#"
+        r"
 /
 ├── 404
 ├── 50
@@ -183,6 +183,6 @@ fn github_nodes() {
 └── :
     └── /
         └── :
-"#
+"
     );
 }

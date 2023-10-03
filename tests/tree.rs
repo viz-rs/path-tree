@@ -1951,7 +1951,7 @@ fn github_tree() {
 
     assert_eq!(
         format!("{:?}", &tree.node),
-        r#"
+        r"
 / •0
 ├── 404 •67
 ├── 50
@@ -2124,7 +2124,7 @@ fn github_tree() {
                 │       └── /
                 │           └── : •84
                 └── ** •110
-"#
+"
     );
 
     let (h, p) = tree.find("/rust-lang/rust").unwrap();

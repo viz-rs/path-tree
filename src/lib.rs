@@ -232,14 +232,14 @@ impl<T> PathTree<T> {
     }
 
     /// Gets the route by id.
-    #[allow(clippy::must_use_candidate)]
+    #[must_use]
     #[inline]
     pub fn get_route(&self, index: usize) -> Option<&(T, Vec<Piece>)> {
         self.routes.get(index)
     }
 
     /// Generates URL with the params.
-    #[allow(clippy::must_use_candidate)]
+    #[must_use]
     pub fn url_for(&self, index: usize, params: &[&str]) -> Option<String> {
         self.get_route(index).and_then(|(_, pieces)| {
             let mut bytes = Vec::new();
