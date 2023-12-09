@@ -454,7 +454,7 @@ impl<T: fmt::Debug> fmt::Debug for Node<T> {
 
         fn print_nodes<T: fmt::Debug>(
             f: &mut fmt::Formatter<'_>,
-            nodes: &Vec<Node<T>>,
+            nodes: &[Node<T>],
             check: bool,
             pad: &str,
             space: &str,
