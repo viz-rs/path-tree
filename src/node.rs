@@ -15,6 +15,7 @@ pub enum Key {
     Parameter(Kind),
 }
 
+#[derive(Clone)]
 pub struct Node<T> {
     pub key: Key,
     pub value: Option<T>,
