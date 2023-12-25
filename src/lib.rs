@@ -143,17 +143,16 @@ use alloc::{
     vec::Vec,
 };
 use core::str::from_utf8;
-
 use smallvec::SmallVec;
 
 mod node;
-mod parser;
-
 pub use node::{Key, Node};
+
+mod parser;
 pub use parser::{Kind, Parser, Piece, Position};
 
 /// A path tree.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PathTree<T> {
     id: usize,
     routes: Vec<(T, Vec<Piece>)>,
@@ -208,7 +207,7 @@ impl<T> PathTree<T> {
         }
     }
 
-    /// Returns the [Path] by the given path.
+    /// Returns the [`Path`] by the given path.
     #[must_use]
     pub fn find<'a, 'b>(&'a self, path: &'b str) -> Option<(&T, Path<'a, 'b>)> {
         let bytes = path.as_bytes();
