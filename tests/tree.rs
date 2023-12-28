@@ -2218,5 +2218,5 @@ fn cloneable() {
     assert_eq!(
         <dyn std::any::Any>::type_id(&tree),
         <dyn std::any::Any>::type_id(&tree.clone())
-    )
+    );
 }
