@@ -2211,3 +2211,12 @@ fn github_tree() {
         "/viz-rs/path-tree/releases/download/v0.5.0/v0.5.0.gz"
     );
 }
+
+#[test]
+fn cloneable() {
+    let tree = PathTree::<usize>::new();
+    assert_eq!(
+        <dyn std::any::Any>::type_id(&tree),
+        <dyn std::any::Any>::type_id(&tree.clone())
+    )
+}
