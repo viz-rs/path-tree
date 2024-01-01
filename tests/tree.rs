@@ -2238,7 +2238,7 @@ fn test_dots_no_ext() {
 #[test]
 fn test_dots_ext() {
     let mut tree = PathTree::new();
-    let _ = tree.insert("/:name*.123", 2);
+    let _ = tree.insert("/:name+.123", 2);
     let _ = tree.insert("/:name*.123.456", 1);
 
     let result = tree.find("/abc.xyz.123");
