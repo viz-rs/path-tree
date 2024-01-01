@@ -2220,3 +2220,40 @@ fn cloneable() {
         <dyn std::any::Any>::type_id(&tree.clone())
     );
 }
+
+#[test]
+fn test_dots_no_ext() {
+    let mut tree = PathTree::new();
+    let _ = tree.insert("/:name", 1);
+
+    let result = tree.find("/abc.xyz.123");
+    assert!(result.is_some());
+
+    let (value, params) = result.unwrap();
+    assert_eq!(value, &1);
+
+    assert_eq!(params.params(), &[("name", "abc.xyz.123")]);
+}
+
+#[test]
+fn test_dots_ext() {
+    let mut tree = PathTree::new();
+    let _ = tree.insert("/:name*.123", 2);
+    let _ = tree.insert("/:name*.123.456", 1);
+
+    let result = tree.find("/abc.xyz.123");
+    assert!(result.is_some());
+
+    let (value, params) = result.unwrap();
+    assert_eq!(value, &2);
+
+    assert_eq!(params.params(), &[("name", "abc.xyz")]);
+
+    let result = tree.find("/abc.xyz.123.456");
+    assert!(result.is_some());
+
+    let (value, params) = result.unwrap();
+    assert_eq!(value, &1);
+
+    assert_eq!(params.params(), &[("name", "abc.xyz")]);
+}
