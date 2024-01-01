@@ -285,12 +285,33 @@ impl<T: fmt::Debug> Node<T> {
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes.iter().find_map(|node| match &node.key {
                                 Key::String(s) => {
-                                    bytes.iter().position(|b| s[0] == *b).and_then(|n| {
-                                        node._find(start + n, &bytes[n..], ranges).map(|id| {
-                                            ranges.push(start..start + n);
-                                            id
+                                    let mut keep_running = true;
+                                    bytes
+                                        .iter()
+                                        // as it turns out doing .copied() here is much slower than dereferencing in the closure
+                                        // https://godbolt.org/z/7dnW91T1Y
+                                        .take_while(|b| {
+                                            if **b == b'/' && keep_running {
+                                                keep_running = false;
+                                                true
+                                            } else {
+                                                keep_running
+                                            }
                                         })
-                                    })
+                                        .enumerate()
+                                        .filter_map(
+                                            |(idx, b)| if s[0] == *b { Some(idx) } else { None },
+                                        )
+                                        .find_map(|n| {
+                                            let found = node
+                                                ._find(start + n, &bytes[n..], ranges)
+                                                .map(|id| {
+                                                    ranges.push(start..start + n);
+                                                    id
+                                                });
+
+                                            found
+                                        })
                                 }
                                 Key::Parameter(_) => unreachable!(),
                             })
