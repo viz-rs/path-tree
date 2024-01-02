@@ -2264,6 +2264,16 @@ fn test_dots_ext_no_qualifier() {
     let _ = tree.insert("/:name.js", 2);
     let _ = tree.insert("/:name.js.gz", 1);
 
+    assert_eq!(
+        format!("{:?}", &tree.node),
+        r"
+/
+└── :
+    └── .js •0
+        └── .gz •1
+"
+    );
+
     let result = tree.find("/node.js");
     assert!(result.is_some());
 

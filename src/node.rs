@@ -221,7 +221,7 @@ impl<T: fmt::Debug> Node<T> {
                                         // as it turns out doing .copied() here is much slower than dereferencing in the closure
                                         // https://godbolt.org/z/7dnW91T1Y
                                         .take_while(|b| {
-                                            if **b == b'/' && keep_running {
+                                            if keep_running && **b == b'/' {
                                                 keep_running = false;
                                                 true
                                             } else {
@@ -229,18 +229,14 @@ impl<T: fmt::Debug> Node<T> {
                                             }
                                         })
                                         .enumerate()
-                                        .filter_map(
-                                            |(idx, b)| if s[0] == *b { Some(idx) } else { None },
-                                        )
-                                        .find_map(|n| {
-                                            let found = node
-                                                ._find(start + n, &bytes[n..], ranges)
-                                                .map(|id| {
-                                                    ranges.push(start..start + n);
-                                                    id
-                                                });
-
-                                            found
+                                        .find_map(|(n, b)| {
+                                            if s[0] != *b {
+                                                return None;
+                                            }
+                                            node._find(start + n, &bytes[n..], ranges).map(|id| {
+                                                ranges.push(start..start + n);
+                                                id
+                                            })
                                         })
                                 }
                                 Key::Parameter(_) => unreachable!(),
