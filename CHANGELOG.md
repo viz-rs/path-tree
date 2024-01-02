@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4] - 2024-01-02
+
+### Features
+
+- normal match repeated pattern by @TroyKomodo, #36, #37
+
 ## [0.6.0] - 2022-09-28
 
 ### Features
