@@ -417,20 +417,16 @@ impl<T: fmt::Debug> Node<T> {
                                         m >= s.len()
                                     };
                                     if right_length {
-                                        return bytes
-                                            .iter()
-                                            .enumerate()
-                                            .filter_map(
-                                                |(n, b)| if s[0] == *b { Some(n) } else { None },
-                                            )
-                                            .find_map(|n| {
+                                        return bytes.iter().position(|b| s[0] == *b).and_then(
+                                            |n| {
                                                 node._find(start + n, &bytes[n..], ranges).map(
                                                     |id| {
                                                         ranges.push(start..start + n);
                                                         id
                                                     },
                                                 )
-                                            });
+                                            },
+                                        );
                                     }
                                 }
                                 None
