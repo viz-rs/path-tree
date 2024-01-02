@@ -2257,3 +2257,60 @@ fn test_dots_ext() {
 
     assert_eq!(params.params(), &[("name", "abc.xyz")]);
 }
+
+#[test]
+fn test_dots_ext_no_qualifier() {
+    let mut tree = PathTree::new();
+    let _ = tree.insert("/:name.js", 2);
+    let _ = tree.insert("/:name.js.gz", 1);
+
+    assert_eq!(
+        format!("{:?}", &tree.node),
+        r"
+/
+└── :
+    └── .js •0
+        └── .gz •1
+"
+    );
+
+    let result = tree.find("/node.js");
+    assert!(result.is_some());
+
+    let (value, params) = result.unwrap();
+    assert_eq!(value, &2);
+
+    assert_eq!(params.params(), &[("name", "node")]);
+
+    let result = tree.find("/path.lib.js");
+    assert!(result.is_some());
+
+    let (value, params) = result.unwrap();
+    assert_eq!(value, &2);
+
+    assert_eq!(params.params(), &[("name", "path.lib")]);
+
+    let result = tree.find("/node.js.js");
+    assert!(result.is_some());
+
+    let (value, params) = result.unwrap();
+    assert_eq!(value, &2);
+
+    assert_eq!(params.params(), &[("name", "node.js")]);
+
+    let result = tree.find("/node.js.gz");
+    assert!(result.is_some());
+
+    let (value, params) = result.unwrap();
+    assert_eq!(value, &1);
+
+    assert_eq!(params.params(), &[("name", "node")]);
+
+    let result = tree.find("/node.js.gz.js.gz");
+    assert!(result.is_some());
+
+    let (value, params) = result.unwrap();
+    assert_eq!(value, &1);
+
+    assert_eq!(params.params(), &[("name", "node.js.gz")]);
+}
