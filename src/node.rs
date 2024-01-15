@@ -229,10 +229,8 @@ impl<T: fmt::Debug> Node<T> {
                                             }
                                         })
                                         .enumerate()
-                                        .find_map(|(n, b)| {
-                                            if s[0] != *b {
-                                                return None;
-                                            }
+                                        .filter_map(|(n, b)| (s[0] == *b).then_some(n))
+                                        .find_map(|n| {
                                             node._find(start + n, &bytes[n..], ranges).map(|id| {
                                                 ranges.push(start..start + n);
                                                 id
@@ -343,15 +341,18 @@ impl<T: fmt::Debug> Node<T> {
                                         m >= s.len()
                                     };
                                     if right_length {
-                                        return bytes.iter().enumerate().find_map(|(n, b)| {
-                                            if s[0] != *b {
-                                                return None;
-                                            }
-                                            node._find(start + n, &bytes[n..], ranges).map(|id| {
-                                                ranges.push(start..start + n);
-                                                id
-                                            })
-                                        });
+                                        return bytes
+                                            .iter()
+                                            .enumerate()
+                                            .filter_map(|(n, b)| (s[0] == *b).then_some(n))
+                                            .find_map(|n| {
+                                                node._find(start + n, &bytes[n..], ranges).map(
+                                                    |id| {
+                                                        ranges.push(start..start + n);
+                                                        id
+                                                    },
+                                                )
+                                            });
                                     }
                                 }
                                 None
