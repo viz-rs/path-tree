@@ -33,7 +33,7 @@ where
         req: Request<Incoming>,
     ) -> Pin<Box<dyn Future<Output = Response<Body>> + Send + 'a>> {
         let fut = (self)(req);
-        Box::pin(async move { fut.await })
+        Box::pin(fut)
     }
 }
 

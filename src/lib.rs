@@ -212,7 +212,7 @@ impl<T> PathTree<T> {
     pub fn find<'a, 'b>(&'a self, path: &'b str) -> Option<(&T, Path<'a, 'b>)> {
         let bytes = path.as_bytes();
         self.node.find(bytes).and_then(|(id, ranges)| {
-            self.get_route(*id).map(|(value, pieces)| {
+            self.routes.get(*id).map(|(value, pieces)| {
                 (
                     value,
                     Path {
