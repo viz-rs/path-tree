@@ -178,6 +178,7 @@ impl<T> PathTree<T> {
     }
 
     /// Inserts a part path-value to the tree and returns the id.
+    #[allow(clippy::missing_panics_doc)]
     #[must_use]
     pub fn insert(&mut self, path: &str, value: T) -> usize {
         let mut node = &mut self.node;

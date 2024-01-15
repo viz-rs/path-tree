@@ -387,6 +387,9 @@ impl<T: fmt::Debug> Node<T> {
         self._find(0, bytes, &mut ranges).map(|t| (t, ranges))
     }
 
+    #[allow(clippy::only_used_in_recursion)]
+    #[allow(clippy::too_many_lines)]
+    #[inline]
     pub fn _remove(&mut self, mut start: usize, mut bytes: &[u8]) -> Option<T> {
         let mut m = bytes.len();
         match &self.key {
@@ -411,24 +414,22 @@ impl<T: fmt::Debug> Node<T> {
 
                     if m == 0 {
                         return self.value.take();
-                    } else {
+                    } else if let Some(id) = self.nodes0.as_mut().and_then(|nodes| {
                         // static
-                        if let Some(id) = self.nodes0.as_mut().and_then(|nodes| {
-                            nodes
-                                .binary_search_by(|node| match &node.key {
-                                    Key::String(s) => {
-                                        // s[0].cmp(&bytes[0])
-                                        // opt!
-                                        // lets `/` at end
-                                        compare(s[0], bytes[0])
-                                    }
-                                    Key::Parameter(_) => unreachable!(),
-                                })
-                                .ok()
-                                .and_then(|i| nodes[i]._remove(start, bytes))
-                        }) {
-                            return Some(id);
-                        }
+                        nodes
+                            .binary_search_by(|node| match &node.key {
+                                Key::String(s) => {
+                                    // s[0].cmp(&bytes[0])
+                                    // opt!
+                                    // lets `/` at end
+                                    compare(s[0], bytes[0])
+                                }
+                                Key::Parameter(_) => unreachable!(),
+                            })
+                            .ok()
+                            .and_then(|i| nodes[i]._remove(start, bytes))
+                    }) {
+                        return Some(id);
                     }
 
                     // parameter
@@ -582,10 +583,8 @@ impl<T: fmt::Debug> Node<T> {
                             return self.value.take();
                         }
                     } else {
-                        if self.nodes0.is_none() && self.nodes1.is_none() {
-                            if self.value.is_some() {
-                                return self.value.take();
-                            }
+                        if self.nodes0.is_none() && self.nodes1.is_none() && self.value.is_some() {
+                            return self.value.take();
                         }
 
                         // static
