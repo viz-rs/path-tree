@@ -618,8 +618,7 @@ impl<T: fmt::Debug> Node<T> {
                     if k == &Kind::ZeroOrMoreSegment {
                         return self.nodes0.as_mut().and_then(|nodes| {
                             nodes
-                                .iter_mut()
-                                .last()
+                                .last_mut()
                                 .filter(|node| match &node.key {
                                     Key::String(s) => s[0] == b'/',
                                     Key::Parameter(_) => unreachable!(),
