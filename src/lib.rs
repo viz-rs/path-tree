@@ -139,6 +139,7 @@
 extern crate alloc;
 
 use alloc::{
+    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
@@ -155,7 +156,7 @@ pub use parser::{Kind, Parser, Piece, Position};
 #[derive(Clone, Debug)]
 pub struct PathTree<T> {
     id: usize,
-    routes: Vec<(T, Vec<Piece>)>,
+    routes: BTreeMap<usize, (T, Vec<Piece>)>,
     pub node: Node<usize>,
 }
 
@@ -171,7 +172,7 @@ impl<T> PathTree<T> {
     pub fn new() -> Self {
         Self {
             id: 0,
-            routes: Vec::new(),
+            routes: BTreeMap::new(),
             node: Node::new(Key::String(Vec::new()), None),
         }
     }
@@ -193,14 +194,15 @@ impl<T> PathTree<T> {
         };
 
         if let Some(id) = node.value {
-            self.routes[id].0 = value;
+            let route = self.routes.get_mut(&id).expect("route should exist");
+            route.0 = value;
             if overwritten {
-                self.routes[id].1 = pieces;
+                route.1 = pieces;
             }
             id
         } else {
-            self.routes.push((value, pieces));
             let id = self.id;
+            self.routes.insert(id, (value, pieces));
             node.value = Some(id);
             self.id += 1;
             id
@@ -212,7 +214,7 @@ impl<T> PathTree<T> {
     pub fn find<'a, 'b>(&'a self, path: &'b str) -> Option<(&T, Path<'a, 'b>)> {
         let bytes = path.as_bytes();
         self.node.find(bytes).and_then(|(id, ranges)| {
-            self.routes.get(*id).map(|(value, pieces)| {
+            self.routes.get(id).map(|(value, pieces)| {
                 (
                     value,
                     Path {
@@ -230,11 +232,17 @@ impl<T> PathTree<T> {
         })
     }
 
+    pub fn remove(&mut self, path: &str) -> Option<T> {
+        self.node
+            .remove(path.as_bytes())
+            .and_then(|id| self.routes.remove(&id).map(|(value, _)| value))
+    }
+
     /// Gets the route by id.
     #[must_use]
     #[inline]
     pub fn get_route(&self, index: usize) -> Option<&(T, Vec<Piece>)> {
-        self.routes.get(index)
+        self.routes.get(&index)
     }
 
     /// Generates URL with the params.

@@ -384,7 +384,258 @@ impl<T: fmt::Debug> Node<T> {
 
     pub fn find(&self, bytes: &[u8]) -> Option<(&T, SmallVec<[Range<usize>; 8]>)> {
         let mut ranges = SmallVec::<[Range<usize>; 8]>::new(); // opt!
-        return self._find(0, bytes, &mut ranges).map(|t| (t, ranges));
+        self._find(0, bytes, &mut ranges).map(|t| (t, ranges))
+    }
+
+    pub fn _remove(&mut self, mut start: usize, mut bytes: &[u8]) -> Option<T> {
+        let mut m = bytes.len();
+        match &self.key {
+            Key::String(s) => {
+                let n = s.len();
+                let mut flag = m >= n;
+
+                // opt!
+                if flag {
+                    if n == 1 {
+                        flag = s[0] == bytes[0];
+                    } else {
+                        flag = s == &bytes[..n];
+                    }
+                }
+
+                // starts with prefix
+                if flag {
+                    m -= n;
+                    start += n;
+                    bytes = &bytes[n..];
+
+                    if m == 0 {
+                        return self.value.take();
+                    } else {
+                        // static
+                        if let Some(id) = self.nodes0.as_mut().and_then(|nodes| {
+                            nodes
+                                .binary_search_by(|node| match &node.key {
+                                    Key::String(s) => {
+                                        // s[0].cmp(&bytes[0])
+                                        // opt!
+                                        // lets `/` at end
+                                        compare(s[0], bytes[0])
+                                    }
+                                    Key::Parameter(_) => unreachable!(),
+                                })
+                                .ok()
+                                .and_then(|i| nodes[i]._remove(start, bytes))
+                        }) {
+                            return Some(id);
+                        }
+                    }
+
+                    // parameter
+                    if let Some(id) = self.nodes1.as_mut().and_then(|nodes| {
+                        let b = m > 0;
+                        nodes
+                            .iter_mut()
+                            .filter(|node| match node.key {
+                                Key::Parameter(pk)
+                                    if pk == Kind::Normal || pk == Kind::OneOrMore =>
+                                {
+                                    b
+                                }
+                                _ => true,
+                            })
+                            .find_map(|node| node._remove(start, bytes))
+                    }) {
+                        return Some(id);
+                    }
+                } else if n == 1 && s[0] == b'/' {
+                    if let Some(id) = self.nodes1.as_mut().and_then(|nodes| {
+                        nodes
+                            .iter_mut()
+                            .filter(|node| {
+                                matches!(node.key,
+                                    Key::Parameter(pk)
+                                        if pk == Kind::OptionalSegment
+                                            || pk == Kind::ZeroOrMoreSegment
+                                )
+                            })
+                            .find_map(|node| node._remove(start, bytes))
+                    }) {
+                        return Some(id);
+                    }
+                }
+            }
+            Key::Parameter(k) => match k {
+                Kind::Normal | Kind::Optional | Kind::OptionalSegment => {
+                    if m == 0 {
+                        if k == &Kind::Normal {
+                            return None;
+                        }
+
+                        // last
+                        if self.nodes0.is_none() && self.nodes1.is_none() {
+                            return self.value.take();
+                        }
+                    } else {
+                        // static
+                        if let Some(id) = self.nodes0.as_mut().and_then(|nodes| {
+                            nodes.iter_mut().find_map(|node| match &node.key {
+                                Key::String(s) => {
+                                    let mut keep_running = true;
+                                    if let Some(n) = bytes
+                                        .iter()
+                                        // as it turns out doing .copied() here is much slower than dereferencing in the closure
+                                        // https://godbolt.org/z/7dnW91T1Y
+                                        .take_while(|b| {
+                                            if keep_running && **b == b'/' {
+                                                keep_running = false;
+                                                true
+                                            } else {
+                                                keep_running
+                                            }
+                                        })
+                                        .enumerate()
+                                        .find_map(|(n, b)| (s[0] == *b).then_some(n))
+                                    {
+                                        node._remove(start + n, &bytes[n..])
+                                    } else {
+                                        None
+                                    }
+                                }
+                                Key::Parameter(_) => unreachable!(),
+                            })
+                        }) {
+                            return Some(id);
+                        }
+
+                        // parameter => `:a:b:c`
+                        if let Some(id) = self.nodes1.as_mut().and_then(|nodes| {
+                            let b = m - 1 > 0;
+                            nodes
+                                .iter_mut()
+                                .filter(|node| match node.key {
+                                    Key::Parameter(pk)
+                                        if pk == Kind::Normal || pk == Kind::OneOrMore =>
+                                    {
+                                        b
+                                    }
+                                    _ => true,
+                                })
+                                .find_map(|node| node._remove(start + 1, &bytes[1..]))
+                        }) {
+                            return Some(id);
+                        }
+                    }
+
+                    // parameter => `:a:b?:c?`
+                    if k == &Kind::Optional || k == &Kind::OptionalSegment {
+                        if let Some(id) = self.nodes1.as_mut().and_then(|nodes| {
+                            let b = m > 0;
+                            nodes
+                                .iter_mut()
+                                .filter(|node| match &node.key {
+                                    Key::Parameter(pk)
+                                        if pk == &Kind::Normal || pk == &Kind::OneOrMore =>
+                                    {
+                                        b
+                                    }
+                                    _ => true,
+                                })
+                                .find_map(|node| node._remove(start, bytes))
+                        }) {
+                            // param should be empty
+                            return Some(id);
+                        }
+                    }
+
+                    if let Some(n) = bytes.iter().position(|b| *b == b'/') {
+                        bytes = &bytes[n..];
+                    } else {
+                        if self.value.is_some() {
+                            return self.value.take();
+                        }
+                        bytes = &bytes[m..];
+                    }
+
+                    if k == &Kind::OptionalSegment {
+                        if let Some(id) = self.nodes0.as_mut().and_then(|nodes| {
+                            nodes
+                                .last_mut()
+                                .filter(|node| match &node.key {
+                                    Key::String(s) => s[0] == b'/',
+                                    Key::Parameter(_) => unreachable!(),
+                                })
+                                .and_then(|node| node._remove(start, bytes))
+                        }) {
+                            return Some(id);
+                        }
+                    }
+                }
+                Kind::OneOrMore | Kind::ZeroOrMore | Kind::ZeroOrMoreSegment => {
+                    let is_one_or_more = k == &Kind::OneOrMore;
+                    if m == 0 {
+                        if is_one_or_more {
+                            return None;
+                        }
+
+                        if self.nodes0.is_none() && self.nodes1.is_none() {
+                            return self.value.take();
+                        }
+                    } else {
+                        if self.nodes0.is_none() && self.nodes1.is_none() {
+                            if self.value.is_some() {
+                                return self.value.take();
+                            }
+                        }
+
+                        // static
+                        if let Some(id) = self.nodes0.as_mut().and_then(|nodes| {
+                            nodes.iter_mut().find_map(|node| {
+                                if let Key::String(s) = &node.key {
+                                    let right_length = if is_one_or_more {
+                                        m > s.len()
+                                    } else {
+                                        m >= s.len()
+                                    };
+                                    if right_length {
+                                        return if let Some(n) = bytes
+                                            .iter()
+                                            .enumerate()
+                                            .find_map(|(n, b)| (s[0] == *b).then_some(n))
+                                        {
+                                            node._remove(start + n, &bytes[n..])
+                                        } else {
+                                            None
+                                        };
+                                    }
+                                }
+                                None
+                            })
+                        }) {
+                            return Some(id);
+                        }
+                    }
+
+                    if k == &Kind::ZeroOrMoreSegment {
+                        return self.nodes0.as_mut().and_then(|nodes| {
+                            nodes
+                                .iter_mut()
+                                .last()
+                                .filter(|node| match &node.key {
+                                    Key::String(s) => s[0] == b'/',
+                                    Key::Parameter(_) => unreachable!(),
+                                })
+                                .and_then(|node| node._remove(start, bytes))
+                        });
+                    }
+                }
+            },
+        }
+        None
+    }
+
+    pub fn remove(&mut self, bytes: &[u8]) -> Option<T> {
+        self._remove(0, bytes)
     }
 }
 
