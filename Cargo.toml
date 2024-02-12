@@ -1,6 +1,6 @@
 [package]
 name = "path-tree"
-version = "0.7.4"
+version = "0.7.5"
 authors = ["Fangdun Tsai <cfddream@gmail.com>"]
 description = "path-tree is a lightweight high performance HTTP request router for Rust"
 homepage = "https://github.com/viz-rs/path-tree"
@@ -21,7 +21,7 @@ include = [
 ]
 
 [dependencies]
-smallvec = "1.11.0"
+smallvec = "1.13.0"
 
 [dev-dependencies]
 bytes = "1"
