@@ -9,15 +9,15 @@ pub enum Kind {
     /// `?` 63
     /// Optional: `:name?-`
     Optional,
-    /// Optional Segment: `/:name?/` or `/:name?`
+    /// Optional segment: `/:name?/` or `/:name?`
     OptionalSegment,
     // Optional,
     /// `+` 43
     OneOrMore,
     /// `*` 42
-    /// ZeroOrMore: `*-`
+    /// Zero or more: `*-`
     ZeroOrMore,
-    /// ZeroOrMore Segment: `/*/` or `/*`
+    /// Zero or more segment: `/*/` or `/*`
     ZeroOrMoreSegment,
     // TODO: regexp
 }
