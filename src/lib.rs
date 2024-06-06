@@ -140,7 +140,7 @@ extern crate alloc;
 
 use alloc::{
     string::{String, ToString},
-    vec::Vec,
+    vec::{IntoIter, Vec},
 };
 use core::{slice::Iter, str::from_utf8};
 use smallvec::SmallVec;
@@ -261,6 +261,10 @@ impl<T> PathTree<T> {
 
     pub fn iter(&self) -> Iter<'_, (T, Vec<Piece>)> {
         self.routes.iter()
+    }
+
+    pub fn into_iter(self) -> IntoIter<(T, Vec<Piece>)> {
+        self.routes.into_iter()
     }
 }
 
