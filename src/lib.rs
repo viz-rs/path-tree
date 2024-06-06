@@ -142,7 +142,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::str::from_utf8;
+use core::{slice::Iter, str::from_utf8};
 use smallvec::SmallVec;
 
 mod node;
@@ -257,6 +257,10 @@ impl<T> PathTree<T> {
 
             from_utf8(&bytes).map(ToString::to_string).ok()
         })
+    }
+
+    pub fn iter(&self) -> Iter<'_, (T, Vec<Piece>)> {
+        self.routes.iter()
     }
 }
 
