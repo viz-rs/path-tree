@@ -262,8 +262,13 @@ impl<T> PathTree<T> {
     pub fn iter(&self) -> Iter<'_, (T, Vec<Piece>)> {
         self.routes.iter()
     }
+}
 
-    pub fn into_iter(self) -> IntoIter<(T, Vec<Piece>)> {
+impl<T> IntoIterator for PathTree<T> {
+    type Item = (T, Vec<Piece>);
+    type IntoIter = IntoIter<(T, Vec<Piece>)>;
+
+    fn into_iter(self) -> Self::IntoIter {
         self.routes.into_iter()
     }
 }
