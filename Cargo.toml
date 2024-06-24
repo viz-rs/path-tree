@@ -21,7 +21,7 @@ include = [
 ]
 
 [dependencies]
-smallvec = "1.13.2"
+smallvec = { version = "1.13.2", features = ["const_new"] }
 
 [dev-dependencies]
 bytes = "1"
