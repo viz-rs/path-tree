@@ -384,7 +384,7 @@ impl<T: fmt::Debug> Node<T> {
     }
 
     pub fn find(&self, bytes: &[u8]) -> Option<(&T, SmallVec<[Range<usize>; 8]>)> {
-        let mut ranges = SmallVec::<[Range<usize>; 8]>::new(); // opt!
+        let mut ranges = SmallVec::<[Range<usize>; 8]>::new_const(); // opt!
         return self._find(0, bytes, &mut ranges).map(|t| (t, ranges));
     }
 }
