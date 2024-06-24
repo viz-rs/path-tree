@@ -29,6 +29,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
       - run: cargo test --all --verbose
+      - run: cargo bench
 
   clippy:
     name: Clippy
