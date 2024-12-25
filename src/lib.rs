@@ -209,7 +209,7 @@ impl<T> PathTree<T> {
 
     /// Returns the [`Path`] by the given path.
     #[must_use]
-    pub fn find<'a, 'b>(&'a self, path: &'b str) -> Option<(&T, Path<'a, 'b>)> {
+    pub fn find<'a, 'b>(&'a self, path: &'b str) -> Option<(&'a T, Path<'a, 'b>)> {
         let bytes = path.as_bytes();
         self.node.find(bytes).and_then(|(id, ranges)| {
             self.routes.get(*id).map(|(value, pieces)| {
@@ -281,7 +281,7 @@ pub struct Path<'a, 'b> {
     pub raws: SmallVec<[&'b str; 4]>,
 }
 
-impl<'a, 'b> Path<'a, 'b> {
+impl Path<'_, '_> {
     /// Gets current path pattern.
     ///
     /// # Panics

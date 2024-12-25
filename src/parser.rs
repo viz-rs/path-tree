@@ -142,7 +142,7 @@ impl<'a> Parser<'a> {
     }
 }
 
-impl<'a> Iterator for Parser<'a> {
+impl Iterator for Parser<'_> {
     type Item = Piece;
 
     fn next(&mut self) -> Option<Self::Item> {

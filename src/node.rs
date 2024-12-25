@@ -205,9 +205,8 @@ impl<T: fmt::Debug> Node<T> {
 
                         // last
                         if self.nodes0.is_none() && self.nodes1.is_none() {
-                            return self.value.as_ref().map(|id| {
+                            return self.value.as_ref().inspect(|_| {
                                 ranges.push(start..start);
-                                id
                             });
                         }
                     } else {
@@ -231,10 +230,11 @@ impl<T: fmt::Debug> Node<T> {
                                         .enumerate()
                                         .filter_map(|(n, b)| (s[0] == *b).then_some(n))
                                         .find_map(|n| {
-                                            node._find(start + n, &bytes[n..], ranges).map(|id| {
-                                                ranges.push(start..start + n);
-                                                id
-                                            })
+                                            node._find(start + n, &bytes[n..], ranges).inspect(
+                                                |_| {
+                                                    ranges.push(start..start + n);
+                                                },
+                                            )
                                         })
                                 }
                                 Key::Parameter(_) => unreachable!(),
@@ -318,9 +318,8 @@ impl<T: fmt::Debug> Node<T> {
                         }
 
                         if self.nodes0.is_none() && self.nodes1.is_none() {
-                            return self.value.as_ref().map(|id| {
+                            return self.value.as_ref().inspect(|_| {
                                 ranges.push(start..start);
-                                id
                             });
                         }
                     } else {
@@ -346,10 +345,9 @@ impl<T: fmt::Debug> Node<T> {
                                             .enumerate()
                                             .filter_map(|(n, b)| (s[0] == *b).then_some(n))
                                             .find_map(|n| {
-                                                node._find(start + n, &bytes[n..], ranges).map(
-                                                    |id| {
+                                                node._find(start + n, &bytes[n..], ranges).inspect(
+                                                    |_| {
                                                         ranges.push(start..start + n);
-                                                        id
                                                     },
                                                 )
                                             });
@@ -385,7 +383,7 @@ impl<T: fmt::Debug> Node<T> {
 
     pub fn find(&self, bytes: &[u8]) -> Option<(&T, SmallVec<[Range<usize>; 8]>)> {
         let mut ranges = SmallVec::<[Range<usize>; 8]>::new_const(); // opt!
-        return self._find(0, bytes, &mut ranges).map(|t| (t, ranges));
+        self._find(0, bytes, &mut ranges).map(|t| (t, ranges))
     }
 }
 
