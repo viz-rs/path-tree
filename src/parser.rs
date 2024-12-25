@@ -108,11 +108,8 @@ impl<'a> Parser<'a> {
                         } else {
                             let f = {
                                 let prefix = start >= 2
-                                    && self
-                                        .input
-                                        .get(start - 2..start - 1)
-                                        .map_or(false, |s| s == "/");
-                                let suffix = self.cursor.peek().map_or(true, |(_, c)| *c == '/');
+                                    && (self.input.get(start - 2..start - 1) == Some("/"));
+                                let suffix = self.cursor.peek().is_none_or(|(_, c)| *c == '/');
                                 prefix && suffix
                             };
                             if c == '?' {
@@ -169,9 +166,8 @@ impl Iterator for Parser<'_> {
                             Kind::OneOrMore
                         } else {
                             let f = {
-                                let prefix =
-                                    i >= 1 && self.input.get(i - 1..i).map_or(false, |s| s == "/");
-                                let suffix = self.cursor.peek().map_or(true, |(_, c)| *c == '/');
+                                let prefix = i >= 1 && (self.input.get(i - 1..i) == Some("/"));
+                                let suffix = self.cursor.peek().is_none_or(|(_, c)| *c == '/');
                                 prefix && suffix
                             };
                             if f {
