@@ -345,11 +345,10 @@ impl<T: fmt::Debug> Node<T> {
                                             .enumerate()
                                             .filter_map(|(n, b)| (s[0] == *b).then_some(n))
                                             .find_map(|n| {
-                                                node.find_with(start + n, &bytes[n..], ranges).inspect(
-                                                    |_| {
+                                                node.find_with(start + n, &bytes[n..], ranges)
+                                                    .inspect(|_| {
                                                         ranges.push(start..start + n);
-                                                    },
-                                                )
+                                                    })
                                             });
                                     }
                                 }
