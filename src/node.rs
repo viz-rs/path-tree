@@ -111,7 +111,7 @@ impl<T: fmt::Debug> Node<T> {
     #[allow(clippy::range_plus_one)]
     #[allow(clippy::too_many_lines)]
     #[inline]
-    fn _find(
+    fn find_with(
         &self,
         mut start: usize,
         mut bytes: &[u8],
@@ -156,7 +156,7 @@ impl<T: fmt::Debug> Node<T> {
                                     Key::Parameter(_) => unreachable!(),
                                 })
                                 .ok()
-                                .and_then(|i| nodes[i]._find(start, bytes, ranges))
+                                .and_then(|i| nodes[i].find_with(start, bytes, ranges))
                         }) {
                             return Some(id);
                         }
@@ -175,7 +175,7 @@ impl<T: fmt::Debug> Node<T> {
                                 }
                                 _ => true,
                             })
-                            .find_map(|node| node._find(start, bytes, ranges))
+                            .find_map(|node| node.find_with(start, bytes, ranges))
                     }) {
                         return Some(id);
                     }
@@ -190,7 +190,7 @@ impl<T: fmt::Debug> Node<T> {
                                             || pk == Kind::ZeroOrMoreSegment
                                 )
                             })
-                            .find_map(|node| node._find(start, bytes, ranges))
+                            .find_map(|node| node.find_with(start, bytes, ranges))
                     }) {
                         return Some(id);
                     }
@@ -230,7 +230,7 @@ impl<T: fmt::Debug> Node<T> {
                                         .enumerate()
                                         .filter_map(|(n, b)| (s[0] == *b).then_some(n))
                                         .find_map(|n| {
-                                            node._find(start + n, &bytes[n..], ranges).inspect(
+                                            node.find_with(start + n, &bytes[n..], ranges).inspect(
                                                 |_| {
                                                     ranges.push(start..start + n);
                                                 },
@@ -256,7 +256,7 @@ impl<T: fmt::Debug> Node<T> {
                                     }
                                     _ => true,
                                 })
-                                .find_map(|node| node._find(start + 1, &bytes[1..], ranges))
+                                .find_map(|node| node.find_with(start + 1, &bytes[1..], ranges))
                         }) {
                             ranges.push(start..start + 1);
                             return Some(id);
@@ -277,7 +277,7 @@ impl<T: fmt::Debug> Node<T> {
                                     }
                                     _ => true,
                                 })
-                                .find_map(|node| node._find(start, bytes, ranges))
+                                .find_map(|node| node.find_with(start, bytes, ranges))
                         }) {
                             // param should be empty
                             ranges.push(start + m..start + m);
@@ -303,7 +303,7 @@ impl<T: fmt::Debug> Node<T> {
                                     Key::String(s) => s[0] == b'/',
                                     Key::Parameter(_) => unreachable!(),
                                 })
-                                .and_then(|node| node._find(start, bytes, ranges))
+                                .and_then(|node| node.find_with(start, bytes, ranges))
                         }) {
                             ranges.push(start..start + m);
                             return Some(id);
@@ -345,7 +345,7 @@ impl<T: fmt::Debug> Node<T> {
                                             .enumerate()
                                             .filter_map(|(n, b)| (s[0] == *b).then_some(n))
                                             .find_map(|n| {
-                                                node._find(start + n, &bytes[n..], ranges).inspect(
+                                                node.find_with(start + n, &bytes[n..], ranges).inspect(
                                                     |_| {
                                                         ranges.push(start..start + n);
                                                     },
@@ -368,7 +368,7 @@ impl<T: fmt::Debug> Node<T> {
                                     Key::String(s) => s[0] == b'/',
                                     Key::Parameter(_) => unreachable!(),
                                 })
-                                .and_then(|node| node._find(start, bytes, ranges))
+                                .and_then(|node| node.find_with(start, bytes, ranges))
                         }) {
                             // param should be empty
                             ranges.push(start + m..start + m);
@@ -383,7 +383,7 @@ impl<T: fmt::Debug> Node<T> {
 
     pub fn find(&self, bytes: &[u8]) -> Option<(&T, SmallVec<[Range<usize>; 8]>)> {
         let mut ranges = SmallVec::<[Range<usize>; 8]>::new_const(); // opt!
-        self._find(0, bytes, &mut ranges).map(|t| (t, ranges))
+        self.find_with(0, bytes, &mut ranges).map(|t| (t, ranges))
     }
 }
 
