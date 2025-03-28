@@ -59,7 +59,7 @@ impl<'a> Parser<'a> {
                 '\\' => {
                     if start < i {
                         self.pos = i;
-                        return self.input[start..i].as_bytes();
+                        return &self.input.as_bytes()[start..i];
                     }
 
                     self.cursor.next();
@@ -70,13 +70,13 @@ impl<'a> Parser<'a> {
                         } else {
                             self.cursor.next();
                             self.pos = j + c.len_utf8();
-                            return self.input[j..self.pos].as_bytes();
+                            return &self.input.as_bytes()[j..self.pos];
                         }
                     }
                 }
                 ':' | '+' | '*' => {
                     self.pos = i + 1;
-                    return self.input[start..i].as_bytes();
+                    return &self.input.as_bytes()[start..i];
                 }
                 _ => {
                     self.cursor.next();
@@ -94,7 +94,7 @@ impl<'a> Parser<'a> {
                 '-' | '.' | '~' | '/' | '\\' | ':' => {
                     self.pos = i;
                     return (
-                        Position::Named(self.input[start..i].as_bytes().to_vec()),
+                        Position::Named(self.input.as_bytes()[start..i].to_vec()),
                         Kind::Normal,
                     );
                 }
@@ -102,7 +102,7 @@ impl<'a> Parser<'a> {
                     self.cursor.next();
                     self.pos = i + 1;
                     return (
-                        Position::Named(self.input[start..i].as_bytes().to_vec()),
+                        Position::Named(self.input.as_bytes()[start..i].to_vec()),
                         if c == '+' {
                             Kind::OneOrMore
                         } else {
@@ -133,7 +133,7 @@ impl<'a> Parser<'a> {
         }
 
         (
-            Position::Named(self.input[start..].as_bytes().to_vec()),
+            Position::Named(self.input.as_bytes()[start..].to_vec()),
             Kind::Normal,
         )
     }
