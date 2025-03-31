@@ -23,7 +23,7 @@ fn statics() {
 
     let mut routes = ROUTES.to_vec();
 
-    routes.shuffle(&mut rand::thread_rng());
+    routes.shuffle(&mut rand::rng());
 
     let mut tree = PathTree::<usize>::new();
 
@@ -64,7 +64,7 @@ fn wildcards() {
 
     let mut routes = (0..20).zip(ROUTES.iter()).collect::<Vec<_>>();
 
-    routes.shuffle(&mut rand::thread_rng());
+    routes.shuffle(&mut rand::rng());
 
     let mut tree = PathTree::<usize>::new();
 
