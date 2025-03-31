@@ -84,7 +84,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.input[start..].as_bytes()
+        &self.input.as_bytes()[start..]
     }
 
     fn parameter(&mut self) -> (Position, Kind) {
