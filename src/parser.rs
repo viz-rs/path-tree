@@ -1,7 +1,7 @@
 use alloc::{string::ToString, vec::Vec};
 use core::{iter::Peekable, str::CharIndices};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Kind {
     /// `:` 58
     /// `:name`
@@ -22,13 +22,13 @@ pub enum Kind {
     // TODO: regexp
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Piece {
     String(Vec<u8>),
     Parameter(Position, Kind),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Position {
     Index(usize, Vec<u8>),
     Named(Vec<u8>),

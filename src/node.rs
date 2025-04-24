@@ -9,7 +9,7 @@ use smallvec::SmallVec;
 
 use crate::Kind;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Key {
     String(Vec<u8>),
     Parameter(Kind),

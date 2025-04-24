@@ -274,7 +274,7 @@ impl<'a, T> IntoIterator for &'a PathTree<T> {
 }
 
 /// Matched route path infomation.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Path<'a, 'b> {
     pub id: &'a usize,
     pub pieces: &'a [Piece],
