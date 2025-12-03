@@ -244,7 +244,7 @@ impl<T> PathTree<T> {
             let mut bytes = Vec::new();
             let mut iter = params.iter();
 
-            for piece in pieces.iter() {
+            for piece in pieces {
                 match piece {
                     Piece::String(s) => {
                         bytes.extend_from_slice(s);
