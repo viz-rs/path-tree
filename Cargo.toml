@@ -26,14 +26,14 @@ smallvec = { version = "1.15.0", features = ["const_new"] }
 [dev-dependencies]
 bytes = "1"
 actix-router = "0.5"
-ntex-router = "0.5"
+ntex-router = "1.0"
 path-table = "1.0"
 route-recognizer = "0.3"
-matchit = "0.7"
+matchit = "0.9"
 gonzales = "0.0.3-beta"
 futures = "0.3"
 rand = "0.9"
-criterion = { version = "0.6", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 http-body-util = "0.1"
