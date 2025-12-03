@@ -244,16 +244,18 @@ impl<T> PathTree<T> {
             let mut bytes = Vec::new();
             let mut iter = params.iter();
 
-            pieces.iter().for_each(|piece| match piece {
-                Piece::String(s) => {
-                    bytes.extend_from_slice(s);
-                }
-                Piece::Parameter(_, _) => {
-                    if let Some(s) = iter.next() {
-                        bytes.extend_from_slice(s.as_bytes());
+            for piece in pieces.iter() {
+                match piece {
+                    Piece::String(s) => {
+                        bytes.extend_from_slice(s);
+                    }
+                    Piece::Parameter(_, _) => {
+                        if let Some(s) = iter.next() {
+                            bytes.extend_from_slice(s.as_bytes());
+                        }
                     }
                 }
-            });
+            }
 
             from_utf8(&bytes).map(ToString::to_string).ok()
         })
