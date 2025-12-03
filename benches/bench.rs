@@ -139,7 +139,7 @@ fn bench_path_find(c: &mut Criterion) {
         })
         .bench_function("matchit_at", |b| {
             let mut matcher = MatchitRouter::new();
-            for (i, r) in ROUTES_WITH_COLON.iter().enumerate() {
+            for (i, r) in ROUTES_WITH_BRACES.iter().enumerate() {
                 let _ = matcher.insert(*r, i);
             }
             b.iter(|| {
