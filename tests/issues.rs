@@ -29,11 +29,11 @@ fn test_44() {
     assert_eq!(path.params(), &[("me", r"\")]);
 
     // trim `/`
-    let trimed = "/test//now"
+    let trimmed = "/test//now"
         .split('/')
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>();
-    let mut path = trimed.join("/");
+    let mut path = trimmed.join("/");
     // add lead with `/`
     path.insert(0, '/');
     assert_eq!(path, "/test/now");
