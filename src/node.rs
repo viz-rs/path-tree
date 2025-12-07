@@ -210,6 +210,11 @@ impl<T: fmt::Debug> Node<T> {
                             });
                         }
                     } else {
+                        // if it's normal, parameter should not be empty
+                        if k == &Kind::Normal && bytes[0] == b'/' {
+                            return None;
+                        }
+
                         // static
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes.iter().find_map(|node| match &node.key {

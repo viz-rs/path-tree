@@ -1,6 +1,10 @@
 use alloc::{string::ToString, vec::Vec};
 use core::{iter::Peekable, str::CharIndices};
 
+/// Types of path segments.
+///
+/// Represents the matching pattern for parameters in URL paths.
+/// Different kinds determine how parameters match URL path segments.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Kind {
     /// `:` 58
