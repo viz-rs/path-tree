@@ -34,7 +34,7 @@ fn test_44() {
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>();
     let mut path = trimmed.join("/");
-    // add lead with `/`
+    // add leading `/`
     path.insert(0, '/');
     assert_eq!(path, "/test/now");
     let (value, path) = tree.find(&path).unwrap();
