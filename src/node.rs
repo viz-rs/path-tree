@@ -164,14 +164,13 @@ impl<T: fmt::Debug> Node<T> {
 
                     // parameter
                     if let Some(id) = self.nodes1.as_ref().and_then(|nodes| {
-                        let b = m > 0;
                         nodes
                             .iter()
                             .filter(|node| match node.key {
                                 Key::Parameter(pk)
                                     if pk == Kind::Normal || pk == Kind::OneOrMore =>
                                 {
-                                    b
+                                    m > 0
                                 }
                                 _ => true,
                             })
@@ -250,14 +249,13 @@ impl<T: fmt::Debug> Node<T> {
 
                         // parameter => `:a:b:c`
                         if let Some(id) = self.nodes1.as_ref().and_then(|nodes| {
-                            let b = m - 1 > 0;
                             nodes
                                 .iter()
                                 .filter(|node| match node.key {
                                     Key::Parameter(pk)
                                         if pk == Kind::Normal || pk == Kind::OneOrMore =>
                                     {
-                                        b
+                                        m - 1 > 0
                                     }
                                     _ => true,
                                 })
@@ -271,14 +269,13 @@ impl<T: fmt::Debug> Node<T> {
                     // parameter => `:a:b?:c?`
                     if k == &Kind::Optional || k == &Kind::OptionalSegment {
                         if let Some(id) = self.nodes1.as_ref().and_then(|nodes| {
-                            let b = m > 0;
                             nodes
                                 .iter()
                                 .filter(|node| match &node.key {
                                     Key::Parameter(pk)
                                         if pk == &Kind::Normal || pk == &Kind::OneOrMore =>
                                     {
-                                        b
+                                        m > 0
                                     }
                                     _ => true,
                                 })
@@ -341,7 +338,7 @@ impl<T: fmt::Debug> Node<T> {
                                 if let Key::String(s) = &node.key {
                                     let is_slash = is_one_or_more && s.len() == 1 && s[0] == b'/';
                                     if is_slash {
-                                        let r = bytes
+                                        if let Some(id) = bytes
                                             .iter()
                                             .enumerate()
                                             .filter_map(|(n, b)| (s[0] == *b).then_some(n))
@@ -358,10 +355,9 @@ impl<T: fmt::Debug> Node<T> {
                                                         })
                                                     })
                                                 })
-                                            });
-
-                                        if r.is_some() {
-                                            return r;
+                                            })
+                                        {
+                                            return Some(id);
                                         }
                                     }
 
@@ -513,23 +509,15 @@ impl<T: fmt::Debug> fmt::Debug for Node<T> {
     }
 }
 
-const KINDS: [u8; 5] = [b'/', b':', b'?', b'+', b'*'];
-
-#[inline]
-fn find_index(c: u8) -> Option<usize> {
-    KINDS.iter().position(|e| *e == c)
-}
-
 #[inline]
 fn compare(a: u8, b: u8) -> Ordering {
     if a == b {
-        return Ordering::Equal;
-    }
-
-    match (find_index(a), find_index(b)) {
-        (Some(m), Some(n)) => m.cmp(&n),
-        (Some(_), None) => Ordering::Greater,
-        (None, Some(_)) => Ordering::Less,
-        (None, None) => a.cmp(&b),
+        Ordering::Equal
+    } else if a == b'/' {
+        Ordering::Greater
+    } else if b == b'/' {
+        Ordering::Less
+    } else {
+        a.cmp(&b)
     }
 }
