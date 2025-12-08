@@ -132,7 +132,7 @@
 //! assert_eq!(p.params(), vec![("+1", "v1")]);
 //! ```
 
-#![no_std]
+// #![no_std]
 #![forbid(unsafe_code)]
 #![warn(rust_2018_idioms, unreachable_pub)]
 
