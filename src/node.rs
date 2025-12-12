@@ -210,6 +210,11 @@ impl<T: fmt::Debug> Node<T> {
                             });
                         }
                     } else {
+                        // if it's normal, parameter should not be empty
+                        if k == &Kind::Normal && bytes[0] == b'/' {
+                            return None;
+                        }
+
                         // static
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes.iter().find_map(|node| match &node.key {
@@ -334,12 +339,39 @@ impl<T: fmt::Debug> Node<T> {
                         if let Some(id) = self.nodes0.as_ref().and_then(|nodes| {
                             nodes.iter().find_map(|node| {
                                 if let Key::String(s) = &node.key {
-                                    let right_length = if is_one_or_more {
+                                    let is_slash = is_one_or_more && s.len() == 1 && s[0] == b'/';
+                                    if is_slash {
+                                        let r = bytes
+                                            .iter()
+                                            .enumerate()
+                                            .filter_map(|(n, b)| (s[0] == *b).then_some(n))
+                                            .find_map(|n| {
+                                                node.nodes0.as_ref().and_then(|nodes| {
+                                                    nodes.iter().find_map(|node| {
+                                                        node.find_with(
+                                                            start + n + 1,
+                                                            &bytes[n + 1..],
+                                                            ranges,
+                                                        )
+                                                        .inspect(|_| {
+                                                            ranges.push(start..start + n);
+                                                        })
+                                                    })
+                                                })
+                                            });
+
+                                        if r.is_some() {
+                                            return r;
+                                        }
+                                    }
+
+                                    let has_right_length = if is_one_or_more {
                                         m > s.len()
                                     } else {
                                         m >= s.len()
                                     };
-                                    if right_length {
+
+                                    if has_right_length {
                                         return bytes
                                             .iter()
                                             .enumerate()
@@ -481,15 +513,23 @@ impl<T: fmt::Debug> fmt::Debug for Node<T> {
     }
 }
 
+const KINDS: [u8; 5] = [b'/', b':', b'?', b'+', b'*'];
+
+#[inline]
+fn find_index(c: u8) -> Option<usize> {
+    KINDS.iter().position(|e| *e == c)
+}
+
 #[inline]
 fn compare(a: u8, b: u8) -> Ordering {
     if a == b {
-        Ordering::Equal
-    } else if a == b'/' {
-        Ordering::Greater
-    } else if b == b'/' {
-        Ordering::Less
-    } else {
-        a.cmp(&b)
+        return Ordering::Equal;
+    }
+
+    match (find_index(a), find_index(b)) {
+        (Some(m), Some(n)) => m.cmp(&n),
+        (Some(_), None) => Ordering::Greater,
+        (None, Some(_)) => Ordering::Less,
+        (None, None) => a.cmp(&b),
     }
 }
