@@ -509,15 +509,23 @@ impl<T: fmt::Debug> fmt::Debug for Node<T> {
     }
 }
 
+const KINDS: [u8; 5] = [b'/', b':', b'?', b'+', b'*'];
+
+#[inline]
+fn find_index(c: u8) -> Option<usize> {
+    KINDS.iter().position(|e| *e == c)
+}
+
 #[inline]
 fn compare(a: u8, b: u8) -> Ordering {
     if a == b {
-        Ordering::Equal
-    } else if a == b'/' {
-        Ordering::Greater
-    } else if b == b'/' {
-        Ordering::Less
-    } else {
-        a.cmp(&b)
+        return Ordering::Equal;
+    }
+
+    match (find_index(a), find_index(b)) {
+        (Some(m), Some(n)) => m.cmp(&n),
+        (Some(_), None) => Ordering::Greater,
+        (None, Some(_)) => Ordering::Less,
+        (None, None) => a.cmp(&b),
     }
 }
